@@ -36,7 +36,7 @@ add_subdirectory(sources/assets/callback)
 add_subdirectory(sources/assets/polling)
 add_subdirectory(sources/conductor)
 if(NOT "${CMAKE_CXX_FLAGS}" MATCHES "-m32")
-#add_subdirectory(bindings)
+add_subdirectory(sources/assets/bindings/python)
 endif()
 
 
