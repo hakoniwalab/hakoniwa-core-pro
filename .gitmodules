@@ -1,0 +1,3 @@
+[submodule "hakoniwa-core-cpp"]
+	path = hakoniwa-core-cpp
+	url = https://github.com/toppers/hakoniwa-core-cpp.git
