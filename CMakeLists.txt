@@ -33,7 +33,7 @@ message(STATUS "GCOV" ${GCOV})
 message(STATUS "CMAKE_C_FLAGS" ${CMAKE_C_FLAGS})
 message(STATUS "CMAKE_CXX_FLAGS" ${CMAKE_CXX_FLAGS})
 
-add_subdirectory(hakoniwa-core-cpp)
+add_subdirectory(sources/core)
 add_subdirectory(sources/assets/callback)
 add_subdirectory(sources/assets/polling)
 add_subdirectory(sources/conductor)
