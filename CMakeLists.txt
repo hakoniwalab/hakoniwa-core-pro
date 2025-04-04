@@ -19,6 +19,8 @@ else()
     include(cmake-options/default-cmake-options.cmake)
 endif()
 
+MESSAGE(STATUS "HAKO_CORE_EXTENSION: ${HAKO_CORE_EXTENSION}")
+
 if(APPLE AND CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "arm64")
     set(CMAKE_OSX_ARCHITECTURES "arm64")
 endif()
