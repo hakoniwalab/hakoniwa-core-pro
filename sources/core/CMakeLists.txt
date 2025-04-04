@@ -3,6 +3,10 @@ set(HAKO_CMAKE_VERSION ${HAKO_CMAKE_VERSION})
 project(hakoniwa-core-pro
     LANGUAGES C CXX
 )
+if (DEFINED HAKO_DATA_MAX_ASSET_NUM)
+    add_compile_definitions(HAKO_DATA_MAX_ASSET_NUM=${HAKO_DATA_MAX_ASSET_NUM})
+    message(STATUS "HAKO_DATA_MAX_ASSET_NUM is redefined with " ${HAKO_DATA_MAX_ASSET_NUM})
+endif()
 
 set(OS_TYPE "posix")
 if(WIN32)
@@ -47,6 +51,7 @@ add_library(
     ${HAKO_CORE_SOURCE_DIR}/src/hako/utils/hako_share/impl/${OS_TYPE}/os_file_io.cpp
     ${HAKO_CORE_SOURCE_DIR}/src/hako/utils/hako_string.cpp
     ${HAKO_CORE_SOURCE_DIR}/src/hako/utils/hako_logger.cpp
+    src/hako_pro_data.cpp
 )
 # POSIX特有のファイルをWIN32ではない場合にのみ追加
 if(NOT WIN32)
@@ -63,6 +68,7 @@ target_include_directories(
     PRIVATE ${HAKO_CORE_SOURCE_DIR}/src/include
     PRIVATE ${HAKO_CORE_SOURCE_DIR}/src//hako
     PRIVATE ${nlohmann_json_SOURCE_DIR}/single_include
+    PRIVATE ${PROJECT_SOURCE_DIR}/include
 )
 if (MSVC)
 elseif(WIN32)
