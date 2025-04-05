@@ -15,6 +15,8 @@ static std::shared_ptr<hako::IHakoMasterController> master_ptr = nullptr;
 static std::shared_ptr<hako::IHakoAssetController> asset_ptr = nullptr;
 static std::shared_ptr<hako::IHakoSimulationEventController> simevent_ptr = nullptr;
 
+//Note: this function must be called from conductor
+//do not call this function from asset or simevent
 bool hako::init()
 {
     //hako::utils::logger::init("core");
@@ -65,12 +67,15 @@ void hako::destroy()
     return;
 }
 
+// Note: hako::init() must be called before this function
 std::shared_ptr<hako::IHakoMasterController> hako::create_master()
 {
     HAKO_ASSERT(master_data_ptr != nullptr);
     return master_ptr;
 }
 
+//Note: this function is for asset and simevent
+//do not call hako::init()!
 std::shared_ptr<hako::IHakoAssetController> hako::create_asset_controller()
 {
     if (asset_ptr != nullptr) {
@@ -98,6 +103,8 @@ std::shared_ptr<hako::IHakoAssetController> hako::create_asset_controller()
     return asset_ptr;
 }
 
+//Note: this function is for asset and simevent
+//do not call hako::init()!
 std::shared_ptr<hako::IHakoSimulationEventController> hako::get_simevent_controller()
 {
     if (simevent_ptr != nullptr) {
