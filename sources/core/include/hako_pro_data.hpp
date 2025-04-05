@@ -92,6 +92,7 @@ class HakoProData : public std::enable_shared_from_this<HakoProData>, public hak
             if (recv_event_table_->entry_num >= HAKO_RECV_EVENT_MAX) {
                 return false;
             }
+            bool ret = false;
             this->shmp_->lock_memory(HAKO_SHARED_MEMORY_ID_2);
             for (int i = 0; i < recv_event_table_->entry_num; i++) {
                 if (recv_event_table_->entries[i].enabled == false) {
@@ -108,12 +109,13 @@ class HakoProData : public std::enable_shared_from_this<HakoProData>, public hak
                         recv_event_table_->entries[i].type = HAKO_RECV_EVENT_TYPE_FLAG;
                         recv_event_table_->entries[i].on_recv = nullptr;
                     }
+                    recv_event_table_->entry_num++;
+                    ret = true;
                     break;
                 }
             }
-            recv_event_table_->entry_num++;
             this->shmp_->unlock_memory(HAKO_SHARED_MEMORY_ID_2);
-            return true;
+            return ret;
         }
         /*
          * if asset_id < 0 then it is external 
