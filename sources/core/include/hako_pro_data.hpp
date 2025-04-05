@@ -50,6 +50,7 @@ class HakoProData : public std::enable_shared_from_this<HakoProData>, public hak
                 throw std::runtime_error("Failed to create shared memory");
             }
             asset_extension_ = std::make_shared<HakoProAssetExtension>(shared_from_this());
+            master_data_->register_master_extension(shared_from_this());
         }
         void destroy()
         {
@@ -175,6 +176,10 @@ class HakoProData : public std::enable_shared_from_this<HakoProData>, public hak
             }
             recv_event_table_->entries[recv_event_id].on_recv();
             return true;
+        }
+        std::shared_ptr<hako::extension::IHakoAssetExtension> get_asset_extension()
+        {
+            return std::static_pointer_cast<hako::extension::IHakoAssetExtension>(asset_extension_);
         }
     private:
         HakoRecvEventTableType* recv_event_table_;

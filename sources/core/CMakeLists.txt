@@ -33,7 +33,6 @@ FetchContent_MakeAvailable(json)
 
 add_library(
     hako STATIC
-    ${HAKO_CORE_SOURCE_DIR}/src/hako/hako_impl.cpp
     ${HAKO_CORE_SOURCE_DIR}/src/hako/hako_asset_impl.cpp
     ${HAKO_CORE_SOURCE_DIR}/src/hako/hako_simevent_impl.cpp
     ${HAKO_CORE_SOURCE_DIR}/src/hako/hako_master_impl.cpp
@@ -52,6 +51,7 @@ add_library(
     ${HAKO_CORE_SOURCE_DIR}/src/hako/utils/hako_string.cpp
     ${HAKO_CORE_SOURCE_DIR}/src/hako/utils/hako_logger.cpp
     src/hako_pro_data.cpp
+    src/hako_impl.cpp
 )
 # POSIX特有のファイルをWIN32ではない場合にのみ追加
 if(NOT WIN32)
