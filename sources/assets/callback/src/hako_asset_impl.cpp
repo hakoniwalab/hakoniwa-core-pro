@@ -6,6 +6,7 @@
 #include "hako_asset_impl_measure.hpp"
 #endif /* ENABLE_HAKO_TIME_MEASURE */
 #endif
+#include "hako_impl.hpp"
 
 HakoAssetType hako_asset_instance;
 
@@ -438,4 +439,49 @@ bool hako_asset_impl_pdu_write(const char* robo_name, HakoPduChannelIdType lchan
 hako_time_t hako_asset_impl_get_world_time()
 {
     return hako_asset_instance.hako_asset->get_worldtime();
+}
+
+bool hako_asset_impl_register_data_recv_event(const char *robo_name, HakoPduChannelIdType lchannel, void (*on_recv)())
+{
+    if (!hako_asset_instance.is_initialized) {
+        std::cerr << "ERROR: hako_asset_impl_register_data_recv_event(): asset not initialized" << std::endl;
+        return false;
+    }
+
+    if (!hako_asset_instance.hako_asset) {
+        std::cerr << "ERROR: hako_asset_impl_register_data_recv_event(): hako_asset controller not available" << std::endl;
+        return false;
+    }
+
+    auto pro_data = hako::data::pro::hako_pro_get_data();
+    if (!pro_data) {
+        std::cerr << "ERROR: hako_asset_impl_register_data_recv_event(): pro_data is null" << std::endl;
+        return false;
+    }
+    return pro_data->register_data_recv_event(robo_name, lchannel, on_recv);
+}
+
+bool hako_asset_impl_check_data_recv_event(const char *robo_name, HakoPduChannelIdType lchannel)
+{
+    if (!hako_asset_instance.is_initialized) {
+        std::cerr << "ERROR: hako_asset_impl_check_data_recv_event(): asset not initialized" << std::endl;
+        return false;
+    }
+
+    if (!hako_asset_instance.hako_asset) {
+        std::cerr << "ERROR: hako_asset_impl_check_data_recv_event(): hako_asset controller not available" << std::endl;
+        return false;
+    }
+
+    auto pro_data = hako::data::pro::hako_pro_get_data();
+    if (!pro_data) {
+        std::cerr << "ERROR: hako_asset_impl_check_data_recv_event(): pro_data is null" << std::endl;
+        return false;
+    }
+    const char* asset_name = hako_asset_instance.asset_name_str.c_str();
+    if (hako_asset_instance.external_use) {
+        asset_name = nullptr;
+    }
+    int recv_event_id;
+    return pro_data->get_recv_event(asset_name, robo_name, lchannel, recv_event_id);
 }

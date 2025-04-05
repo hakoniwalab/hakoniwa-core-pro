@@ -31,6 +31,26 @@ extern int hako_asset_usleep(hako_time_t sleep_time_usec);
 extern int hako_initialize_for_external(void);
 extern int hako_asset_pdu_create(const char *robo_name, HakoPduChannelIdType lchannel, size_t pdu_size);
 
+/**
+ * Register a data receive event for a specific logical channel.
+ *
+ * @param robo_name The name of the robot (virtual asset).
+ * @param lchannel The logical PDU channel ID.
+ * @param on_recv Callback function to be invoked when data is received.
+ *                If NULL, a flag-based mechanism will be used instead.
+ * @return true if the registration succeeded, false otherwise.
+ */
+extern bool hako_asset_register_data_recv_event(const char *robo_name, HakoPduChannelIdType lchannel, void (*on_recv)());
+
+/**
+ * Check if a receive event has occurred (only valid when flag-based).
+ *
+ * @param robo_name The name of the robot (virtual asset).
+ * @param lchannel The logical PDU channel ID.
+ * @return true if a receive event was detected, false otherwise.
+ */
+extern bool hako_asset_check_data_recv_event(const char *robo_name, HakoPduChannelIdType lchannel);
+
 #ifdef __cplusplus
 }
 #endif

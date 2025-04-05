@@ -118,6 +118,23 @@ class HakoProData : public std::enable_shared_from_this<HakoProData>, public hak
             this->shmp_->unlock_memory(HAKO_SHARED_MEMORY_ID_2);
             return ret;
         }
+        bool get_recv_event(const char* asset_name, const std::string& robot_name, int channel_id, int& recv_event_id)
+        {
+            int asset_id = -1;
+            if (asset_name != nullptr)
+            {
+                auto* asset = this->master_data_->get_asset_nolock(asset_name);
+                if (asset == nullptr) {
+                    return false;
+                }
+                asset_id = asset->id;
+            }
+            HakoPduChannelIdType real_id = this->master_data_->get_pdu_data()->get_pdu_channel(robot_name, channel_id);
+            if (real_id < 0) {
+                return false;
+            }
+            return get_recv_event(asset_id, real_id, recv_event_id);
+        }
         /*
          * if asset_id < 0 then it is external 
          * channel_id must be real channel id!

@@ -1,13 +1,4 @@
-#include "hako.hpp"
-#include "hako_master_impl.hpp"
-#include "hako_asset_impl.hpp"
-#include "hako_simevent_impl.hpp"
-#include "utils/hako_config_loader.hpp"
-//#include "utils/hako_logger.hpp"
-#include "core/context/hako_context.hpp"
-#include "hako_log.hpp"
-#include <cstdarg>
-#include "hako_pro_data.hpp"
+#include "hako_impl.hpp"
 
 static std::shared_ptr<hako::data::pro::HakoProData> pro_data_ptr = nullptr;
 static std::shared_ptr<hako::data::HakoMasterData> master_data_ptr = nullptr;
@@ -15,6 +6,10 @@ static std::shared_ptr<hako::IHakoMasterController> master_ptr = nullptr;
 static std::shared_ptr<hako::IHakoAssetController> asset_ptr = nullptr;
 static std::shared_ptr<hako::IHakoSimulationEventController> simevent_ptr = nullptr;
 
+std::shared_ptr<hako::data::pro::HakoProData> hako::data::pro::hako_pro_get_data()
+{
+    return pro_data_ptr;
+}
 //Note: this function must be called from conductor
 //do not call this function from asset or simevent
 bool hako::init()
