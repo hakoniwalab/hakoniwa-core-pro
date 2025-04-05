@@ -11,9 +11,15 @@ static inline void usleep(long microseconds) {
 #include <unistd.h>
 #endif
 
+static const char* robot_name = "Robot";
 static int my_on_initialize(hako_asset_context_t* context)
 {
     (void)context;
+    int ret = hako_asset_register_data_recv_event(robot_name, PDU_POS_CHANNEL_ID, NULL);
+    if (ret != 0) {
+        printf("ERORR: hako_asset_register_data_recv_event() returns %d.", ret);
+        return 1;
+    }
     return 0;
 }
 static int my_on_reset(hako_asset_context_t* context)
@@ -35,12 +41,6 @@ static void on_recv()
 
 static int my_on_manual_timing_control(hako_asset_context_t* context)
 {
-    const char* robot_name = "Robot";
-    int ret = hako_asset_register_data_recv_event(robot_name, PDU_POS_CHANNEL_ID, NULL);
-    if (ret != 0) {
-        printf("ERORR: hako_asset_register_data_recv_event() returns %d.", ret);
-        return 1;
-    }
     (void)context;
     Hako_Twist motor;
     printf("INFO: on_manual_timing_control enter\n");
