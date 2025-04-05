@@ -4,6 +4,7 @@ using namespace hako::data;
 
 bool pro::HakoProData::on_pdu_data_create()
 {
+    std::cout << "INFO: HakoProData::on_pdu_data_create()" << std::endl;
     auto shmid = this->get_shared_memory()->create_memory(HAKO_SHARED_MEMORY_ID_2, sizeof(HakoRecvEventTableType));
     if (shmid < 0) {
         return false;

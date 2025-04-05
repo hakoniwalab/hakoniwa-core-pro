@@ -29,6 +29,7 @@ bool hako::init()
     }
     if (pro_data_ptr == nullptr) {
         pro_data_ptr = std::make_shared<hako::data::pro::HakoProData>(master_data_ptr);
+        pro_data_ptr->init(master_data_ptr->get_shm_type());
     }
     HAKO_LOG_INFO("hako::init(): shared memory type = %s", master_data_ptr->get_shm_type().c_str());
     //hako::utils::logger::get("core")->info("hakoniwa initialized");
@@ -65,7 +66,11 @@ void hako::destroy()
 // Note: hako::init() must be called before this function
 std::shared_ptr<hako::IHakoMasterController> hako::create_master()
 {
+    std::cout << "INFO: hako::create_master()" << std::endl;
     HAKO_ASSERT(master_data_ptr != nullptr);
+    if (master_ptr == nullptr) {
+        master_ptr = std::make_shared<hako::HakoMasterControllerImpl>(master_data_ptr);
+    }
     return master_ptr;
 }
 

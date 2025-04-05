@@ -44,6 +44,7 @@ class HakoProData : public std::enable_shared_from_this<HakoProData>, public hak
         }
         void init(const std::string& type="shm")
         {
+            std::cout <<"INFO: HakoProData::init()" << std::endl;
             this->shm_type_ = type;
             this->shmp_ = hako::utils::hako_shared_memory_create(this->shm_type_);
             if (this->shmp_ == nullptr) {
