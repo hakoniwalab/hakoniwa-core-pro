@@ -29,6 +29,7 @@ bool hako::init()
     }
     if (pro_data_ptr == nullptr) {
         pro_data_ptr = std::make_shared<hako::data::pro::HakoProData>(master_data_ptr);
+        std::cout << "INFO: hako::init() : type: " << master_data_ptr->get_shm_type() << std::endl;
         pro_data_ptr->init(master_data_ptr->get_shm_type());
     }
     HAKO_LOG_INFO("hako::init(): shared memory type = %s", master_data_ptr->get_shm_type().c_str());
@@ -83,9 +84,6 @@ std::shared_ptr<hako::IHakoAssetController> hako::create_asset_controller()
     }
     else if (master_data_ptr == nullptr) {
         master_data_ptr = std::make_shared<hako::data::HakoMasterData>();
-        if (pro_data_ptr == nullptr) {
-            pro_data_ptr = std::make_shared<hako::data::pro::HakoProData>(master_data_ptr);
-        }
         HakoConfigType config;
         hako_config_load(config);
         if (config.param == nullptr) {
@@ -94,6 +92,11 @@ std::shared_ptr<hako::IHakoAssetController> hako::create_asset_controller()
         }
         if (master_data_ptr->load(config.param["shm_type"]) == false) {
             return nullptr;
+        }
+        if (pro_data_ptr == nullptr) {
+            pro_data_ptr = std::make_shared<hako::data::pro::HakoProData>(master_data_ptr);
+            std::cout << "INFO: hako::create_asset_controller() : type: " << master_data_ptr->get_shm_type() << std::endl;
+            pro_data_ptr->init(master_data_ptr->get_shm_type());
         }
     }
     asset_ptr = std::make_shared<hako::HakoAssetControllerImpl>(master_data_ptr);
@@ -112,9 +115,6 @@ std::shared_ptr<hako::IHakoSimulationEventController> hako::get_simevent_control
     }
     else if (master_data_ptr == nullptr) {
         master_data_ptr = std::make_shared<hako::data::HakoMasterData>();
-        if (pro_data_ptr == nullptr) {
-            pro_data_ptr = std::make_shared<hako::data::pro::HakoProData>(master_data_ptr);
-        }    
         HakoConfigType config;
         hako_config_load(config);
         if (config.param == nullptr) {
@@ -124,6 +124,11 @@ std::shared_ptr<hako::IHakoSimulationEventController> hako::get_simevent_control
         if (master_data_ptr->load(config.param["shm_type"]) == false) {
             return nullptr;
         }
+        if (pro_data_ptr == nullptr) {
+            pro_data_ptr = std::make_shared<hako::data::pro::HakoProData>(master_data_ptr);
+            std::cout << "INFO: hako::get_simevent_controller() : type: " << master_data_ptr->get_shm_type() << std::endl;
+            pro_data_ptr->init(master_data_ptr->get_shm_type());
+        }    
     }
     simevent_ptr = std::make_shared<hako::HakoSimulationEventController>(master_data_ptr);
     HAKO_LOG_INFO("hako::get_simevent_controller(): shared memory type = %s", master_data_ptr->get_shm_type().c_str());

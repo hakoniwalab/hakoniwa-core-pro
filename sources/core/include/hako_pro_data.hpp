@@ -42,10 +42,10 @@ class HakoProData : public std::enable_shared_from_this<HakoProData>, public hak
             this->recv_event_table_ = nullptr;
             this->shm_type_ = "shm";
         }
-        void init(const std::string& type="shm")
+        void init(const std::string& type)
         {
-            std::cout <<"INFO: HakoProData::init()" << std::endl;
             this->shm_type_ = type;
+            std::cout <<"INFO: HakoProData::init() : type: " << this->shm_type_ << std::endl;
             this->shmp_ = hako::utils::hako_shared_memory_create(this->shm_type_);
             if (this->shmp_ == nullptr) {
                 throw std::runtime_error("Failed to create shared memory");
@@ -84,19 +84,22 @@ class HakoProData : public std::enable_shared_from_this<HakoProData>, public hak
         bool register_data_recv_event(const std::string& robot_name, int channel_id, void (*on_recv)())
         {
             if (recv_event_table_ == nullptr) {
+                std::cout << "ERROR: recv_event_table_ is null" << std::endl;
                 return false;
             }
             HakoPduChannelIdType real_id = this->master_data_->get_pdu_data()->get_pdu_channel(robot_name, channel_id);
             if (real_id < 0) {
+                std::cout << "ERROR: real_id is invalid: robot_name: " << robot_name << " channel_id: " << channel_id << std::endl;
                 return false;
             }
         
             if (recv_event_table_->entry_num >= HAKO_RECV_EVENT_MAX) {
+                std::cout << "ERROR: recv_event_table_ is full" << std::endl;
                 return false;
             }
             bool ret = false;
             this->shmp_->lock_memory(HAKO_SHARED_MEMORY_ID_2);
-            for (int i = 0; i < recv_event_table_->entry_num; i++) {
+            for (int i = 0; i < HAKO_RECV_EVENT_MAX; i++) {
                 if (recv_event_table_->entries[i].enabled == false) {
                     hako::core::context::HakoContext context;
                     recv_event_table_->entries[i].enabled = true;
@@ -117,6 +120,7 @@ class HakoProData : public std::enable_shared_from_this<HakoProData>, public hak
                 }
             }
             this->shmp_->unlock_memory(HAKO_SHARED_MEMORY_ID_2);
+            std::cout << "INFO: register_data_recv_event() robot_name: " << robot_name << " channel_id: " << channel_id << " ret: " << ret << std::endl;
             return ret;
         }
         bool get_recv_event(const char* asset_name, const std::string& robot_name, int channel_id, int& recv_event_id)
