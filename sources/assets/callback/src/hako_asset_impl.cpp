@@ -334,6 +334,14 @@ static bool hako_asset_impl_execute(void)
     if (next_time > world_time) {
         return false;
     }
+    auto pro_data = hako::data::pro::hako_pro_get_data();
+    if (pro_data) {
+        const char* asset_name = hako_asset_instance.asset_name_str.c_str();
+        if (hako_asset_instance.external_use) {
+            asset_name = nullptr;
+        }
+        pro_data->call_recv_event_callbacks(asset_name);
+    }
     if (hako_asset_instance.callback != NULL) {
         if (hako_asset_instance.callback->on_simulation_step != NULL) {
             hako_asset_instance.callback->on_simulation_step(nullptr);

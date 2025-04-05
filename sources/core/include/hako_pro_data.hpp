@@ -174,6 +174,44 @@ class HakoProData : public std::enable_shared_from_this<HakoProData>, public hak
             }
             return false;
         }
+        bool call_recv_event_callbacks(const char* asset_name)
+        {
+            if (recv_event_table_ == nullptr) {
+                return false;
+            }
+            if (recv_event_table_->entry_num == 0) {
+                return false;
+            }
+            int asset_id = -1;
+            if (asset_name != nullptr)
+            {
+                auto* asset = this->master_data_->get_asset_nolock(asset_name);
+                if (asset == nullptr) {
+                    return false;
+                }
+                asset_id = asset->id;
+            }
+            hako::core::context::HakoContext context;
+            auto pid = context.get_pid();
+            for (int i = 0; i < recv_event_table_->entry_num; i++) {
+                if (recv_event_table_->entries[i].enabled == false) {
+                    continue;
+                }
+                if (recv_event_table_->entries[i].proc_id != pid) {
+                    continue;
+                }
+                this->master_data_->get_pdu_data()->read_pdu_spin_lock(asset_id, recv_event_table_->entries[i].real_channel_id);
+                bool recv_flag = recv_event_table_->entries[i].recv_flag;
+                if (recv_flag) {
+                    recv_event_table_->entries[i].recv_flag = false;
+                }
+                this->master_data_->get_pdu_data()->read_pdu_spin_unlock(asset_id, recv_event_table_->entries[i].real_channel_id);
+                if (recv_event_table_->entries[i].on_recv != nullptr) {
+                    recv_event_table_->entries[i].on_recv();
+                }
+            }
+            return true;
+        }
         bool call_recv_event_callback(int recv_event_id)
         {
             if (recv_event_table_ == nullptr) {

@@ -138,3 +138,38 @@ int hako_asset_usleep(hako_time_t sleep_time_usec) {
     }
     return EINTR;
 }
+
+bool hako_asset_register_data_recv_event(const char *robo_name, HakoPduChannelIdType lchannel, void (*on_recv)())
+{
+    if (hako_asset_instance.is_initialized == false) {
+        std::cerr << "Error: not initialized." << std::endl;
+        return false;
+    }
+    if (robo_name == nullptr || *robo_name == '\0') {
+        std::cerr << "Error: robo_name is not set." << std::endl;
+        return false;
+    }
+    bool result = hako_asset_impl_register_data_recv_event(robo_name, lchannel, on_recv);
+    if (!result) {
+        std::cerr << "Error: Failed to register data receive event." << std::endl;
+        return false;
+    }
+    return true;
+}
+bool hako_asset_check_data_recv_event(const char *robo_name, HakoPduChannelIdType lchannel)
+{
+    if (hako_asset_instance.is_initialized == false) {
+        std::cerr << "Error: not initialized." << std::endl;
+        return false;
+    }
+    if (robo_name == nullptr || *robo_name == '\0') {
+        std::cerr << "Error: robo_name is not set." << std::endl;
+        return false;
+    }
+    bool result = hako_asset_impl_check_data_recv_event(robo_name, lchannel);
+    if (!result) {
+        std::cerr << "Error: Failed to check data receive event." << std::endl;
+        return false;
+    }
+    return true;
+}
