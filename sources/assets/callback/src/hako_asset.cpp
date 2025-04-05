@@ -169,8 +169,7 @@ int hako_asset_check_data_recv_event(const char *robo_name, HakoPduChannelIdType
     }
     bool result = hako_asset_impl_check_data_recv_event(robo_name, lchannel);
     if (!result) {
-        std::cerr << "Error: Failed to check data receive event." << std::endl;
-        return EINVAL;
+        return ENOENT;
     }
     return 0;
 }

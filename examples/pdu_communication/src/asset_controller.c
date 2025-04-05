@@ -36,7 +36,7 @@ static void on_recv()
 static int my_on_manual_timing_control(hako_asset_context_t* context)
 {
     const char* robot_name = "Robot";
-    int ret = hako_asset_register_data_recv_event(robot_name, PDU_POS_CHANNEL_ID, on_recv);
+    int ret = hako_asset_register_data_recv_event(robot_name, PDU_POS_CHANNEL_ID, NULL);
     if (ret != 0) {
         printf("ERORR: hako_asset_register_data_recv_event() returns %d.", ret);
         return 1;
@@ -53,6 +53,10 @@ static int my_on_manual_timing_control(hako_asset_context_t* context)
         int ret = hako_asset_pdu_write("Robot", PDU_MOTOR_CHANNEL_ID, (const char*)(&motor), sizeof(motor));
         if (ret != 0) {
             printf("ERROR: hako_asset_pdu_write erro: %d\n", ret);
+        }
+        ret = hako_asset_check_data_recv_event(robot_name, PDU_POS_CHANNEL_ID);
+        if (ret == 0) {
+            on_recv();
         }
         result = hako_asset_usleep(1000);
         if (result != 0) {
