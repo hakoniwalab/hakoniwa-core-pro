@@ -60,7 +60,6 @@ static int my_on_manual_timing_control(hako_asset_context_t* context)
         if (result != 0) {
             break;
         }
-        result = hako_asset_usleep(1000);
         usleep(1000*1000);
         count++;
     }

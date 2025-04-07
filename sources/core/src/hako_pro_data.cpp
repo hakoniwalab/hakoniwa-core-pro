@@ -52,6 +52,7 @@ bool pro::HakoProData::on_pdu_data_destroy()
 
 bool pro::HakoProAssetExtension::on_pdu_data_write(int real_channel_id) 
 {
+    std::cout << "INFO: HakoProAssetExtension::on_pdu_data_write()" << std::endl;
     HakoRecvEventTableType *table = this->pro_->get_recv_event_table();
     if (table == nullptr) {
         return false;
@@ -60,6 +61,7 @@ bool pro::HakoProAssetExtension::on_pdu_data_write(int real_channel_id)
     for (int i = 0; i < table->entry_num; ++i) {
         if (table->entries[i].enabled && (table->entries[i].real_channel_id == real_channel_id)) {
             table->entries[i].recv_flag = true;
+            //std::cout << "INFO: HakoProAssetExtension::on_pdu_data_write() real_channel_id: " << real_channel_id << std::endl;
             break;
         }
     }

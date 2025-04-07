@@ -7,6 +7,8 @@ import sys
 import time
 
 def my_on_initialize(context):
+    ret = hakopy.register_data_recv_event("Robot", pdu_info.PDU_MOTOR_CHANNEL_ID)
+    print(f"INFO: register_data_recv_event() returns {ret}")
     return 0
 
 def my_on_reset(context):
@@ -34,10 +36,15 @@ def my_on_manual_timing_control(context):
         if result == False:
             break
 
-        motor = pdu_motor.read()
-        if motor == None:
-            print('ERROR: hako_asset_pdu_read')
-        print(f'{hakopy.simulation_time()}: motor data({motor['linear']['x']}, {motor['linear']['y']}, {motor['linear']['z']})')
+        ret = hakopy.check_data_recv_event("Robot", pdu_info.PDU_MOTOR_CHANNEL_ID)
+        if ret == True:
+            print('deta recv event')
+            motor = pdu_motor.read()
+            if motor == None:
+                print('ERROR: hako_asset_pdu_read')
+            print(f'{hakopy.simulation_time()}: motor data({motor['linear']['x']}, {motor['linear']['y']}, {motor['linear']['z']})')
+        ret = hakopy.check_data_recv_event("Robot", pdu_info.PDU_MOTOR_CHANNEL_ID)
+        print(f'second ret: {ret}')
 
         result = hakopy.usleep(1000)
         if result == False:

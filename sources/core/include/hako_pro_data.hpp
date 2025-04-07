@@ -172,19 +172,22 @@ class HakoProData : public std::enable_shared_from_this<HakoProData>, public hak
                 bool recv_flag = recv_event_table_->entries[i].recv_flag;
                 if (recv_flag) {
                     recv_event_table_->entries[i].recv_flag = false;
+                    recv_event_id = i;
                 }
                 this->master_data_->get_pdu_data()->read_pdu_spin_unlock(asset_id, channel_id);
-                recv_event_id = i;
-                return true;
+                return recv_flag;
             }
             return false;
         }
         bool call_recv_event_callbacks(const char* asset_name)
         {
+            //std::cout << "INFO: call_recv_event_callbacks() asset_name: " << asset_name << std::endl;
             if (recv_event_table_ == nullptr) {
+                //std::cout << "ERROR: recv_event_table_ is null" << std::endl;
                 return false;
             }
             if (recv_event_table_->entry_num == 0) {
+                //std::cout << "ERROR: recv_event_table_ is empty" << std::endl;
                 return false;
             }
             int asset_id = -1;
@@ -192,6 +195,7 @@ class HakoProData : public std::enable_shared_from_this<HakoProData>, public hak
             {
                 auto* asset = this->master_data_->get_asset_nolock(asset_name);
                 if (asset == nullptr) {
+                    //std::cout << "ERROR: asset is null" << std::endl;
                     return false;
                 }
                 asset_id = asset->id;
@@ -211,10 +215,11 @@ class HakoProData : public std::enable_shared_from_this<HakoProData>, public hak
                     recv_event_table_->entries[i].recv_flag = false;
                 }
                 this->master_data_->get_pdu_data()->read_pdu_spin_unlock(asset_id, recv_event_table_->entries[i].real_channel_id);
-                if (recv_event_table_->entries[i].on_recv != nullptr) {
+                if (recv_flag && (recv_event_table_->entries[i].on_recv != nullptr)) {
                     recv_event_table_->entries[i].on_recv();
                 }
             }
+            //std::cout << "INFO: call_recv_event_callbacks() end" << std::endl;
             return true;
         }
         bool call_recv_event_callback(int recv_event_id)
