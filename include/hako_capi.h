@@ -60,6 +60,9 @@ extern "C" {
 	HAKO_API bool hako_asset_is_pdu_created();
 
 
+	HAKO_API bool hako_asset_register_data_recv_event(const char *robo_name, HakoPduChannelIdType lchannel);
+	HAKO_API bool hako_asset_check_data_recv_event(const char* asset_name, const char *robo_name, HakoPduChannelIdType lchannel);
+
 /*
  * for simevent
  */

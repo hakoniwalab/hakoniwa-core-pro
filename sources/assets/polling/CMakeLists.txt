@@ -19,7 +19,6 @@ FetchContent_MakeAvailable(json)
 # ベースとなるソースファイルリスト
 set(SHARED_SRC
     src/hako_capi.cpp
-    ${HAKO_CORE_SOURCE_DIR}/src/hako/hako_impl.cpp
     ${HAKO_CORE_SOURCE_DIR}/src/hako/hako_asset_impl.cpp
     ${HAKO_CORE_SOURCE_DIR}/src/hako/hako_simevent_impl.cpp
     ${HAKO_CORE_SOURCE_DIR}/src/hako/hako_master_impl.cpp
@@ -33,6 +32,8 @@ set(SHARED_SRC
     ${HAKO_CORE_SOURCE_DIR}/src/hako/utils/hako_share/impl/${OS_TYPE}/os_file_io.cpp
     ${HAKO_CORE_SOURCE_DIR}/src/hako/utils/hako_string.cpp
     ${HAKO_CORE_SOURCE_DIR}/src/hako/utils/hako_logger.cpp
+    ${HAKO_CORE_PRO_SOURCE_DIR}/core/src/hako_pro_data.cpp
+    ${HAKO_CORE_PRO_SOURCE_DIR}/core/src/hako_impl.cpp
 )
 
 
@@ -72,5 +73,6 @@ target_include_directories(
     PRIVATE ${HAKO_CORE_SOURCE_DIR}/src/hako
     PRIVATE ${nlohmann_json_SOURCE_DIR}/single_include
     PRIVATE ${HAKO_INC_DIR}
+    PRIVATE ${HAKO_CORE_PRO_SOURCE_DIR}/core/include
 )
 

@@ -1,4 +1,4 @@
-#include "hako.hpp"
+#include "hako_impl.hpp"
 #include "hako_capi.h"
 #include <fstream>
 #include <iostream>
@@ -351,6 +351,33 @@ bool hako_asset_is_pdu_created()
 {
     try {
         return hako_asset->is_pdu_created();
+    } catch (std::exception *) {
+        //hako::logger::get("core")->error(e->what());
+        return false;
+    }
+}
+bool hako_asset_register_data_recv_event(const char *robo_name, HakoPduChannelIdType lchannel)
+{
+    try {
+        auto pro_data = hako::data::pro::hako_pro_get_data();
+        if (!pro_data) {
+            return false;
+        }
+        return pro_data->register_data_recv_event(robo_name, lchannel, nullptr);
+    } catch (std::exception *) {
+        //hako::logger::get("core")->error(e->what());
+        return false;
+    }
+}
+bool hako_asset_check_data_recv_event(const char* asset_name, const char *robo_name, HakoPduChannelIdType lchannel)
+{
+    try {
+        auto pro_data = hako::data::pro::hako_pro_get_data();
+        if (!pro_data) {
+            return false;
+        }
+        int recv_event_id;
+        return pro_data->get_recv_event(asset_name, robo_name, lchannel, recv_event_id);    
     } catch (std::exception *) {
         //hako::logger::get("core")->error(e->what());
         return false;
