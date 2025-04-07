@@ -33,12 +33,14 @@ def my_on_manual_timing_control(context):
         if ret == False:
             print('"ERROR: hako_asset_pdu_write')
             break
+        print(f'{hakopy.simulation_time()}: motor data({motor['linear']['x']}, {motor['linear']['y']}, {motor['linear']['z']})')
         result = hakopy.usleep(1000)
         if result == False:
             break
 
         ret = hakopy.check_data_recv_event("Robot", pdu_info.PDU_POS_CHANNEL_ID)
         if ret == True:
+            print('data recv event')
             pos = pdu_pos.read()
             if pos == None:
                 print('ERROR: hako_asset_pdu_read')

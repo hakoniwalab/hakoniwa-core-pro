@@ -170,11 +170,13 @@ class HakoProData : public std::enable_shared_from_this<HakoProData>, public hak
                 }
                 this->master_data_->get_pdu_data()->read_pdu_spin_lock(asset_id, channel_id);
                 bool recv_flag = recv_event_table_->entries[i].recv_flag;
+                //std::cout << "INFO: get_recv_event() recv_flag: " << recv_flag << std::endl;
                 if (recv_flag) {
                     recv_event_table_->entries[i].recv_flag = false;
                     recv_event_id = i;
                 }
                 this->master_data_->get_pdu_data()->read_pdu_spin_unlock(asset_id, channel_id);
+                //std::cout << "INFO: get_recv_event() asset_id: " << asset_id << " channel_id: " << channel_id << " recv_event_id: " << recv_event_id << std::endl;
                 return recv_flag;
             }
             return false;
@@ -209,10 +211,14 @@ class HakoProData : public std::enable_shared_from_this<HakoProData>, public hak
                 if (recv_event_table_->entries[i].proc_id != pid) {
                     continue;
                 }
+                if (recv_event_table_->entries[i].on_recv == nullptr) {
+                    continue;
+                }
                 this->master_data_->get_pdu_data()->read_pdu_spin_lock(asset_id, recv_event_table_->entries[i].real_channel_id);
                 bool recv_flag = recv_event_table_->entries[i].recv_flag;
                 if (recv_flag) {
                     recv_event_table_->entries[i].recv_flag = false;
+                    //std::cout << "INFO: call_recv_event_callbacks() recv_flag: " << recv_flag << std::endl;
                 }
                 this->master_data_->get_pdu_data()->read_pdu_spin_unlock(asset_id, recv_event_table_->entries[i].real_channel_id);
                 if (recv_flag && (recv_event_table_->entries[i].on_recv != nullptr)) {

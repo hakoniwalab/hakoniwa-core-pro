@@ -32,6 +32,7 @@ def my_on_manual_timing_control(context):
         if ret == False:
             print('"ERROR: hako_asset_pdu_write')
             break
+        print(f'{hakopy.simulation_time()}: pos data({pos['linear']['x']}, {pos['linear']['y']}, {pos['linear']['z']})')
         result = hakopy.usleep(1000)
         if result == False:
             break
