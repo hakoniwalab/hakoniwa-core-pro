@@ -154,6 +154,19 @@ bool hako_asset_impl_init(const char* asset_name, const char* config_path, hako_
                 return false;
             }            
         }
+        for (const hako::asset::PduReader& reader : robot.pdu_readers) {
+            std::cout << "Robot: " << robot.name << ", PduReader: " << reader.name << std::endl;
+            std::cout << "channel_id: " << reader.channel_id << " pdu_size: " << reader.pdu_size << std::endl;
+            bool err = hako_asset_instance.hako_asset->create_pdu_lchannel(
+                robot.name,
+                reader.channel_id, 
+                reader.pdu_size
+            );
+            if (err == false) {
+                std::cerr << "ERROR: Can not create_pdu_channel()" << std::endl;
+                return false;
+            }
+        }
     }
 #ifdef ENABLE_HAKO_TIME_MEASURE
     //create buffer
