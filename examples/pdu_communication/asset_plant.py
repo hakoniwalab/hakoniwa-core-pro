@@ -34,6 +34,7 @@ def my_on_manual_timing_control(context):
             break
         print(f'{hakopy.simulation_time()}: pos data({pos['linear']['x']}, {pos['linear']['y']}, {pos['linear']['z']})')
         result = hakopy.usleep(1000)
+        time.sleep(1)
         if result == False:
             break
 
@@ -43,15 +44,16 @@ def my_on_manual_timing_control(context):
             motor = pdu_motor.read()
             if motor == None:
                 print('ERROR: hako_asset_pdu_read')
-            print(f'{hakopy.simulation_time()}: motor data({motor['linear']['x']}, {motor['linear']['y']}, {motor['linear']['z']})')
+            else:
+                print(f'{hakopy.simulation_time()}: motor data({motor['linear']['x']}, {motor['linear']['y']}, {motor['linear']['z']})')
         ret = hakopy.check_data_recv_event("Robot", pdu_info.PDU_MOTOR_CHANNEL_ID)
         print(f'second ret: {ret}')
 
         result = hakopy.usleep(1000)
+        time.sleep(1)
         if result == False:
             break
         count = count + 1
-        time.sleep(1)  # 1秒スリープ
     print("INFO: on_manual_timing_control exit")
     return 0
 
@@ -69,7 +71,7 @@ def main():
 
     asset_name = 'Writer'
     config_path = sys.argv[1]
-    delta_time_usec = 1000000
+    delta_time_usec = 1000
 
     pdu_manager = hako_pdu.HakoPduManager('/usr/local/lib/hakoniwa/hako_binary/offset', config_path)
 

@@ -57,10 +57,10 @@ static int my_on_manual_timing_control(hako_asset_context_t* context)
             printf("ERROR: hako_asset_pdu_read erro: %d\n", ret);
         }
         result = hako_asset_usleep(1000);
+        usleep(1000000);
         if (result != 0) {
             break;
         }
-        usleep(1000*1000);
         count++;
     }
     printf("INFO: on_manual_timing_control exit\n");
@@ -81,7 +81,7 @@ int main(int argc, const char* argv[])
     }
     const char* asset_name = "Writer";
     const char* config_path = argv[1];
-    hako_time_t delta_time_usec = 1000000;
+    hako_time_t delta_time_usec = 1000;
 
     hako_conductor_start(delta_time_usec, delta_time_usec);
     int ret = hako_asset_register(asset_name, config_path, &my_callback, delta_time_usec, HAKO_ASSET_MODEL_PLANT);
