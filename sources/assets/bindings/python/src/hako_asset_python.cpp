@@ -241,6 +241,36 @@ static PyObject* py_hako_conductor_start(PyObject*, PyObject* args) {
         Py_RETURN_FALSE;
     }
 }
+static PyObject* py_hako_asset_register_data_recv_event(PyObject*, PyObject* args) {
+    const char* robo_name;
+    int lchannel;
+
+    if (!PyArg_ParseTuple(args, "si", &robo_name, &lchannel)) {
+        return NULL;
+    }
+
+    int result = hako_asset_register_data_recv_event(robo_name, lchannel, NULL);
+
+    if (result != 0) {
+        Py_RETURN_FALSE;
+    }
+    Py_RETURN_TRUE;
+}
+static PyObject* py_hako_asset_check_data_recv_event(PyObject*, PyObject* args) {
+    const char* robo_name;
+    int lchannel;
+
+    if (!PyArg_ParseTuple(args, "si", &robo_name, &lchannel)) {
+        return NULL;
+    }
+
+    int result = hako_asset_check_data_recv_event(robo_name, lchannel);
+    if (result == 0) {
+        Py_RETURN_TRUE;
+    } else {
+        Py_RETURN_FALSE;
+    }
+}
 
 static PyObject* py_hako_conductor_stop(PyObject*, PyObject*) {
     hako_conductor_stop();
@@ -264,6 +294,8 @@ static PyMethodDef hako_asset_python_methods[] = {
     {"usleep", py_hako_asset_usleep, METH_VARARGS, "Sleep for the specified time in microseconds."},
     {"pdu_read", py_hako_asset_pdu_read, METH_VARARGS, "Read PDU data for the specified robot name and channel ID."},
     {"pdu_write", py_hako_asset_pdu_write, METH_VARARGS, "Write PDU data for the specified robot name and channel ID."},
+    {"register_data_recv_event", py_hako_asset_register_data_recv_event, METH_VARARGS, "Register data receive event callback (flag-based only supported for now)."},
+    {"check_data_recv_event", py_hako_asset_check_data_recv_event, METH_VARARGS, "Check if data was received for a given channel (flag-based)."},
     {"conductor_start", py_hako_conductor_start, METH_VARARGS, "Start the conductor with specified delta and max delay usec."},
     {"conductor_stop", py_hako_conductor_stop, METH_NOARGS, "Stop the conductor."},
     { NULL,  NULL,  0, NULL},
