@@ -1,0 +1,4 @@
+single:primitive:object_name:string:0:128
+single:primitive:request_type:uint32:128:4
+single:primitive:new_owner_id:uint32:132:4
+single:primitive:request_time:uint64:136:8

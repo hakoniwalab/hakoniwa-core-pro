@@ -1,0 +1,6 @@
+single:primitive:roll:float32:0:4
+single:primitive:pitch:float32:4:4
+single:primitive:yaw:float32:8:4
+single:primitive:altitude:float32:12:4
+single:primitive:lat:int32:16:4
+single:primitive:lng:int32:20:4

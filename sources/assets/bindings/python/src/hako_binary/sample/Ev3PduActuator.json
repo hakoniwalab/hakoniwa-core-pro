@@ -1,0 +1,30 @@
+{
+  "head": {
+    "name": "",
+    "version": 0,
+    "asset_time": 0,
+    "ext_off": 0,
+    "ext_size": 0
+  },
+  "leds": [
+    0
+  ],
+  "motors": [
+    {
+      "power": 0,
+      "stop": 0,
+      "reset_angle": 0
+    },
+    {
+      "power": 0,
+      "stop": 0,
+      "reset_angle": 0
+    },
+    {
+      "power": 0,
+      "stop": 0,
+      "reset_angle": 0
+    }
+  ],
+  "gyro_reset": 0
+}

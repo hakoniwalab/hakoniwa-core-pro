@@ -1,0 +1,10 @@
+single:struct:header:std_msgs/Header:0:136
+single:primitive:coordinate_frame:uint8:136:1
+single:primitive:type_mask:uint16:138:2
+single:primitive:latitude:float64:144:8
+single:primitive:longitude:float64:152:8
+single:primitive:altitude:float32:160:4
+single:struct:velocity:geometry_msgs/Vector3:168:24
+single:struct:acceleration_or_force:geometry_msgs/Vector3:192:24
+single:primitive:yaw:float32:216:4
+single:primitive:yaw_rate:float32:220:4

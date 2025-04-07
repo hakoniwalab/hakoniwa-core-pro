@@ -1,0 +1,11 @@
+single:primitive:collision:bool:0:4
+single:primitive:is_target_static:bool:4:4
+single:primitive:restitution_coefficient:float64:8:8
+single:struct:self_contact_vector:geometry_msgs/Point:16:24
+single:struct:normal:geometry_msgs/Vector3:40:24
+single:struct:target_contact_vector:geometry_msgs/Point:64:24
+single:struct:target_velocity:geometry_msgs/Vector3:88:24
+single:struct:target_angular_velocity:geometry_msgs/Vector3:112:24
+single:struct:target_euler:geometry_msgs/Vector3:136:24
+single:struct:target_inertia:geometry_msgs/Vector3:160:24
+single:primitive:target_mass:float64:184:8

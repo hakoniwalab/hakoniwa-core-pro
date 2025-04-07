@@ -1,0 +1,7 @@
+single:primitive:time_boot_ms:uint32:0:4
+single:primitive:roll:float32:4:4
+single:primitive:pitch:float32:8:4
+single:primitive:yaw:float32:12:4
+single:primitive:rollspeed:float32:16:4
+single:primitive:pitchspeed:float32:20:4
+single:primitive:yawspeed:float32:24:4

@@ -1,0 +1,46 @@
+{
+  "head": {
+    "name": "",
+    "version": 0,
+    "hakoniwa_time": 0,
+    "ext_off": 0,
+    "ext_size": 0
+  },
+  "buttons": [
+    0
+  ],
+  "color_sensors": [
+    {
+      "color": 0,
+      "reflect": 0,
+      "rgb_r": 0,
+      "rgb_g": 0,
+      "rgb_b": 0
+    },
+    {
+      "color": 0,
+      "reflect": 0,
+      "rgb_r": 0,
+      "rgb_g": 0,
+      "rgb_b": 0
+    }
+  ],
+  "touch_sensors": [
+    {
+      "value": 0
+    },
+    {
+      "value": 0
+    }
+  ],
+  "motor_angle": [
+    0,
+    0,
+    0
+  ],
+  "gyro_degree": 0,
+  "gyro_degree_rate": 0,
+  "sensor_ultrasonic": 0,
+  "gps_lat": 0,
+  "gps_lon": 0
+}

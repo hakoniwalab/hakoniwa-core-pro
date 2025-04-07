@@ -1,0 +1,9 @@
+single:primitive:time_boot_ms:uint32:0:4
+single:primitive:lat:int32:4:4
+single:primitive:lon:int32:8:4
+single:primitive:alt:int32:12:4
+single:primitive:relative_alt:int32:16:4
+single:primitive:vx:int16:20:2
+single:primitive:vy:int16:22:2
+single:primitive:vz:int16:24:2
+single:primitive:hdg:uint16:26:2

@@ -1,0 +1,5 @@
+single:struct:header:std_msgs/Header:0:136
+single:primitive:type_mask:uint8:136:1
+single:struct:orientation:geometry_msgs/Quaternion:144:32
+single:struct:body_rate:geometry_msgs/Vector3:176:24
+single:primitive:thrust:float32:200:4
