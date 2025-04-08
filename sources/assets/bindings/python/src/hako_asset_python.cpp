@@ -244,12 +244,13 @@ static PyObject* py_hako_conductor_start(PyObject*, PyObject* args) {
 static PyObject* py_hako_asset_register_data_recv_event(PyObject*, PyObject* args) {
     const char* robo_name;
     int lchannel;
+    int recv_event_id = -1;
 
     if (!PyArg_ParseTuple(args, "si", &robo_name, &lchannel)) {
         return NULL;
     }
 
-    int result = hako_asset_register_data_recv_event(robo_name, lchannel, NULL);
+    int result = hako_asset_register_data_recv_event(robo_name, lchannel, NULL, &recv_event_id);
 
     if (result != 0) {
         Py_RETURN_FALSE;

@@ -363,7 +363,8 @@ bool hako_asset_register_data_recv_event(const char *robo_name, HakoPduChannelId
         if (!pro_data) {
             return false;
         }
-        return pro_data->register_data_recv_event(robo_name, lchannel, nullptr);
+        int recv_event_id = -1;
+        return pro_data->register_data_recv_event(robo_name, lchannel, nullptr, recv_event_id);
     } catch (std::exception *) {
         //hako::logger::get("core")->error(e->what());
         return false;

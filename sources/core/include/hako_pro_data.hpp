@@ -23,7 +23,7 @@ typedef struct {
     pid_type proc_id;
     int real_channel_id;
     HakoRecvEventType type;
-    void (*on_recv)();
+    void (*on_recv)(int recv_event_id);
 } HakoRecvEventEntryType;
 
 #define HAKO_RECV_EVENT_MAX 32
@@ -81,8 +81,9 @@ class HakoProData : public std::enable_shared_from_this<HakoProData>, public hak
         virtual bool on_pdu_data_reset() override;
         virtual bool on_pdu_data_destroy() override;
     
-        bool register_data_recv_event(const std::string& robot_name, int channel_id, void (*on_recv)())
+        bool register_data_recv_event(const std::string& robot_name, int channel_id, void (*on_recv)(int), int& recv_event_id)
         {
+            recv_event_id = -1;
             if (recv_event_table_ == nullptr) {
                 std::cout << "ERROR: recv_event_table_ is null" << std::endl;
                 return false;
@@ -114,6 +115,7 @@ class HakoProData : public std::enable_shared_from_this<HakoProData>, public hak
                         recv_event_table_->entries[i].type = HAKO_RECV_EVENT_TYPE_FLAG;
                         recv_event_table_->entries[i].on_recv = nullptr;
                     }
+                    recv_event_id = i;
                     recv_event_table_->entry_num++;
                     ret = true;
                     break;
@@ -222,7 +224,7 @@ class HakoProData : public std::enable_shared_from_this<HakoProData>, public hak
                 }
                 this->master_data_->get_pdu_data()->read_pdu_spin_unlock(asset_id, recv_event_table_->entries[i].real_channel_id);
                 if (recv_flag && (recv_event_table_->entries[i].on_recv != nullptr)) {
-                    recv_event_table_->entries[i].on_recv();
+                    recv_event_table_->entries[i].on_recv(i);
                 }
             }
             //std::cout << "INFO: call_recv_event_callbacks() end" << std::endl;
@@ -245,7 +247,7 @@ class HakoProData : public std::enable_shared_from_this<HakoProData>, public hak
             if (recv_event_table_->entries[recv_event_id].on_recv == nullptr) {
                 return false;
             }
-            recv_event_table_->entries[recv_event_id].on_recv();
+            recv_event_table_->entries[recv_event_id].on_recv(recv_event_id);
             return true;
         }
         std::shared_ptr<hako::extension::IHakoAssetExtension> get_asset_extension()

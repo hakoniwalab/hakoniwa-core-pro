@@ -462,7 +462,7 @@ hako_time_t hako_asset_impl_get_world_time()
     return hako_asset_instance.hako_asset->get_worldtime();
 }
 
-bool hako_asset_impl_register_data_recv_event(const char *robo_name, HakoPduChannelIdType lchannel, void (*on_recv)())
+bool hako_asset_impl_register_data_recv_event(const char *robo_name, HakoPduChannelIdType lchannel, void (*on_recv)(int), int& recv_event_id)
 {
     if (!hako_asset_instance.is_initialized) {
         std::cerr << "ERROR: hako_asset_impl_register_data_recv_event(): asset not initialized" << std::endl;
@@ -479,7 +479,7 @@ bool hako_asset_impl_register_data_recv_event(const char *robo_name, HakoPduChan
         std::cerr << "ERROR: hako_asset_impl_register_data_recv_event(): pro_data is null" << std::endl;
         return false;
     }
-    return pro_data->register_data_recv_event(robo_name, lchannel, on_recv);
+    return pro_data->register_data_recv_event(robo_name, lchannel, on_recv, recv_event_id);
 }
 
 bool hako_asset_impl_check_data_recv_event(const char *robo_name, HakoPduChannelIdType lchannel)

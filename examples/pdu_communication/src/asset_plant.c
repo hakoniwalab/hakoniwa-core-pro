@@ -12,9 +12,9 @@ static inline void usleep(long microseconds) {
 #include <unistd.h>
 #endif
 
-static void on_recv()
+static void on_recv(int recv_event_id)
 {
-    printf("INFO: on_recv\n");
+    printf("INFO: on_recv: %d\n", recv_event_id);
     Hako_Twist motor;
     int ret = hako_asset_pdu_read("Robot", PDU_MOTOR_CHANNEL_ID, (char*)(&motor), sizeof(motor));
     if (ret != 0) {
@@ -22,12 +22,12 @@ static void on_recv()
     }
     printf("%llu: motor data(%f, %f, %f)\n", hako_asset_simulation_time(), motor.linear.x, motor.linear.y, motor.linear.z);
 }
-
+static int recv_event_id = -1;
 static int my_on_initialize(hako_asset_context_t* context)
 {
     (void)context;
     const char* robot_name = "Robot";
-    int ret = hako_asset_register_data_recv_event(robot_name, PDU_MOTOR_CHANNEL_ID, on_recv);
+    int ret = hako_asset_register_data_recv_event(robot_name, PDU_MOTOR_CHANNEL_ID, on_recv, &recv_event_id);
     if (ret != 0) {
         printf("ERORR: hako_asset_register_data_recv_event() returns %d.", ret);
         return 1;

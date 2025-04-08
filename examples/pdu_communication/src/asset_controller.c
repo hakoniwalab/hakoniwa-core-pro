@@ -12,11 +12,12 @@ static inline void usleep(long microseconds) {
 #endif
 
 static const char* robot_name = "Robot";
-static void on_recv();
+static void on_recv(int recv_event_id);
+static int recv_event_id = -1;
 static int my_on_initialize(hako_asset_context_t* context)
 {
     (void)context;
-    int ret = hako_asset_register_data_recv_event(robot_name, PDU_POS_CHANNEL_ID, on_recv);
+    int ret = hako_asset_register_data_recv_event(robot_name, PDU_POS_CHANNEL_ID, on_recv, &recv_event_id);
     if (ret != 0) {
         printf("ERORR: hako_asset_register_data_recv_event() returns %d.", ret);
         return 1;
@@ -29,10 +30,10 @@ static int my_on_reset(hako_asset_context_t* context)
     return 0;
 }
 
-static void on_recv()
+static void on_recv(int recv_event_id)
 {
     Hako_Twist pos;
-    printf("INFO: on_recv\n");
+    printf("INFO: on_recv: %d\n", recv_event_id);
     int ret = hako_asset_pdu_read("Robot", PDU_POS_CHANNEL_ID, (char*)(&pos), sizeof(pos));
     if (ret != 0) {
         printf("ERROR: hako_asset_pdu_read erro: %d\n", ret);

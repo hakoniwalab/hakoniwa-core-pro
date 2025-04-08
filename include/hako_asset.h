@@ -40,7 +40,7 @@ extern int hako_asset_pdu_create(const char *robo_name, HakoPduChannelIdType lch
  *                If NULL, a flag-based mechanism will be used instead.
  * @return true if the registration succeeded, false otherwise.
  */
-extern int hako_asset_register_data_recv_event(const char *robo_name, HakoPduChannelIdType lchannel, void (*on_recv)());
+extern int hako_asset_register_data_recv_event(const char *robo_name, HakoPduChannelIdType lchannel, void (*on_recv)(int), int* recv_event_id);
 
 /**
  * Check if a receive event has occurred (only valid when flag-based).
