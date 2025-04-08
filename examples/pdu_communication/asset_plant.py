@@ -6,20 +6,32 @@ import pdu_info
 import sys
 import time
 
+def on_recv(recv_event_id):
+    global pdu_manager
+    print("INFO: on_recv enter")
+    pdu_motor = pdu_manager.get_pdu('Robot', pdu_info.PDU_MOTOR_CHANNEL_ID)
+    motor = pdu_motor.read()
+    if motor == None:
+        print('ERROR: hako_asset_pdu_read')
+    else:
+        print(f'{hakopy.simulation_time()}: motor data({motor['linear']['x']}, {motor['linear']['y']}, {motor['linear']['z']})')
+    print("INFO: on_recv exit")
+    return 0
+
 def my_on_initialize(context):
-    ret = hakopy.register_data_recv_event("Robot", pdu_info.PDU_MOTOR_CHANNEL_ID)
+    ret = hakopy.register_data_recv_event("Robot", pdu_info.PDU_MOTOR_CHANNEL_ID, on_recv)
     print(f"INFO: register_data_recv_event() returns {ret}")
     return 0
 
 def my_on_reset(context):
     return 0
 
+
 pdu_manager = None
 def my_on_manual_timing_control(context):
     global pdu_manager
     print("INFO: on_manual_timing_control enter")
     pdu_pos = pdu_manager.get_pdu('Robot', pdu_info.PDU_POS_CHANNEL_ID)
-    pdu_motor = pdu_manager.get_pdu('Robot', pdu_info.PDU_MOTOR_CHANNEL_ID)
     pos = pdu_pos.get()
     result = True
     count = 0
@@ -38,21 +50,6 @@ def my_on_manual_timing_control(context):
         if result == False:
             break
 
-        ret = hakopy.check_data_recv_event("Robot", pdu_info.PDU_MOTOR_CHANNEL_ID)
-        if ret == True:
-            print('deta recv event')
-            motor = pdu_motor.read()
-            if motor == None:
-                print('ERROR: hako_asset_pdu_read')
-            else:
-                print(f'{hakopy.simulation_time()}: motor data({motor['linear']['x']}, {motor['linear']['y']}, {motor['linear']['z']})')
-        ret = hakopy.check_data_recv_event("Robot", pdu_info.PDU_MOTOR_CHANNEL_ID)
-        print(f'second ret: {ret}')
-
-        result = hakopy.usleep(1000)
-        time.sleep(1)
-        if result == False:
-            break
         count = count + 1
     print("INFO: on_manual_timing_control exit")
     return 0

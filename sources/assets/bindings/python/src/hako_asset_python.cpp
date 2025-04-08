@@ -241,21 +241,70 @@ static PyObject* py_hako_conductor_start(PyObject*, PyObject* args) {
         Py_RETURN_FALSE;
     }
 }
+
+static PyObject* recv_event_callback_map = NULL;
+static void on_data_recv_event_callback(int recv_event_id)
+{
+    if (recv_event_callback_map == NULL) {
+        return;
+    }
+
+    PyObject* key = PyLong_FromLong(recv_event_id);
+    PyObject* callback = PyDict_GetItem(recv_event_callback_map, key);
+    Py_DECREF(key);
+
+    if (callback && PyCallable_Check(callback)) {
+        PyObject* args = Py_BuildValue("(i)", recv_event_id);
+        PyObject* result = PyObject_CallObject(callback, args);
+        Py_DECREF(args);
+        if (!result) {
+            PyErr_Print();
+        } else {
+            Py_DECREF(result);
+        }
+    }
+}
+
 static PyObject* py_hako_asset_register_data_recv_event(PyObject*, PyObject* args) {
     const char* robo_name;
     int lchannel;
-    int recv_event_id = -1;
+    PyObject* callback;
 
-    if (!PyArg_ParseTuple(args, "si", &robo_name, &lchannel)) {
+    if (!PyArg_ParseTuple(args, "siO", &robo_name, &lchannel, &callback)) {
         return NULL;
     }
-
-    int result = hako_asset_register_data_recv_event(robo_name, lchannel, NULL, &recv_event_id);
-
-    if (result != 0) {
-        Py_RETURN_FALSE;
+    //None check
+    if (callback == Py_None) {
+        // nothing to do
     }
-    Py_RETURN_TRUE;
+    else if (!PyCallable_Check(callback)) {
+        PyErr_SetString(PyExc_TypeError, "callback must be callable");
+        return NULL;
+    }
+    int recv_event_id = -1;
+    int result = -1;
+    if (callback != Py_None) {
+        result = hako_asset_register_data_recv_event(robo_name, lchannel, on_data_recv_event_callback, &recv_event_id);
+    }
+    else {
+        result = hako_asset_register_data_recv_event(robo_name, lchannel, NULL, &recv_event_id);
+    }
+    if (result != 0) {
+        PyErr_SetString(PyExc_RuntimeError, "hako_asset_register_data_recv_event failed");
+        return NULL;
+    }
+    if (recv_event_callback_map == NULL) {
+        recv_event_callback_map = PyDict_New();
+    }
+    if (callback != Py_None)
+    {
+        PyObject* key = PyLong_FromLong(recv_event_id);
+        Py_XINCREF(callback);
+        PyDict_SetItem(recv_event_callback_map, key, callback);
+        Py_DECREF(key);
+    }
+
+    return PyLong_FromLong(recv_event_id);
 }
 static PyObject* py_hako_asset_check_data_recv_event(PyObject*, PyObject* args) {
     const char* robo_name;
@@ -295,7 +344,7 @@ static PyMethodDef hako_asset_python_methods[] = {
     {"usleep", py_hako_asset_usleep, METH_VARARGS, "Sleep for the specified time in microseconds."},
     {"pdu_read", py_hako_asset_pdu_read, METH_VARARGS, "Read PDU data for the specified robot name and channel ID."},
     {"pdu_write", py_hako_asset_pdu_write, METH_VARARGS, "Write PDU data for the specified robot name and channel ID."},
-    {"register_data_recv_event", py_hako_asset_register_data_recv_event, METH_VARARGS, "Register data receive event callback (flag-based only supported for now)."},
+    {"register_data_recv_event", py_hako_asset_register_data_recv_event, METH_VARARGS, "Register data receive event callback."},
     {"check_data_recv_event", py_hako_asset_check_data_recv_event, METH_VARARGS, "Check if data was received for a given channel (flag-based)."},
     {"conductor_start", py_hako_conductor_start, METH_VARARGS, "Start the conductor with specified delta and max delay usec."},
     {"conductor_stop", py_hako_conductor_stop, METH_NOARGS, "Stop the conductor."},
