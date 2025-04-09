@@ -30,6 +30,6 @@ def test_hako_camera_data(pdu_manager):
 
     rcamera = rpdu.read()
     rimages = rcamera['image']['data']
-    assert len(rimages) == 128, "ERROR: image length"
+    assert len(rimages) == 128, f"ERROR: image length: len(rimages) = {len(rimages)}"
     assert rimages[0] == ord('a'), "ERROR: image[0] read"
     assert rimages[127] == ord('b'), "ERROR: image[127] read"
