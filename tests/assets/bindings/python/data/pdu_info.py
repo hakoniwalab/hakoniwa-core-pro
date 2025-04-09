@@ -3,6 +3,7 @@ ROBOT_CHANNELS = {
         "motor": 0,
         "pos": 1,
         "hako_camera_data": 10,
-        "ev3_sensor": 17
+        "ev3_sensor": 17,
+        "lidar_points": 15
     }
 }

@@ -4,6 +4,7 @@ from test_runner import TestRunner
 from pdu.test_pdu_struct import test_pdu_struct
 from pdu.test_pdu_var_array_prim import test_hako_camera_data
 from pdu.test_pdu_fixed_array import test_ev3_pdu_sensor
+from pdu.test_pdu_var_array_struct import test_pointcloud2
 import hakopy
 import hako_pdu
 import sys
@@ -17,6 +18,7 @@ def my_on_manual_timing_control(context):
     runner.add(test_pdu_struct)
     runner.add(test_ev3_pdu_sensor)
     runner.add(test_hako_camera_data)
+    runner.add(test_pointcloud2)
     runner.run()
 
     return 0
