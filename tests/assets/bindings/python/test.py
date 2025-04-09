@@ -2,13 +2,11 @@
 # -*- coding: utf-8 -*-
 from test_runner import TestRunner
 from pdu.test_pdu_struct import test_pdu_struct
+from pdu.test_pdu_var_array_prim import test_hako_camera_data
 import hakopy
 import hako_pdu
 import sys
 
-def test_example(pdu_manager):
-    assert 1 + 1 == 2
-    assert "hako".upper() == "HAKO"
 
 pdu_manager = None
 def my_on_manual_timing_control(context):
@@ -16,6 +14,7 @@ def my_on_manual_timing_control(context):
 
     runner = TestRunner(pdu_manager)
     runner.add(test_pdu_struct)
+    runner.add(test_hako_camera_data)
     runner.run()
 
     return 0
