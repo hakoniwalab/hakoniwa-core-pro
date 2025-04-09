@@ -15,8 +15,8 @@ def my_on_manual_timing_control(context):
 
     runner = TestRunner(pdu_manager)
     runner.add(test_pdu_struct)
-    #runner.add(test_hako_camera_data)
     runner.add(test_ev3_pdu_sensor)
+    runner.add(test_hako_camera_data)
     runner.run()
 
     return 0

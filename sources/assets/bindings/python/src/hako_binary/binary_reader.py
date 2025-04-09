@@ -45,6 +45,7 @@ def binary_read_recursive(meta: binary_io.PduMetaData, offmap, binary_data, json
                 array_size = binary_io.binTovalue("int32", binary_io.readBinary(binary_data, off, 4))
                 offset_from_heap = binary_io.binTovalue("int32", binary_io.readBinary(binary_data, off + 4, 4))
                 one_elm_size = size
+                #print(f"binary_read_recursive: {name} off={off} size={size} type={type} array_size={array_size} offset_from_heap={offset_from_heap}")
                 array_value = binary_io.readBinary(binary_data, meta.heap_off + offset_from_heap, one_elm_size * array_size)
                 json_data[name + '__raw' ] = array_value
                 json_data[name] = binary_io.binToArrayValues(type, array_value)
