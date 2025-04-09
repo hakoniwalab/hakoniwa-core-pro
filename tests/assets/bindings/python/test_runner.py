@@ -1,5 +1,8 @@
+
+
 class TestRunner:
-    def __init__(self):
+    def __init__(self, pdu_manager):
+        self.pdu_manager = pdu_manager
         self.tests = []
         self.failed = 0
 
@@ -9,7 +12,7 @@ class TestRunner:
     def run(self):
         for test in self.tests:
             try:
-                test()
+                test(self.pdu_manager)
                 print(f"[PASS] {test.__name__}")
             except AssertionError as e:
                 print(f"[FAIL] {test.__name__}: {e}")

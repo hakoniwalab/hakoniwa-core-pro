@@ -1,12 +1,12 @@
-from test_runner import TestRunner
-
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+from test_runner import TestRunner
+from pdu.test_pdu_struct import test_pdu_struct
 import hakopy
 import hako_pdu
 import sys
 
-def test_example():
+def test_example(pdu_manager):
     assert 1 + 1 == 2
     assert "hako".upper() == "HAKO"
 
@@ -14,8 +14,8 @@ pdu_manager = None
 def my_on_manual_timing_control(context):
     global pdu_manager
 
-    runner = TestRunner()
-    runner.add(test_example)
+    runner = TestRunner(pdu_manager)
+    runner.add(test_pdu_struct)
     runner.run()
 
     return 0
