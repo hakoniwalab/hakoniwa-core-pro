@@ -122,11 +122,26 @@ class HakoMetaParser:
     def parse_meta(self, offset, data):
         print(f'Parsing meta data at offset: {offset}')
         meta_data = {}
-        meta_data['mode'] = struct.unpack_from('<i', data, offset)
+        meta_data['mode'] = struct.unpack_from('<i', data, offset)[0]
+
         offset += 4
-        meta_data['asset_num'] = struct.unpack_from('<i', data, offset)
+        meta_data['asset_num'] = struct.unpack_from('<i', data, offset)[0]
         offset += 4
 
+        meta_data['pdu_sync_asset_id'] = struct.unpack_from('<i', data, offset)[0]
+        offset += 4
+
+        asset_pdu_check_status = []
+        for i in range(HAKO_DATA_MAX_ASSET_NUM):
+            check_status = struct.unpack_from('<i', data, offset)[0]
+            if check_status == 0:
+                asset_pdu_check_status.append(False)
+            else:
+                asset_pdu_check_status.append(True)
+            offset += 1
+        meta_data['asset_pdu_check_status'] = asset_pdu_check_status
+        meta_data['channel_num'] = struct.unpack_from('<i', data, offset)[0]
+        offset += 4
         return meta_data
 
 

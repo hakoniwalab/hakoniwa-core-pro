@@ -11,6 +11,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include "dump_meta.hpp"
 
 static void hako_cmd_signal_handler(int sig)
 {
@@ -68,7 +69,7 @@ int main(int argc, const char* argv[])
     hako_status.push_back("terminated");
 
     if ((argc == 1) || (argc > 4)) {
-        printf("Usage: %s {start|stop|reset|status|pmeta|plog|dump <cid>|restore <cid> <bin>}|real_cid <asset_name> <cid>\n", argv[0]);
+        printf("Usage: %s {start|stop|reset|status|pmeta|plog|dump <cid>|restore <cid> <bin>}|real_cid <asset_name> <cid> | jmeta\n", argv[0]);
         return 1;
     }
     signal(SIGINT, hako_cmd_signal_handler);
@@ -93,6 +94,13 @@ int main(int argc, const char* argv[])
         channel_id = atoi(argv[2]);
         restore_file = (char*)argv[3];
         //printf("channel_id=%d\n", channel_id);
+    }
+    else if (cmd == "jmeta") {
+        hako::command::HakoMetaDumper dumper;
+        dumper.parse();
+        std::string json_data = dumper.dump_json();
+        std::cout << json_data << std::endl;
+        return 0;
     }
 
     //hako::logger::init("core");
