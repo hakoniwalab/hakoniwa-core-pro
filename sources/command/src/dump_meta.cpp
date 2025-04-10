@@ -125,15 +125,17 @@ std::string hako::command::HakoMetaDumper::dump_json() {
     json channels = json::array();
     for (int i = 0; i < meta.channel_num; i++) {
         channels.push_back({
+            {"real_cid", i},
             {"offset", meta.channel[i].offset},
             {"size", meta.channel[i].size}
         });
     }
-    root["master_data"]["pdu_meta_data"]["channel"] = channels;
+    root["master_data"]["pdu_meta_data"]["real_channels"] = channels;
 
     json channel_maps = json::array();
     for (int i = 0; i < meta.channel_num; i++) {
         channel_maps.push_back({
+            {"real_cid", i},
             {"robo_name", std::string(meta.channel_map[i].robo_name.data)},
             {"logical_channel_id", meta.channel_map[i].logical_channel_id}
         });
