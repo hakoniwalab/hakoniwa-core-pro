@@ -78,7 +78,7 @@ std::string hako::command::HakoMetaDumper::dump_json() {
     };
 
     json assets_json = json::array();
-    for (int i = 0; i < HAKO_DATA_MAX_ASSET_NUM; i++) {
+    for (uint32_t i = 0; i < m.asset_num; i++) {
         const auto& asset = m.assets[i];
         std::string name = std::string(asset.name.data);
         assets_json.push_back({
@@ -93,9 +93,90 @@ std::string hako::command::HakoMetaDumper::dump_json() {
         });
     }
     root["master_data"]["assets"] = assets_json;
+    json assets_ev_json = json::array();
+    for (uint32_t i = 0; i < m.asset_num; i++) {
+        const auto& asset_ev = m.assets_ev[i];
+        assets_ev_json.push_back({
+            {"pid", asset_ev.pid},
+            {"ctime", asset_ev.ctime},
+            {"update_time", asset_ev.update_time},
+            {"event", asset_ev.event},
+            {"event_feedback", asset_ev.event_feedback},
+            {"semid", asset_ev.semid}
+        });
+    }
+    root["master_data"]["assets_ev"] = assets_ev_json;
 
-    // 必要に応じて assets_ev や pdu_meta_data も追記可！
 
+    const auto& meta = m.pdu_meta_data;
+    root["master_data"]["pdu_meta_data"] = {
+        {"mode", meta.mode},
+        {"asset_num", meta.asset_num},
+        {"pdu_sync_asset_id", meta.pdu_sync_asset_id},
+        {"channel_num", meta.channel_num}
+    };
+
+    json check_status = json::array();
+    for (uint32_t i = 0; i < m.asset_num; i++) {
+        check_status.push_back(meta.asset_pdu_check_status[i]);
+    }
+    root["master_data"]["pdu_meta_data"]["asset_pdu_check_status"] = check_status;
+
+    json channels = json::array();
+    for (int i = 0; i < meta.channel_num; i++) {
+        channels.push_back({
+            {"offset", meta.channel[i].offset},
+            {"size", meta.channel[i].size}
+        });
+    }
+    root["master_data"]["pdu_meta_data"]["channel"] = channels;
+
+    json channel_maps = json::array();
+    for (int i = 0; i < meta.channel_num; i++) {
+        channel_maps.push_back({
+            {"robo_name", std::string(meta.channel_map[i].robo_name.data)},
+            {"logical_channel_id", meta.channel_map[i].logical_channel_id}
+        });
+    }
+    root["master_data"]["pdu_meta_data"]["channel_map"] = channel_maps;
+    // is_dirty, is_rbusy, is_rbusy_for_external, is_wbusy の出力
+    json flags_json;
+    for (int i = 0; i < meta.channel_num; i++) {
+        flags_json["is_dirty"].push_back(m.pdu_meta_data.is_dirty[i]);
+        flags_json["is_wbusy"].push_back(m.pdu_meta_data.is_wbusy[i]);
+        flags_json["is_rbusy_for_external"].push_back(m.pdu_meta_data.is_rbusy_for_external[i]);
+    }
+
+    json rbusy_json;
+    for (uint32_t aid = 0; aid < m.asset_num; aid++) {
+        json asset_rbusy;
+        for (int cid = 0; cid < meta.channel_num; cid++) {
+            asset_rbusy.push_back(m.pdu_meta_data.is_rbusy[aid][cid]);
+        }
+        rbusy_json[std::string(m.assets[aid].name.data)] = asset_rbusy;
+    }
+    flags_json["is_rbusy"] = rbusy_json;
+
+    root["master_data"]["pdu_meta_data"]["flags"] = flags_json;
+
+    json version_json;
+    json read_version_json;
+    for (uint32_t aid = 0; aid < m.asset_num; aid++) {
+        json versions;
+        for (int cid = 0; cid < meta.channel_num; cid++) {
+            versions.push_back(m.pdu_meta_data.pdu_read_version[aid][cid]);
+        }
+        read_version_json[std::string(m.assets[aid].name.data)] = versions;
+    }
+    version_json["pdu_read_version"] = read_version_json;
+    
+    json write_version_json = json::array();
+    for (int cid = 0; cid < meta.channel_num; cid++) {
+        write_version_json.push_back(m.pdu_meta_data.pdu_write_version[cid]);
+    }
+    version_json["pdu_write_version"] = write_version_json;
+    
+    root["master_data"]["pdu_meta_data"]["version"] = version_json;
     return root.dump(2);  // インデント2で整形出力
 }
 
