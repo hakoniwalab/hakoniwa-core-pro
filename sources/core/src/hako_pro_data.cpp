@@ -100,3 +100,50 @@ bool pro::HakoProAssetExtension::on_pdu_data_before_write(int real_channel_id)
     //std::cout << "INFO: HakoProAssetExtension::on_pdu_data_before_write() end" << std::endl;
     return true;
 }
+
+/*
+ * Service server API
+ */
+int hako::data::pro::HakoProData::create_service(const std::string& serviceName)
+{
+    if (service_table_ == nullptr) {
+        std::cerr << "ERROR: service_table_ is null" << std::endl;
+        return -1;
+    }
+    if (service_table_->entry_num >= HAKO_SERVICE_MAX) {
+        std::cerr << "ERROR: service_table_ is full" << std::endl;
+        return -1;
+    }
+    if (this->is_exist_service(serviceName)) {
+        std::cerr << "ERROR: service already exists" << std::endl;
+        return -1;
+    }
+    int service_id = -1;
+    for (int i = 0; i < HAKO_SERVICE_MAX; i++) {
+        if (service_table_->entries[i].enabled == true) {
+            continue;
+        }
+        for (int j = 0; j < service_table_->entries[i].maxClients; j++) {
+            int recv_event_id = -1;
+            int server_channel_id = HAKO_SERVICE_SERVER_CHANNEL_ID + (HAKO_SERVICE_SERVER_CHANNEL_ID_MAX * j);
+            bool ret = this->register_data_recv_event(serviceName, server_channel_id, nullptr, recv_event_id);
+            if (ret == false) {
+                std::cerr << "ERROR: Failed to register data receive event for service server" << std::endl;
+                return -1;
+            }
+            service_table_->entries[i].clientChannelMap[j].requestChannelId = server_channel_id;
+            service_table_->entries[i].clientChannelMap[j].requestRecvEventId = recv_event_id;
+            std::cout << "INFO: register_data_recv_event() serviceName: "
+                << serviceName << " channel_id: " << server_channel_id
+                << " recv_event_id: " << recv_event_id << std::endl;
+        }
+        service_table_->entries[i].enabled = true;
+        memcpy(service_table_->entries[i].serviceName, serviceName.c_str(), serviceName.length());
+        service_table_->entries[i].serviceName[serviceName.length()] = '\0';
+        service_table_->entry_num++;
+        service_id = i;
+        std::cout << "INFO: service_id: " << service_id << " serviceName: " << service_table_->entries[i].serviceName << std::endl;
+        break;
+    }
+    return service_id;
+}

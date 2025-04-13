@@ -8,8 +8,6 @@
 
 namespace hako::service::impl {
 
-    #define HAKO_SERVICE_SERVER_CHANNEL_ID 0
-    #define HAKO_SERVICE_CLIENT_CHANNEL_ID 1
     struct Service {
         std::string name;
         std::string type;
@@ -25,13 +23,33 @@ namespace hako::service::impl {
     };
     
 
+    extern int initialize(const char* service_config_path, std::shared_ptr<hako::IHakoAssetController> hako_asset);
     extern bool get_services(std::vector<Service>& services);
 
-    struct HakoServiceImplType {
-        bool is_initialized;
-        nlohmann::json param;
-        std::vector<Service> services;
-    };
-
-    extern int initialize(const char* service_config_path, std::shared_ptr<hako::IHakoAssetController> hako_asset);
+    /*
+     * Service server API
+     */
+    namespace server {
+        struct HakoServiceImplType {
+            bool is_initialized;
+            nlohmann::json param;
+            std::vector<Service> services;
+        };
+        extern int create(const char* serviceName);
+        extern int get_request(int service_id, char* packet, size_t packet_len);
+        extern int put_response(int service_id, char* packet, size_t packet_len);
+        extern int is_canceled(int service_id);
+        extern int set_status(int status, int percentage);
+    }
+    /*
+     * Service client API
+     */
+    namespace client {
+        extern int create(const char* serviceName, const char* clientName);
+        extern int call_request(int service_id, char* packet, size_t packet_len);
+        extern int get_response(int service_id, char* packet, size_t packet_len);
+        extern int cancel_request(int service_id);
+        extern int get_status(int service_id, int* status, int* percentage);
+    }
+ 
 }

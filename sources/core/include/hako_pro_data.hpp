@@ -38,6 +38,9 @@ typedef struct {
 /*
  * Hakoniwa Service Definitions
  */
+#define HAKO_SERVICE_SERVER_CHANNEL_ID 0
+#define HAKO_SERVICE_CLIENT_CHANNEL_ID 1
+#define HAKO_SERVICE_SERVER_CHANNEL_ID_MAX 2
 typedef struct {
     bool enabled;
     int namelen;
@@ -114,6 +117,21 @@ class HakoProData : public std::enable_shared_from_this<HakoProData>, public hak
         {
             service_table_ = table;
         }
+        bool is_exist_service(const std::string& service_name)
+        {
+            for (int i = 0; i < HAKO_SERVICE_MAX; i++) {
+                if (service_table_->entries[i].enabled == false) {
+                    continue;
+                }
+                if (strcmp(service_table_->entries[i].serviceName, service_name.c_str()) == 0) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        // lock memory is user's responsibility
+        // this function is only for creating service
+        int create_service(const std::string& serviceName);
         HakoServiceTableType* get_service_table()
         {
             return service_table_;
@@ -123,6 +141,14 @@ class HakoProData : public std::enable_shared_from_this<HakoProData>, public hak
         virtual bool on_pdu_data_reset() override;
         virtual bool on_pdu_data_destroy() override;
     
+        void lock_memory()
+        {
+            this->shmp_->lock_memory(HAKO_SHARED_MEMORY_ID_2);
+        }
+        void unlock_memory()
+        {
+            this->shmp_->unlock_memory(HAKO_SHARED_MEMORY_ID_2);
+        }
         bool register_data_recv_event(const std::string& robot_name, int channel_id, void (*on_recv)(int), int& recv_event_id)
         {
             recv_event_id = -1;

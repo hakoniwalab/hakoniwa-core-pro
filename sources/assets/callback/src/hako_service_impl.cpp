@@ -3,7 +3,7 @@
 #include <fstream>
 #include <iostream>
 
-hako::service::impl::HakoServiceImplType hako_service_instance;
+hako::service::impl::server::HakoServiceImplType hako_service_instance;
 
 int hako::service::impl::initialize(const char* service_config_path, std::shared_ptr<hako::IHakoAssetController> hako_asset)
 {
@@ -62,4 +62,55 @@ bool hako::service::impl::get_services(std::vector<hako::service::impl::Service>
     }
     services = hako_service_instance.services;
     return true;
+}
+
+/*
+ * Service server API
+ */
+int hako::service::impl::server::create(const char* serviceName)
+{
+    if (!hako_service_instance.is_initialized) {
+        std::cerr << "Error: not initialized." << std::endl;
+        return -1;
+    }
+    if (serviceName == nullptr || *serviceName == '\0') {
+        std::cerr << "Error: serviceName is not set." << std::endl;
+        return -1;
+    }
+    int namelen = strlen(serviceName);
+    if (namelen > HAKO_SERVICE_NAMELEN_MAX) {
+        std::cerr << "ERROR: serviceName is too long" << std::endl;
+        return -1;
+    }
+    bool found = false;
+    for (const auto& service : hako_service_instance.services) {
+        if (service.name == serviceName) {
+            found = true;
+            break;
+        }
+    }
+    if (!found) {
+        std::cerr << "ERROR: Service not found: " << serviceName << std::endl;
+        return -1;
+    }
+
+    auto pro_data = hako::data::pro::hako_pro_get_data();
+    if (!pro_data) {
+        std::cerr << "ERROR: hako_asset_impl_register_data_recv_event(): pro_data is null" << std::endl;
+        return -1;
+    }
+    int service_id = -1;
+    pro_data->lock_memory();
+    {
+        hako::data::pro::HakoServiceTableType* service_table = pro_data->get_service_table();
+        service_id = pro_data->create_service(serviceName);
+    }
+    pro_data->unlock_memory();
+    if (service_id < 0) {
+        std::cerr << "ERROR: service_id is invalid" << std::endl;
+    }
+    else {
+        std::cout << "INFO: Service server created successfully: " << serviceName << std::endl;
+    }
+    return service_id;
 }
