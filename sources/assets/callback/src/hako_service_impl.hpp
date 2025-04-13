@@ -8,16 +8,20 @@
 
 namespace hako::service::impl {
 
+    #define HAKO_SERVICE_SERVER_CHANNEL_ID 0
+    #define HAKO_SERVICE_CLIENT_CHANNEL_ID 1
     struct Service {
         std::string name;
         std::string type;
         int maxClients;
-        int serverPduSize;
-        int clientPduSize;
+    
         int pdu_size_server_base;
         int pdu_size_client_base;
         int pdu_size_server_heap;
         int pdu_size_client_heap;
+    
+        size_t server_total_size;
+        size_t client_total_size;
     };
     
 

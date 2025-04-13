@@ -25,20 +25,20 @@ int hako::service::impl::initialize(const char* service_config_path, std::shared
             s.maxClients = item["maxClients"];
 
             const auto& pduSize = item["pduSize"];
-            s.pdu_size_server_base = pduSize["pduSize"]["server"]["baseSize"];
-            s.pdu_size_client_base = pduSize["pduSize"]["client"]["baseSize"];
-            s.pdu_size_server_heap = pduSize["pduSize"]["server"]["heapSize"];
-            s.pdu_size_client_heap = pduSize["pduSize"]["client"]["heapSize"];
+            s.pdu_size_server_base = pduSize["server"]["baseSize"];
+            s.pdu_size_client_base = pduSize["client"]["baseSize"];
+            s.pdu_size_server_heap = pduSize["server"]["heapSize"];
+            s.pdu_size_client_heap = pduSize["client"]["heapSize"];
 
             //create pdu channels for service
-            s.serverPduSize = pduMetaDataSize + s.pdu_size_server_base + s.pdu_size_server_heap;
-            s.clientPduSize = pduMetaDataSize + s.pdu_size_client_base + s.pdu_size_client_heap;
-            bool ret = hako_asset->create_pdu_lchannel(s.name.c_str(), 0, (size_t)s.serverPduSize);
+            s.server_total_size = pduMetaDataSize + s.pdu_size_server_base + s.pdu_size_server_heap;
+            s.client_total_size = pduMetaDataSize + s.pdu_size_client_base + s.pdu_size_client_heap;
+            bool ret = hako_asset->create_pdu_lchannel(s.name.c_str(), HAKO_SERVICE_SERVER_CHANNEL_ID, s.server_total_size);
             if (ret == false) {
                 std::cerr << "Error: Failed to create PDU channel for service server: " << s.name << std::endl;
                 return -1;
             }
-            ret = hako_asset->create_pdu_lchannel(s.name.c_str(), 1, (size_t)s.clientPduSize);
+            ret = hako_asset->create_pdu_lchannel(s.name.c_str(), HAKO_SERVICE_CLIENT_CHANNEL_ID, s.client_total_size);
             if (ret == false) {
                 std::cerr << "Error: Failed to create PDU channel for service client: " << s.name << std::endl;
                 return -1;
