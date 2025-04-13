@@ -132,7 +132,8 @@ class HakoProData : public std::enable_shared_from_this<HakoProData>, public hak
         // lock memory is user's responsibility
         // this function is only for creating service
         int create_service(const std::string& serviceName);
-        int get_request(int asset_id, int service_id, char* packet, size_t packet_len);
+        int get_request(int asset_id, int service_id, int client_id, char* packet, size_t packet_len);
+        int put_response(int asset_id, int service_id, int client_id, char* packet, size_t packet_len);
         HakoServiceTableType* get_service_table()
         {
             return service_table_;

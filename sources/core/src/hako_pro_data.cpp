@@ -148,7 +148,7 @@ int hako::data::pro::HakoProData::create_service(const std::string& serviceName)
     return service_id;
 }
 
-int hako::data::pro::HakoProData::get_request(int asset_id, int service_id, char* packet, size_t packet_len)
+int hako::data::pro::HakoProData::get_request(int asset_id, int service_id, int client_id, char* packet, size_t packet_len)
 {
     if (service_table_ == nullptr) {
         std::cerr << "ERROR: service_table_ is null" << std::endl;
@@ -166,8 +166,12 @@ int hako::data::pro::HakoProData::get_request(int asset_id, int service_id, char
         std::cerr << "ERROR: service is not enabled" << std::endl;
         return -1;
     }
-    int channel_id = service_table_->entries[service_id].clientChannelMap[0].requestChannelId;
-    int recv_event_id = service_table_->entries[service_id].clientChannelMap[0].requestRecvEventId;
+    if (client_id < 0 || client_id >= service_table_->entries[service_id].maxClients) {
+        std::cerr << "ERROR: client_id is invalid" << std::endl;
+        return -1;
+    }
+    int channel_id = service_table_->entries[service_id].clientChannelMap[client_id].requestChannelId;
+    int recv_event_id = service_table_->entries[service_id].clientChannelMap[client_id].requestRecvEventId;
     char* serviceName = service_table_->entries[service_id].serviceName;
     HakoPduChannelIdType real_id = this->master_data_->get_pdu_data()->get_pdu_channel(serviceName, channel_id);
     if (real_id < 0) {
@@ -188,6 +192,45 @@ int hako::data::pro::HakoProData::get_request(int asset_id, int service_id, char
     }
     if (read_result == false) {
         std::cerr << "ERROR: get_request() failed to read pdu" << std::endl;
+        return -1;
+    }
+    return 0;
+}
+
+int hako::data::pro::HakoProData::put_response(int asset_id, int service_id, int client_id, char* packet, size_t packet_len)
+{
+    (void)asset_id; // asset_id is not used in this function
+    if (service_table_ == nullptr) {
+        std::cerr << "ERROR: service_table_ is null" << std::endl;
+        return -1;
+    }
+    if (service_id < 0 || service_id >= HAKO_SERVICE_MAX) {
+        std::cerr << "ERROR: service_id is invalid" << std::endl;
+        return -1;
+    }
+    if (packet == nullptr || packet_len <= 0) {
+        std::cerr << "ERROR: packet is null or packet_len is invalid" << std::endl;
+        return -1;
+    }
+    if (service_table_->entries[service_id].enabled == false) {
+        std::cerr << "ERROR: service is not enabled" << std::endl;
+        return -1;
+    }
+    if (client_id < 0 || client_id >= service_table_->entries[service_id].maxClients) {
+        std::cerr << "ERROR: client_id is invalid" << std::endl;
+        return -1;
+    }
+    int channel_id = service_table_->entries[service_id].clientChannelMap[client_id].responseChannelId;
+    char* serviceName = service_table_->entries[service_id].serviceName;
+    HakoPduChannelIdType real_id = this->master_data_->get_pdu_data()->get_pdu_channel(serviceName, channel_id);
+    if (real_id < 0) {
+        std::cerr << "ERROR: real_id is invalid" << std::endl;
+        return -1;
+    }
+    bool write_result = false;
+    write_result = master_data_->get_pdu_data()->write_pdu(real_id, packet, packet_len);
+    if (write_result == false) {
+        std::cerr << "ERROR: put_response() failed to write pdu" << std::endl;
         return -1;
     }
     return 0;

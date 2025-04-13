@@ -114,7 +114,7 @@ int hako::service::impl::server::create(const char* serviceName)
     return service_id;
 }
 
-int hako::service::impl::server::get_request(int asset_id, int service_id, char* packet, size_t packet_len)
+int hako::service::impl::server::get_request(int asset_id, int service_id, int client_id, char* packet, size_t packet_len)
 {
     if (!hako_service_instance.is_initialized) {
         std::cerr << "Error: not initialized." << std::endl;
@@ -129,7 +129,29 @@ int hako::service::impl::server::get_request(int asset_id, int service_id, char*
         std::cerr << "ERROR: hako_asset_impl_register_data_recv_event(): pro_data is null" << std::endl;
         return -1;
     }
-    int ret = pro_data->get_request(asset_id, service_id, packet, packet_len);
+    int ret = pro_data->get_request(asset_id, service_id, client_id, packet, packet_len);
+    if (ret < 0) {
+        return -1;
+    }
+    return 0;
+}
+
+int hako::service::impl::server::put_response(int asset_id, int service_id, int client_id, char* packet, size_t packet_len)
+{
+    if (!hako_service_instance.is_initialized) {
+        std::cerr << "Error: not initialized." << std::endl;
+        return -1;
+    }
+    if (packet == nullptr || packet_len == 0) {
+        std::cerr << "Error: packet is null or packet_len is 0." << std::endl;
+        return -1;
+    }
+    auto pro_data = hako::data::pro::hako_pro_get_data();
+    if (!pro_data) {
+        std::cerr << "ERROR: hako_asset_impl_register_data_recv_event(): pro_data is null" << std::endl;
+        return -1;
+    }
+    int ret = pro_data->put_response(asset_id, service_id, client_id, packet, packet_len);
     if (ret < 0) {
         return -1;
     }
