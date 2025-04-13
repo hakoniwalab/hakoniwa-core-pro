@@ -1,0 +1,9 @@
+{
+    "services": [
+        {
+            "name": "Add",
+            "type": "hako_srv_msgs/AddTwoInts",
+            "maxClients": 1
+        }
+    ]
+}

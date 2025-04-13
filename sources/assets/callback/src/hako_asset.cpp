@@ -1,4 +1,5 @@
 #include "hako_asset_impl.hpp"
+#include "hako_service_impl.hpp"
 
 struct hako_asset_context_s {
     void *data;
