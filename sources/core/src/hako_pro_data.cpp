@@ -5,7 +5,7 @@ using namespace hako::data;
 bool pro::HakoProData::on_pdu_data_create()
 {
     std::cout << "INFO: HakoProData::on_pdu_data_create()" << std::endl;
-    auto shmid = this->get_shared_memory()->create_memory(HAKO_SHARED_MEMORY_ID_2, sizeof(HakoRecvEventTableType));
+    auto shmid = this->get_shared_memory()->create_memory(HAKO_SHARED_MEMORY_ID_2, TOTAL_HAKO_PRO_DATA_SIZE);
     if (shmid < 0) {
         std::cout << "ERROR: HakoProData::on_pdu_data_create() failed to create memory" << std::endl;
         return false;
@@ -23,12 +23,14 @@ bool pro::HakoProData::on_pdu_data_create()
 bool pro::HakoProData::on_pdu_data_load()
 {
     std::cout << "INFO: HakoProData::on_pdu_data_load()" << std::endl;
-    void *datap = this->get_shared_memory()->load_memory(HAKO_SHARED_MEMORY_ID_2, sizeof(HakoRecvEventTableType));
+    char *datap = (char*)this->get_shared_memory()->load_memory(HAKO_SHARED_MEMORY_ID_2, TOTAL_HAKO_PRO_DATA_SIZE);
     if (datap == nullptr) {
         std::cout << "ERROR: HakoProData::on_pdu_data_load() failed to load memory" << std::endl;
         return false;
     }
-    this->set_recv_event_table(static_cast<HakoRecvEventTableType*>(datap));
+    this->set_recv_event_table(reinterpret_cast<HakoRecvEventTableType*>(&datap[OFFSET_HAKO_RECV_EVENT_TABLE]));
+    this->set_service_table(reinterpret_cast<HakoServiceTableType*>(&datap[OFFSET_HAKO_SERVICE_TABLE]));
+
     std::cout << "INFO: HakoProData::on_pdu_data_load() loaded memory" << std::endl;
     return true;
 }

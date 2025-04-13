@@ -7,9 +7,13 @@
 #include "utils/hako_share/hako_shared_memory_factory.hpp"
 #include "data/hako_master_data.hpp"
 #include "core/context/hako_context.hpp"
+#include "hako_pro_config.hpp"
 #include <memory>
 namespace hako::data::pro {
 
+/*
+ * Hakoniwa Data Receive Event Definitions
+ */
 typedef enum {
     HAKO_RECV_EVENT_TYPE_FLAG = 0,
     HAKO_RECV_EVENT_TYPE_CALLBACK = 1
@@ -26,12 +30,40 @@ typedef struct {
     void (*on_recv)(int recv_event_id);
 } HakoRecvEventEntryType;
 
-#define HAKO_RECV_EVENT_MAX 32
 typedef struct {
     HakoRecvEventEntryType entries[HAKO_RECV_EVENT_MAX];
     int entry_num;
 } HakoRecvEventTableType;
 
+/*
+ * Hakoniwa Service Definitions
+ */
+typedef struct {
+    bool enabled;
+    int namelen;
+    char clientName[HAKO_CLIENT_NAMELEN_MAX];
+    int requestChannelId;
+    int requestRecvEventId;
+    int responseChannelId;
+    int responseRecvEventId;
+} HakoServiceClientChannelMapType;
+
+typedef struct {
+    bool enabled;
+    int namelen;
+    char serviceName[HAKO_SERVICE_NAMELEN_MAX];
+    int maxClients;
+    HakoServiceClientChannelMapType clientChannelMap[HAKO_SERVICE_CLIENT_MAX];
+} HakoServiceEntryTye;
+
+typedef struct {
+    int entry_num;
+    HakoServiceEntryTye entries[HAKO_SERVICE_MAX];
+} HakoServiceTableType;
+
+#define TOTAL_HAKO_PRO_DATA_SIZE (sizeof(HakoRecvEventTableType) + sizeof(HakoServiceTableType) + 1024)
+#define OFFSET_HAKO_RECV_EVENT_TABLE (0)
+#define OFFSET_HAKO_SERVICE_TABLE (sizeof(HakoRecvEventTableType))
 class HakoProAssetExtension;
 class HakoProData : public std::enable_shared_from_this<HakoProData>, public hako::extension::IHakoMasterExtension {
     public:
@@ -40,6 +72,7 @@ class HakoProData : public std::enable_shared_from_this<HakoProData>, public hak
             this->master_data_ = master_data;
             this->shmp_ = nullptr;
             this->recv_event_table_ = nullptr;
+            this->service_table_ = nullptr;
             this->shm_type_ = "shm";
         }
         void init(const std::string& type)
@@ -59,6 +92,7 @@ class HakoProData : public std::enable_shared_from_this<HakoProData>, public hak
                 this->shmp_->destroy_memory(HAKO_SHARED_MEMORY_ID_1);
                 this->shmp_ = nullptr;
                 this->recv_event_table_ = nullptr;
+                this->service_table_ = nullptr;
             }
         }
         virtual ~HakoProData()
@@ -71,10 +105,18 @@ class HakoProData : public std::enable_shared_from_this<HakoProData>, public hak
         void set_recv_event_table(HakoRecvEventTableType* table)
         {
             recv_event_table_ = table;
-        }
+        }        
         HakoRecvEventTableType* get_recv_event_table()
         {
             return recv_event_table_;
+        }
+        void set_service_table(HakoServiceTableType* table)
+        {
+            service_table_ = table;
+        }
+        HakoServiceTableType* get_service_table()
+        {
+            return service_table_;
         }
         virtual bool on_pdu_data_create() override;
         virtual bool on_pdu_data_load() override;
@@ -256,6 +298,7 @@ class HakoProData : public std::enable_shared_from_this<HakoProData>, public hak
         }
     private:
         HakoRecvEventTableType* recv_event_table_;
+        HakoServiceTableType* service_table_;
         std::shared_ptr<HakoProAssetExtension> asset_extension_;
         std::shared_ptr<hako::utils::HakoSharedMemory> shmp_;
         std::string shm_type_;
