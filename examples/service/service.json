@@ -1,9 +1,20 @@
 {
+    "pduMetaDataSize": 24,
     "services": [
         {
-            "name": "Add",
+            "name": "Service/Add",
             "type": "hako_srv_msgs/AddTwoInts",
-            "maxClients": 1
+            "maxClients": 1,
+            "pduSize": {
+                "server": {
+                    "baseSize": 72,
+                    "heapSize": 0
+                },
+                "client": {
+                    "baseSize": 72,
+                    "heapSize": 0
+                }
+            }
         }
     ]
 }
