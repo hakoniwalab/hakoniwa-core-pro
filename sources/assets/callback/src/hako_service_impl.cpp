@@ -157,3 +157,63 @@ int hako::service::impl::server::put_response(int asset_id, int service_id, int 
     }
     return 0;
 }
+
+/*
+ * Service client API
+ */
+int hako::service::impl::client::create(const char* serviceName, const char* clientName, int& client_id)
+{
+    if (!hako_service_instance.is_initialized) {
+        std::cerr << "Error: not initialized." << std::endl;
+        return -1;
+    }
+    if (serviceName == nullptr || *serviceName == '\0') {
+        std::cerr << "Error: serviceName is not set." << std::endl;
+        return -1;
+    }
+    if (clientName == nullptr || *clientName == '\0') {
+        std::cerr << "Error: clientName is not set." << std::endl;
+        return -1;
+    }
+    int namelen = strlen(serviceName);
+    if (namelen > HAKO_SERVICE_NAMELEN_MAX) {
+        std::cerr << "ERROR: serviceName is too long" << std::endl;
+        return -1;
+    }
+    namelen = strlen(clientName);
+    if (namelen > HAKO_CLIENT_NAMELEN_MAX) {
+        std::cerr << "ERROR: clientName is too long" << std::endl;
+        return -1;
+    }
+    bool found = false;
+    for (const auto& service : hako_service_instance.services) {
+        if (service.name == serviceName) {
+            found = true;
+            break;
+
+        }
+    }
+    if (!found) {
+        std::cerr << "ERROR: Service not found: " << serviceName << std::endl;
+        return -1;
+    }
+
+    auto pro_data = hako::data::pro::hako_pro_get_data();
+    if (!pro_data) {
+        std::cerr << "ERROR: hako_asset_impl_register_data_recv_event(): pro_data is null" << std::endl;
+        return -1;
+    }
+    int service_id = -1;
+    pro_data->lock_memory();
+    {
+        service_id = pro_data->create_service_client(serviceName, clientName, client_id);
+    }
+    pro_data->unlock_memory();
+    if (service_id < 0) {
+        std::cerr << "ERROR: service_id is invalid" << std::endl;
+    }
+    else {
+        std::cout << "INFO: Service client created successfully: " << clientName << std::endl;
+    }
+    return service_id;
+}

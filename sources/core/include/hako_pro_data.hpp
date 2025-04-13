@@ -129,11 +129,57 @@ class HakoProData : public std::enable_shared_from_this<HakoProData>, public hak
             }
             return false;
         }
+        bool is_exist_client_on_service(const std::string& service_name, const std::string& client_name)
+        {
+            for (int i = 0; i < HAKO_SERVICE_MAX; i++) {
+                if (service_table_->entries[i].enabled == false) {
+                    continue;
+                }
+                if (strcmp(service_table_->entries[i].serviceName, service_name.c_str()) != 0) {
+                    continue;
+                }
+                for (int j = 0; j < service_table_->entries[i].maxClients; j++) {
+                    if (service_table_->entries[i].clientChannelMap[j].enabled == false) {
+                        continue;
+                    }
+                    if (strcmp(service_table_->entries[i].clientChannelMap[j].clientName, client_name.c_str()) == 0) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+        HakoServiceEntryTye& get_service_entry(const std::string& service_name)
+        {
+            for (int i = 0; i < HAKO_SERVICE_MAX; i++) {
+                if (service_table_->entries[i].enabled == false) {
+                    continue;
+                }
+                if (strcmp(service_table_->entries[i].serviceName, service_name.c_str()) == 0) {
+                    return service_table_->entries[i];
+                }
+            }
+            throw std::runtime_error("Service not found");
+        }
+        int get_service_id(const std::string& service_name)
+        {
+            for (int i = 0; i < HAKO_SERVICE_MAX; i++) {
+                if (service_table_->entries[i].enabled == false) {
+                    continue;
+                }
+                if (strcmp(service_table_->entries[i].serviceName, service_name.c_str()) == 0) {
+                    return i;
+                }
+            }
+            return -1;
+        }
         // lock memory is user's responsibility
         // this function is only for creating service
         int create_service(const std::string& serviceName);
         int get_request(int asset_id, int service_id, int client_id, char* packet, size_t packet_len);
         int put_response(int asset_id, int service_id, int client_id, char* packet, size_t packet_len);
+
+        int create_service_client(const std::string& serviceName, const std::string& clientName, int& client_id);
         HakoServiceTableType* get_service_table()
         {
             return service_table_;

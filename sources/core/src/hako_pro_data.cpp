@@ -235,3 +235,71 @@ int hako::data::pro::HakoProData::put_response(int asset_id, int service_id, int
     }
     return 0;
 }
+
+/*
+ * Service client API
+ */
+int hako::data::pro::HakoProData::create_service_client(const std::string& serviceName, const std::string& clientName, int& client_id)
+{
+    client_id = -1;
+    if (service_table_ == nullptr) {
+        std::cerr << "ERROR: service_table_ is null" << std::endl;
+        return -1;
+    }
+    if (serviceName.empty()) {
+        std::cerr << "ERROR: serviceName is empty" << std::endl;
+        return -1;
+    }
+    if (clientName.empty()) {
+        std::cerr << "ERROR: clientName is empty" << std::endl;
+        return -1;
+    }
+    int namelen = serviceName.length();
+    if (namelen > HAKO_SERVICE_NAMELEN_MAX) {
+        std::cerr << "ERROR: serviceName is too long" << std::endl;
+        return -1;
+    }
+    namelen = clientName.length();
+    if (namelen > HAKO_CLIENT_NAMELEN_MAX) {
+        std::cerr << "ERROR: clientName is too long" << std::endl;
+        return -1;
+    }
+    int service_id = this->get_service_id(serviceName);
+    if (service_id < 0) {
+        std::cerr << "ERROR: service not found: " << serviceName << std::endl;
+        return -1;
+    }
+    if (this->is_exist_client_on_service(serviceName, clientName)) {
+        std::cerr << "ERROR: client already exists" << std::endl;
+        return -1;
+    }
+    HakoServiceEntryTye& service_entry = this->get_service_entry(serviceName);
+    for (int i = 0; i < service_entry.maxClients; i++) {
+        if (service_entry.clientChannelMap[i].enabled == true) {
+            continue;
+        }
+        int recv_event_id = -1;
+        int client_channel_id = HAKO_SERVICE_CLIENT_CHANNEL_ID + (HAKO_SERVICE_SERVER_CHANNEL_ID_MAX * i);
+        bool ret = this->register_data_recv_event(clientName, client_channel_id, nullptr, recv_event_id);
+        if (ret == false) {
+            std::cerr << "ERROR: Failed to register data receive event for service client" << std::endl;
+            return -1;
+        }
+        service_entry.clientChannelMap[i].responseChannelId = client_channel_id;
+        service_entry.clientChannelMap[i].responseRecvEventId = recv_event_id;
+        service_entry.clientChannelMap[i].enabled = true;
+        memcpy(service_entry.clientChannelMap[i].clientName, clientName.c_str(), clientName.length());
+        service_entry.clientChannelMap[i].clientName[clientName.length()] = '\0';
+        std::cout << "INFO: register_data_recv_event() serviceName: "
+            << serviceName << " channel_id: " << client_channel_id
+            << " recv_event_id: " << recv_event_id << std::endl;
+        client_id = i;
+        std::cout << "INFO: client_id: " << client_id << " clientName: " << service_entry.clientChannelMap[i].clientName << std::endl;
+        break;
+    }
+    if (client_id < 0) {
+        std::cerr << "ERROR: client_id is invalid" << std::endl;
+        return -1;
+    }
+    return service_id;
+}

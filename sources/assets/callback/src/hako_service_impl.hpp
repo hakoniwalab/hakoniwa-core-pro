@@ -43,7 +43,7 @@ namespace hako::service::impl {
      * Service client API
      */
     namespace client {
-        extern int create(const char* serviceName, const char* clientName);
+        extern int create(const char* serviceName, const char* clientName, int& client_id);
         extern int put_request(int asset_id, int service_id, char* packet, size_t packet_len);
         extern int get_response(int asset_id, int service_id, char* packet, size_t packet_len);
     }
