@@ -78,3 +78,23 @@ bool pro::HakoProAssetExtension::on_pdu_data_write(int real_channel_id)
     //std::cout << "INFO: HakoProAssetExtension::on_pdu_data_write() end" << std::endl;
     return true;
 }
+
+bool pro::HakoProAssetExtension::on_pdu_data_before_write(int real_channel_id) 
+{
+    //std::cout << "INFO: HakoProAssetExtension::on_pdu_data_before_write()" << std::endl;
+    HakoRecvEventTableType *table = this->pro_->get_recv_event_table();
+    if (table == nullptr) {
+        std::cout << "ERROR: HakoProAssetExtension::on_pdu_data_before_write() table is null" << std::endl;
+        return false;
+    }
+    //process lock is not needed because upper layer is already locked
+    for (int i = 0; i < table->entry_num; ++i) {
+        if (table->entries[i].enabled && (table->entries[i].real_channel_id == real_channel_id)
+            && (table->entries[i].recv_flag)) {
+                //busy
+                return false;
+        }
+    }
+    //std::cout << "INFO: HakoProAssetExtension::on_pdu_data_before_write() end" << std::endl;
+    return true;
+}

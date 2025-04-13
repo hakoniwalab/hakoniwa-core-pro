@@ -272,6 +272,7 @@ public:
     {
     }
     virtual bool on_pdu_data_write(int real_channel_id) override;
+    virtual bool on_pdu_data_before_write(int real_channel_id) override;
 private:
     std::shared_ptr<HakoProData> pro_;
 };
