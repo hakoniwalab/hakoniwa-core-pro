@@ -36,20 +36,16 @@ namespace hako::service::impl {
             std::vector<Service> services;
         };
         extern int create(const char* serviceName);
-        extern int get_request(int service_id, char* packet, size_t packet_len);
-        extern int put_response(int service_id, char* packet, size_t packet_len);
-        extern int is_canceled(int service_id);
-        extern int set_status(int status, int percentage);
+        extern int get_request(int asset_id, int service_id, char* packet, size_t packet_len);
+        extern int put_response(int asset_id, int service_id, char* packet, size_t packet_len);
     }
     /*
      * Service client API
      */
     namespace client {
         extern int create(const char* serviceName, const char* clientName);
-        extern int call_request(int service_id, char* packet, size_t packet_len);
-        extern int get_response(int service_id, char* packet, size_t packet_len);
-        extern int cancel_request(int service_id);
-        extern int get_status(int service_id, int* status, int* percentage);
+        extern int put_request(int asset_id, int service_id, char* packet, size_t packet_len);
+        extern int get_response(int asset_id, int service_id, char* packet, size_t packet_len);
     }
  
 }

@@ -102,7 +102,6 @@ int hako::service::impl::server::create(const char* serviceName)
     int service_id = -1;
     pro_data->lock_memory();
     {
-        hako::data::pro::HakoServiceTableType* service_table = pro_data->get_service_table();
         service_id = pro_data->create_service(serviceName);
     }
     pro_data->unlock_memory();
@@ -113,4 +112,26 @@ int hako::service::impl::server::create(const char* serviceName)
         std::cout << "INFO: Service server created successfully: " << serviceName << std::endl;
     }
     return service_id;
+}
+
+int hako::service::impl::server::get_request(int asset_id, int service_id, char* packet, size_t packet_len)
+{
+    if (!hako_service_instance.is_initialized) {
+        std::cerr << "Error: not initialized." << std::endl;
+        return -1;
+    }
+    if (packet == nullptr || packet_len == 0) {
+        std::cerr << "Error: packet is null or packet_len is 0." << std::endl;
+        return -1;
+    }
+    auto pro_data = hako::data::pro::hako_pro_get_data();
+    if (!pro_data) {
+        std::cerr << "ERROR: hako_asset_impl_register_data_recv_event(): pro_data is null" << std::endl;
+        return -1;
+    }
+    int ret = pro_data->get_request(asset_id, service_id, packet, packet_len);
+    if (ret < 0) {
+        return -1;
+    }
+    return 0;
 }

@@ -132,6 +132,7 @@ class HakoProData : public std::enable_shared_from_this<HakoProData>, public hak
         // lock memory is user's responsibility
         // this function is only for creating service
         int create_service(const std::string& serviceName);
+        int get_request(int asset_id, int service_id, char* packet, size_t packet_len);
         HakoServiceTableType* get_service_table()
         {
             return service_table_;
@@ -204,6 +205,14 @@ class HakoProData : public std::enable_shared_from_this<HakoProData>, public hak
                 }
                 asset_id = asset->id;
             }
+            HakoPduChannelIdType real_id = this->master_data_->get_pdu_data()->get_pdu_channel(robot_name, channel_id);
+            if (real_id < 0) {
+                return false;
+            }
+            return get_recv_event(asset_id, real_id, recv_event_id);
+        }
+        bool get_recv_event(int asset_id, const std::string& robot_name, int channel_id, int& recv_event_id)
+        {
             HakoPduChannelIdType real_id = this->master_data_->get_pdu_data()->get_pdu_channel(robot_name, channel_id);
             if (real_id < 0) {
                 return false;
