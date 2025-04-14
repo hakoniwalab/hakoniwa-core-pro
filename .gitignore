@@ -30,3 +30,13 @@
 *.exe
 *.out
 *.app
+
+# Cmake files
+cmake-build/*
+
+# Python
+__pycache__
+
+# Others
+.DS_Store
+.vscode
