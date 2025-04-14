@@ -53,6 +53,8 @@ typedef struct {
     int namelen;
     char serviceName[HAKO_SERVICE_NAMELEN_MAX];
     int maxClients;
+    int pdu_size_request;
+    int pdu_size_response;
     HakoServiceClientChannelMapType clientChannelMap[HAKO_SERVICE_CLIENT_MAX];
 } HakoServiceEntryTye;
 

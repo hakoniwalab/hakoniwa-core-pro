@@ -87,6 +87,14 @@ class HakoProData : public std::enable_shared_from_this<HakoProData>, public hak
         {
             return std::static_pointer_cast<hako::extension::IHakoAssetExtension>(asset_extension_);
         }
+        int get_asset_id(const std::string& asset_name)
+        {
+            auto* asset = this->master_data_->get_asset_nolock(asset_name);
+            if (asset == nullptr) {
+                return -1;
+            }
+            return asset->id;
+        }
         /*
          * Receive event API
          */

@@ -139,6 +139,8 @@ int hako::data::pro::HakoProData::get_service_id(const std::string& service_name
         }
         service_table_->entries[i].enabled = true;
         service_table_->entries[i].maxClients = service.maxClients;
+        service_table_->entries[i].pdu_size_request = service.server_total_size;
+        service_table_->entries[i].pdu_size_response = service.client_total_size;
         if (service.name.length() >= HAKO_SERVICE_NAMELEN_MAX) {
             std::cerr << "ERROR: service name is too long" << std::endl;
             break;
