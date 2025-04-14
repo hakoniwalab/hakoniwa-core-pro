@@ -1,5 +1,6 @@
 #include "hako_pro_data.hpp"
-
+#include <fstream>
+#include <iostream>
 using namespace hako::data;
 
 bool pro::HakoProData::on_pdu_data_create()
@@ -15,6 +16,7 @@ bool pro::HakoProData::on_pdu_data_create()
     this->set_recv_event_table(static_cast<HakoRecvEventTableType*>(datap));
     {
         memset(datap, 0, sizeof(HakoRecvEventTableType));
+        this->set_service_data();
     }
     this->get_shared_memory()->unlock_memory(HAKO_SHARED_MEMORY_ID_2);
     std::cout << "INFO: HakoProData::on_pdu_data_create() created memory" << std::endl;
@@ -102,6 +104,98 @@ bool pro::HakoProAssetExtension::on_pdu_data_before_write(int real_channel_id)
 }
 
 /*
+ * Service API
+ */
+
+ bool hako::data::pro::HakoProData::initialize_service(const std::string& service_config_path)
+ {
+     if (service_table_ == nullptr) {
+         std::cerr << "ERROR: service_table_ is null" << std::endl;
+         return false;
+     }
+     if (service_config_path.empty()) {
+         std::cerr << "ERROR: service_config_path is empty" << std::endl;
+         return false;
+     }
+     std::ifstream ifs(service_config_path);
+     
+     if (!ifs.is_open()) {
+         std::cerr << "Error: Failed to open service config file: " << service_config_path << std::endl;
+         return false;
+     }
+ 
+     try {
+         ifs >> this->service_impl_.param;
+         int pduMetaDataSize = this->service_impl_.param["pduMetaDataSize"];
+         for (const auto& item : this->service_impl_.param["services"]) {
+             hako::data::pro::Service s;
+             s.name = item["name"];
+             s.type = item["type"];
+             s.maxClients = item["maxClients"];
+ 
+             const auto& pduSize = item["pduSize"];
+             s.pdu_size_server_base = pduSize["server"]["baseSize"];
+             s.pdu_size_client_base = pduSize["client"]["baseSize"];
+             s.pdu_size_server_heap = pduSize["server"]["heapSize"];
+             s.pdu_size_client_heap = pduSize["client"]["heapSize"];
+ 
+             //create pdu channels for service
+             s.server_total_size = pduMetaDataSize + s.pdu_size_server_base + s.pdu_size_server_heap;
+             s.client_total_size = pduMetaDataSize + s.pdu_size_client_base + s.pdu_size_client_heap;
+             for (int i = 0; i < s.maxClients; i++) {
+                 int server_channel_id = HAKO_SERVICE_SERVER_CHANNEL_ID + (HAKO_SERVICE_SERVER_CHANNEL_ID_MAX * i);
+                 bool ret = this->master_data_->get_pdu_data()->create_lchannel(s.name, server_channel_id, s.server_total_size);
+                 if (ret == false) {
+                     std::cerr << "Error: Failed to create PDU channel for service server: " << s.name << std::endl;
+                     return false;
+                 }
+                 int client_channel_id = HAKO_SERVICE_CLIENT_CHANNEL_ID + (HAKO_SERVICE_SERVER_CHANNEL_ID_MAX * i);
+                 ret = this->master_data_->get_pdu_data()->create_lchannel(s.name, client_channel_id, s.client_total_size);
+                 if (ret == false) {
+                     std::cerr << "Error: Failed to create PDU channel for service client: " << s.name << std::endl;
+                     return false;
+                 }
+             }
+             this->service_impl_.services.push_back(s);
+         }
+     } catch (const std::exception& e) {
+         std::cerr << "Error: Failed to parse service config JSON: " << e.what() << std::endl;
+         return -1;
+     }
+     ifs.close();
+     
+     return true;
+ }
+ void hako::data::pro::HakoProData::set_service_data()
+ {
+     if (service_table_ == nullptr) {
+         std::cerr << "ERROR: service_table_ is null" << std::endl;
+         return;
+     }
+     service_table_->entry_num = this->service_impl_.services.size();
+     for (int i = 0; service_table_->entry_num; i++) {
+        auto& service = this->service_impl_.services[i];
+        if (i >= HAKO_SERVICE_MAX) {
+            std::cerr << "ERROR: service_table_ is full" << std::endl;
+            break;
+        }
+        service_table_->entries[i].enabled = true;
+        service_table_->entries[i].maxClients = service.maxClients;
+        if (service.name.length() >= HAKO_SERVICE_NAMELEN_MAX) {
+            std::cerr << "ERROR: service name is too long" << std::endl;
+            break;
+        }
+        service_table_->entries[i].namelen = service.name.length();
+        memcpy(service_table_->entries[i].serviceName, service.name.c_str(), service.name.length());
+        service_table_->entries[i].serviceName[service.name.length()] = '\0';
+        for (int j = 0; j < service.maxClients; j++) {
+            service_table_->entries[i].clientChannelMap[j].enabled = false;
+            service_table_->entries[i].clientChannelMap[j].requestChannelId = HAKO_SERVICE_SERVER_CHANNEL_ID + (HAKO_SERVICE_SERVER_CHANNEL_ID_MAX * j);
+            service_table_->entries[i].clientChannelMap[j].responseChannelId = HAKO_SERVICE_CLIENT_CHANNEL_ID + (HAKO_SERVICE_SERVER_CHANNEL_ID_MAX * j);
+        }
+    }
+}
+/*
  * Service server API
  */
 int hako::data::pro::HakoProData::create_service(const std::string& serviceName)
@@ -114,36 +208,25 @@ int hako::data::pro::HakoProData::create_service(const std::string& serviceName)
         std::cerr << "ERROR: service_table_ is full" << std::endl;
         return -1;
     }
-    if (this->is_exist_service(serviceName)) {
-        std::cerr << "ERROR: service already exists" << std::endl;
+    int service_id = get_service_id(serviceName);
+    if (service_id < 0) {
+        std::cerr << "ERROR: service_id is invalid" << std::endl;
         return -1;
     }
-    int service_id = -1;
-    for (int i = 0; i < HAKO_SERVICE_MAX; i++) {
-        if (service_table_->entries[i].enabled == true) {
-            continue;
+    HakoServiceEntryTye& service_entry = service_table_->entries[service_id];
+    for (int j = 0; j < service_entry.maxClients; j++) {
+        int recv_event_id = -1;
+        int server_channel_id = HAKO_SERVICE_SERVER_CHANNEL_ID + (HAKO_SERVICE_SERVER_CHANNEL_ID_MAX * j);
+        bool ret = this->register_data_recv_event(serviceName, server_channel_id, nullptr, recv_event_id);
+        if (ret == false) {
+            std::cerr << "ERROR: Failed to register data receive event for service server" << std::endl;
+            return -1;
         }
-        for (int j = 0; j < service_table_->entries[i].maxClients; j++) {
-            int recv_event_id = -1;
-            int server_channel_id = HAKO_SERVICE_SERVER_CHANNEL_ID + (HAKO_SERVICE_SERVER_CHANNEL_ID_MAX * j);
-            bool ret = this->register_data_recv_event(serviceName, server_channel_id, nullptr, recv_event_id);
-            if (ret == false) {
-                std::cerr << "ERROR: Failed to register data receive event for service server" << std::endl;
-                return -1;
-            }
-            service_table_->entries[i].clientChannelMap[j].requestChannelId = server_channel_id;
-            service_table_->entries[i].clientChannelMap[j].requestRecvEventId = recv_event_id;
-            std::cout << "INFO: register_data_recv_event() serviceName: "
-                << serviceName << " channel_id: " << server_channel_id
-                << " recv_event_id: " << recv_event_id << std::endl;
-        }
-        service_table_->entries[i].enabled = true;
-        memcpy(service_table_->entries[i].serviceName, serviceName.c_str(), serviceName.length());
-        service_table_->entries[i].serviceName[serviceName.length()] = '\0';
-        service_table_->entry_num++;
-        service_id = i;
-        std::cout << "INFO: service_id: " << service_id << " serviceName: " << service_table_->entries[i].serviceName << std::endl;
-        break;
+        service_entry.clientChannelMap[j].requestChannelId = server_channel_id;
+        service_entry.clientChannelMap[j].requestRecvEventId = recv_event_id;
+        std::cout << "INFO: register_data_recv_event() serviceName: "
+            << serviceName << " channel_id: " << server_channel_id
+            << " recv_event_id: " << recv_event_id << std::endl;
     }
     return service_id;
 }
@@ -279,13 +362,12 @@ int hako::data::pro::HakoProData::create_service_client(const std::string& servi
             continue;
         }
         int recv_event_id = -1;
-        int client_channel_id = HAKO_SERVICE_CLIENT_CHANNEL_ID + (HAKO_SERVICE_SERVER_CHANNEL_ID_MAX * i);
+        int client_channel_id = service_entry.clientChannelMap[i].responseChannelId;
         bool ret = this->register_data_recv_event(clientName, client_channel_id, nullptr, recv_event_id);
         if (ret == false) {
             std::cerr << "ERROR: Failed to register data receive event for service client" << std::endl;
             return -1;
         }
-        service_entry.clientChannelMap[i].responseChannelId = client_channel_id;
         service_entry.clientChannelMap[i].responseRecvEventId = recv_event_id;
         service_entry.clientChannelMap[i].enabled = true;
         memcpy(service_entry.clientChannelMap[i].clientName, clientName.c_str(), clientName.length());

@@ -3,6 +3,8 @@
 #define HAKO_CORE_EXTENSION
 #endif
 
+#include "nlohmann/json.hpp"
+
 #include <hako_extension.hpp>
 #include "utils/hako_share/hako_shared_memory_factory.hpp"
 #include "data/hako_master_data.hpp"
@@ -63,6 +65,24 @@ typedef struct {
     int entry_num;
     HakoServiceEntryTye entries[HAKO_SERVICE_MAX];
 } HakoServiceTableType;
+
+struct Service {
+    std::string name;
+    std::string type;
+    int maxClients;
+
+    int pdu_size_server_base;
+    int pdu_size_client_base;
+    int pdu_size_server_heap;
+    int pdu_size_client_heap;
+
+    size_t server_total_size;
+    size_t client_total_size;
+};
+struct HakoServiceImplType {
+    nlohmann::json param;
+    std::vector<Service> services;
+};
 
 #define TOTAL_HAKO_PRO_DATA_SIZE (sizeof(HakoRecvEventTableType) + sizeof(HakoServiceTableType) + 1024)
 #define OFFSET_HAKO_RECV_EVENT_TABLE (0)
@@ -380,6 +400,8 @@ class HakoProData : public std::enable_shared_from_this<HakoProData>, public hak
         {
             return std::static_pointer_cast<hako::extension::IHakoAssetExtension>(asset_extension_);
         }
+        bool initialize_service(const std::string& service_config_path);
+        void set_service_data();
     private:
         HakoRecvEventTableType* recv_event_table_;
         HakoServiceTableType* service_table_;
@@ -387,6 +409,7 @@ class HakoProData : public std::enable_shared_from_this<HakoProData>, public hak
         std::shared_ptr<hako::utils::HakoSharedMemory> shmp_;
         std::string shm_type_;
         std::shared_ptr<data::HakoMasterData> master_data_;
+        HakoServiceImplType service_impl_;
 };
     
 class HakoProAssetExtension: public hako::extension::IHakoAssetExtension {

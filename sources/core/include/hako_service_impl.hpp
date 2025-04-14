@@ -1,34 +1,16 @@
 #pragma once
 
 #include "nlohmann/json.hpp"
-#include "hako_asset.hpp"
 #include <vector>
 #include <string>
 
 namespace hako::service::impl {
 
-    struct Service {
-        std::string name;
-        std::string type;
-        int maxClients;
-    
-        int pdu_size_server_base;
-        int pdu_size_client_base;
-        int pdu_size_server_heap;
-        int pdu_size_client_heap;
-    
-        size_t server_total_size;
-        size_t client_total_size;
-    };
-    
 
     struct HakoServiceImplType {
         bool is_initialized;
-        nlohmann::json param;
-        std::vector<Service> services;
     };
-    extern int initialize(const char* service_config_path, std::shared_ptr<hako::IHakoAssetController> hako_asset);
-    extern bool get_services(std::vector<Service>& services);
+    extern int initialize(const char* service_config_path);
 
     /*
      * Service server API
