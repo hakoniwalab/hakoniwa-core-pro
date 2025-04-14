@@ -3,7 +3,7 @@
 #include <fstream>
 #include <iostream>
 
-hako::service::impl::server::HakoServiceImplType hako_service_instance;
+hako::service::impl::HakoServiceImplType hako_service_instance;
 
 int hako::service::impl::initialize(const char* service_config_path, std::shared_ptr<hako::IHakoAssetController> hako_asset)
 {

@@ -22,6 +22,11 @@ namespace hako::service::impl {
     };
     
 
+    struct HakoServiceImplType {
+        bool is_initialized;
+        nlohmann::json param;
+        std::vector<Service> services;
+    };
     extern int initialize(const char* service_config_path, std::shared_ptr<hako::IHakoAssetController> hako_asset);
     extern bool get_services(std::vector<Service>& services);
 
@@ -29,11 +34,6 @@ namespace hako::service::impl {
      * Service server API
      */
     namespace server {
-        struct HakoServiceImplType {
-            bool is_initialized;
-            nlohmann::json param;
-            std::vector<Service> services;
-        };
         extern int create(const char* serviceName);
         extern int get_request(int asset_id, int service_id, int client_id, char* packet, size_t packet_len);
         extern int put_response(int asset_id, int service_id, int client_id, char* packet, size_t packet_len);
