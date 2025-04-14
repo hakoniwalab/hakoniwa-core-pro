@@ -1,3 +1,6 @@
 [submodule "hakoniwa-core-cpp"]
 	path = hakoniwa-core-cpp
 	url = https://github.com/toppers/hakoniwa-core-cpp.git
+[submodule "hakoniwa-ros2pdu"]
+	path = hakoniwa-ros2pdu
+	url = https://github.com/toppers/hakoniwa-ros2pdu.git
