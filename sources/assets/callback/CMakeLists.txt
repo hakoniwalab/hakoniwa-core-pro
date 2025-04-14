@@ -40,7 +40,6 @@ else()
             src/hako_asset.cpp
             src/hako_asset_impl.cpp
             src/hako_service.cpp
-            src/hako_service_impl.cpp
         )
     endif()
 endif()

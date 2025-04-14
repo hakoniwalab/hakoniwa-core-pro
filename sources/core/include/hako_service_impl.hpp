@@ -1,6 +1,5 @@
 #pragma once
 
-#include "hako_service.h"
 #include "nlohmann/json.hpp"
 #include "hako_asset.hpp"
 #include <vector>
@@ -44,8 +43,8 @@ namespace hako::service::impl {
      */
     namespace client {
         extern int create(const char* serviceName, const char* clientName, int& client_id);
-        extern int put_request(int asset_id, int service_id, char* packet, size_t packet_len);
-        extern int get_response(int asset_id, int service_id, char* packet, size_t packet_len);
+        extern int put_request(int asset_id, int service_id, int client_id, char* packet, size_t packet_len);
+        extern int get_response(int asset_id, int service_id, int client_id, char* packet, size_t packet_len);
     }
  
 }

@@ -180,6 +180,8 @@ class HakoProData : public std::enable_shared_from_this<HakoProData>, public hak
         int put_response(int asset_id, int service_id, int client_id, char* packet, size_t packet_len);
 
         int create_service_client(const std::string& serviceName, const std::string& clientName, int& client_id);
+        int get_response(int asset_id, int service_id, int client_id, char* packet, size_t packet_len);
+        int put_request(int asset_id, int service_id, int client_id, char* packet, size_t packet_len);
         HakoServiceTableType* get_service_table()
         {
             return service_table_;
