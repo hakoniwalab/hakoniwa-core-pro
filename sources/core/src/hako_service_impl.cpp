@@ -217,45 +217,66 @@ void hako::service::impl::HakoServiceClient::initialize(const char* serviceName,
     return;
 }
 
-int hako::service::impl::client::put_request(int asset_id, int service_id, int client_id, char* packet, size_t packet_len)
+bool hako::service::impl::HakoServiceClient::send_request()
 {
-    if (!hako_service_instance.is_initialized) {
-        std::cerr << "Error: not initialized." << std::endl;
-        return -1;
-    }
-    if (packet == nullptr || packet_len == 0) {
-        std::cerr << "Error: packet is null or packet_len is 0." << std::endl;
-        return -1;
-    }
     auto pro_data = hako::data::pro::hako_pro_get_data();
     if (!pro_data) {
         std::cerr << "ERROR: hako_asset_impl_register_data_recv_event(): pro_data is null" << std::endl;
-        return -1;
+        return false;
     }
-    int ret = pro_data->put_request(asset_id, service_id, client_id, packet, packet_len);
+    int ret = pro_data->put_request(asset_id_, service_id_, client_id_, 
+        get_request_pdu_buffer(), get_request_pdu_size());
     if (ret < 0) {
-        return -1;
+        return false;
     }
-    return 0;
+    event_start_service();
+    return true;
 }
-int hako::service::impl::client::get_response(int asset_id, int service_id, int client_id, char* packet, size_t packet_len)
+char* hako::service::impl::HakoServiceClient::recv_response()
 {
-    if (!hako_service_instance.is_initialized) {
-        std::cerr << "Error: not initialized." << std::endl;
-        return -1;
-    }
-    if (packet == nullptr || packet_len == 0) {
-        std::cerr << "Error: packet is null or packet_len is 0." << std::endl;
-        return -1;
-    }
     auto pro_data = hako::data::pro::hako_pro_get_data();
     if (!pro_data) {
         std::cerr << "ERROR: hako_asset_impl_register_data_recv_event(): pro_data is null" << std::endl;
-        return -1;
+        return nullptr;
     }
-    int ret = pro_data->get_response(asset_id, service_id, client_id, packet, packet_len);
+    int ret = pro_data->get_response(asset_id_, service_id_, client_id_, 
+        get_response_pdu_buffer(), get_response_pdu_size());
     if (ret < 0) {
-        return -1;
+        return nullptr;
     }
-    return 0;
+    event_done_service();
+    return get_response_pdu_buffer();
+}
+
+bool hako::service::impl::HakoServiceClient::cancel_service()
+{
+    return event_cancel_service();
+}
+
+bool hako::service::impl::HakoServiceClient::event_start_service()
+{
+    if (state_ != HAKO_SERVICE_CLIENT_STATE_IDLE) {
+        std::cerr << "ERROR: service is not idle" << std::endl;
+        return false;
+    }
+    state_ = HAKO_SERVICE_CLIENT_STATE_DOING;
+    return true;
+}
+bool hako::service::impl::HakoServiceClient::event_done_service()
+{
+    if ((state_ != HAKO_SERVICE_CLIENT_STATE_DOING) && (state_ != HAKO_SERVICE_CLIENT_STATE_CANCELING)) {
+        std::cerr << "ERROR: service is not doing" << std::endl;
+        return false;
+    }
+    state_ = HAKO_SERVICE_CLIENT_STATE_IDLE;
+    return true;
+}
+bool hako::service::impl::HakoServiceClient::event_cancel_service()
+{
+    if (state_ != HAKO_SERVICE_CLIENT_STATE_DOING) {
+        std::cerr << "ERROR: service is not doing" << std::endl;
+        return false;
+    }
+    state_ = HAKO_SERVICE_CLIENT_STATE_CANCELING;
+    return true;
 }

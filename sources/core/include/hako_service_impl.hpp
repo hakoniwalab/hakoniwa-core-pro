@@ -17,6 +17,11 @@ namespace hako::service::impl {
         HAKO_SERVICE_SERVER_STATE_DOING,
         HAKO_SERVICE_SERVER_STATE_CANCELING
     };
+    enum HakoServiceClientStateType {
+        HAKO_SERVICE_CLIENT_STATE_IDLE = 0,
+        HAKO_SERVICE_CLIENT_STATE_DOING,
+        HAKO_SERVICE_CLIENT_STATE_CANCELING
+    };
     /*
      * Server Class
      */
@@ -64,7 +69,6 @@ namespace hako::service::impl {
             bool event_start_service(int client_id);
             bool event_done_service(int client_id);
             bool event_cancel_service(int client_id);
-            bool event_cancel_done_service(int client_id);
     };
     /*
      * Client Class
@@ -75,6 +79,15 @@ namespace hako::service::impl {
             ~HakoServiceClient() = default;
             void initialize(const char* serviceName, const char* clientName, const char* assetName);
 
+            bool send_request();//TODO
+            char* recv_response();//TODO
+            bool cancel_service();//TODO
+
+            int get_service_id() { return service_id_; }
+            int get_asset_id() { return asset_id_; }
+            int get_request_pdu_size() { return request_pdu_size_; }
+            int get_response_pdu_size() { return response_pdu_size_; }
+            int get_client_id() { return client_id_; }
         private:
             int service_id_ = -1;
             int asset_id_ = -1;
@@ -85,16 +98,16 @@ namespace hako::service::impl {
             char* response_pdu_buffer_ = nullptr;
             std::string service_name_;
             std::string client_name_;
+            char* get_request_pdu_buffer() { return request_pdu_buffer_; }
+            char* get_response_pdu_buffer() { return response_pdu_buffer_; }
+
+            /*
+             * EVENT APIs
+             */
+            HakoServiceClientStateType state_ = HAKO_SERVICE_CLIENT_STATE_IDLE;
+            bool event_start_service();
+            bool event_done_service();
+            bool event_cancel_service();
     };
-
-
-    /*
-     * Service client API
-     */
-    namespace client {
-        extern int create(const char* serviceName, const char* clientName, int& client_id);
-        extern int put_request(int asset_id, int service_id, int client_id, char* packet, size_t packet_len);
-        extern int get_response(int asset_id, int service_id, int client_id, char* packet, size_t packet_len);
-    }
  
 }
