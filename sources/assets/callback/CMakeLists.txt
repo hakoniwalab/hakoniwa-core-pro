@@ -55,6 +55,7 @@ target_include_directories(
     PRIVATE ${HAKO_INC_DIR}
     PRIVATE ${HAKO_CORE_SOURCE_DIR}/src/include
     PRIVATE ${HAKO_CORE_SOURCE_DIR}/src/hako
+    PRIVATE ${HAKO_PDU_SOURCE_DIR}
     PRIVATE ${HAKO_CORE_PRO_SOURCE_DIR}/core/include
     PRIVATE ${nlohmann_json_SOURCE_DIR}/single_include
 )

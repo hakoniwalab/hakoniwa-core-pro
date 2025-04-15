@@ -2,6 +2,9 @@
 
 #include "nlohmann/json.hpp"
 #include "hako_pro_data.hpp"
+#include "hako_srv_msgs/pdu_cpptype_conv_ServiceRequestHeader.hpp"
+#include "hako_srv_msgs/pdu_cpptype_conv_ServiceResponseHeader.hpp"
+#include "pdu_convertor.hpp"
 #include <vector>
 #include <string>
 
@@ -69,6 +72,14 @@ namespace hako::service::impl {
             bool event_start_service(int client_id);
             bool event_done_service(int client_id);
             bool event_cancel_service(int client_id);
+
+            /*
+             * packet
+             */
+            hako::pdu::PduConvertor<HakoCpp_ServiceRequestHeader, hako::pdu::msgs::hako_srv_msgs::ServiceRequestHeader> convertor_request_;
+            hako::pdu::PduConvertor<HakoCpp_ServiceResponseHeader, hako::pdu::msgs::hako_srv_msgs::ServiceResponseHeader> convertor_response_;
+            HakoCpp_ServiceRequestHeader request_header_;
+            HakoCpp_ServiceResponseHeader response_header_;
     };
     /*
      * Client Class
@@ -108,6 +119,13 @@ namespace hako::service::impl {
             bool event_start_service();
             bool event_done_service();
             bool event_cancel_service();
+            /*
+             * packet
+             */
+            hako::pdu::PduConvertor<HakoCpp_ServiceRequestHeader, hako::pdu::msgs::hako_srv_msgs::ServiceRequestHeader> convertor_request_;
+            hako::pdu::PduConvertor<HakoCpp_ServiceResponseHeader, hako::pdu::msgs::hako_srv_msgs::ServiceResponseHeader> convertor_response_;
+            HakoCpp_ServiceRequestHeader request_header_;
+            HakoCpp_ServiceResponseHeader response_header_;
     };
  
 }

@@ -10,6 +10,7 @@ project(hakoniwa-core-pro
 enable_testing()
 
 set(HAKO_CORE_SOURCE_DIR "${PROJECT_SOURCE_DIR}/hakoniwa-core-cpp")
+set(HAKO_PDU_SOURCE_DIR "${PROJECT_SOURCE_DIR}/hakoniwa-ros2pdu/pdu/types")
 set(HAKO_INC_DIR "${PROJECT_SOURCE_DIR}/include")
 set(HAKO_CORE_PRO_SOURCE_DIR "${PROJECT_SOURCE_DIR}/sources")
 
