@@ -5,6 +5,7 @@
 #include "hako_srv_msgs/pdu_cpptype_conv_ServiceRequestHeader.hpp"
 #include "hako_srv_msgs/pdu_cpptype_conv_ServiceResponseHeader.hpp"
 #include "pdu_convertor.hpp"
+#include "hako_service.hpp"
 #include <vector>
 #include <string>
 
@@ -15,80 +16,20 @@ namespace hako::service::impl {
         bool is_initialized;
     };
     extern int initialize(const char* service_config_path);
-    enum HakoServiceServerStateType {
-        HAKO_SERVICE_SERVER_STATE_IDLE = 0,
-        HAKO_SERVICE_SERVER_STATE_DOING,
-        HAKO_SERVICE_SERVER_STATE_CANCELING
-    };
-    enum HakoServiceClientStateType {
-        HAKO_SERVICE_CLIENT_STATE_IDLE = 0,
-        HAKO_SERVICE_CLIENT_STATE_DOING,
-        HAKO_SERVICE_CLIENT_STATE_CANCELING
-    };
-
-    enum HakoServiceServerEventType {
-        HAKO_SERVICE_SERVER_EVENT_NONE = 0,
-        HAKO_SERVICE_SERVER_REQUEST_IN,
-        HAKO_SERVICE_SERVER_REQUEST_CANCEL
-    };
-    enum HakoServiceClientEventType {
-        HAKO_SERVICE_CLIENT_EVENT_NONE = 0,
-        HAKO_SERVICE_CLIENT_RESPONSE_IN,
-        HAKO_SERVICE_CLIENT_REQUEST_TIMEOUT,
-        HAKO_SERVICE_CLIENT_REQUEST_CANCEL_DONE
-    };
-    class HakoServiceServer;
-    class HakoServiceServerProtocol {
-        public:
-            HakoServiceServerProtocol(std::shared_ptr<HakoServiceServer> server)
-            {
-                server_ = server;
-            }
-            ~HakoServiceServerProtocol() = default;
-
-            HakoServiceServerEventType run();
-            HakoServiceServerStateType state();
-            void* get_request();
-            void  put_reply(void* packet, int result_code);
-            void  cancel_done();
-            void  put_progress(int percentage);
-
-        private:
-            std::shared_ptr<HakoServiceServer> server_;
-    };
-    class HakoServiceClient;
-    class HakoServiceClientProtocol {
-        public:
-            HakoServiceClientProtocol(std::shared_ptr<HakoServiceClient> client)
-            {
-                client_ = client;
-            }
-            ~HakoServiceClientProtocol() = default;
-
-            HakoServiceClientEventType run();
-            HakoServiceClientStateType state();
-            bool  put_request(void* packet);
-            void* get_response();
-            void  cancel_request();
-            int   get_progress();
-
-        private:
-            std::shared_ptr<HakoServiceClient> client_;
-    };
 
     /*
      * Server Class
      */
-    class HakoServiceServer {
+    class HakoServiceServer: public IHakoServiceServer {
         public:
             HakoServiceServer() = default;
             ~HakoServiceServer() = default;
             /*
              * must be called after on_pdu_data_create()
              */
-            void initialize(const char* serviceName, const char* assetName);
+            void initialize(const char* serviceName, const char* assetName) override;
 
-            char* recv_request(int clinet_id);
+            char* recv_request(int clinet_id) ;
             bool send_response(int client_id);
             int get_current_client_id() { return current_client_id_; }
             void next_client() { current_client_id_ = (current_client_id_ + 1) % max_clients_; }
@@ -135,11 +76,11 @@ namespace hako::service::impl {
     /*
      * Client Class
      */
-    class HakoServiceClient {
+    class HakoServiceClient: public IHakoServiceClient {
         public:
             HakoServiceClient() = default;
             ~HakoServiceClient() = default;
-            void initialize(const char* serviceName, const char* clientName, const char* assetName);
+            void initialize(const char* serviceName, const char* clientName, const char* assetName) override;
 
             bool send_request();//TODO
             char* recv_response();//TODO
