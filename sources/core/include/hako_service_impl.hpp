@@ -81,7 +81,7 @@ namespace hako::service::impl {
 
             bool send_request();//TODO
             char* recv_response();//TODO
-            bool cancel_service();//TODO
+            bool cancel_service();//TODO timeout
 
             int get_service_id() { return service_id_; }
             int get_asset_id() { return asset_id_; }
