@@ -25,6 +25,57 @@ namespace hako::service::impl {
         HAKO_SERVICE_CLIENT_STATE_DOING,
         HAKO_SERVICE_CLIENT_STATE_CANCELING
     };
+
+    enum HakoServiceServerEventType {
+        HAKO_SERVICE_SERVER_EVENT_NONE = 0,
+        HAKO_SERVICE_SERVER_REQUEST_IN,
+        HAKO_SERVICE_SERVER_REQUEST_CANCEL
+    };
+    enum HakoServiceClientEventType {
+        HAKO_SERVICE_CLIENT_EVENT_NONE = 0,
+        HAKO_SERVICE_CLIENT_RESPONSE_IN,
+        HAKO_SERVICE_CLIENT_REQUEST_TIMEOUT,
+        HAKO_SERVICE_CLIENT_REQUEST_CANCEL_DONE
+    };
+    class HakoServiceServer;
+    class HakoServiceServerProtocol {
+        public:
+            HakoServiceServerProtocol(std::shared_ptr<HakoServiceServer> server)
+            {
+                server_ = server;
+            }
+            ~HakoServiceServerProtocol() = default;
+
+            HakoServiceServerEventType run();
+            HakoServiceServerStateType state();
+            void* get_request();
+            void  put_reply(void* packet, int result_code);
+            void  cancel_done();
+            void  put_progress(int percentage);
+
+        private:
+            std::shared_ptr<HakoServiceServer> server_;
+    };
+    class HakoServiceClient;
+    class HakoServiceClientProtocol {
+        public:
+            HakoServiceClientProtocol(std::shared_ptr<HakoServiceClient> client)
+            {
+                client_ = client;
+            }
+            ~HakoServiceClientProtocol() = default;
+
+            HakoServiceClientEventType run();
+            HakoServiceClientStateType state();
+            bool  put_request(void* packet);
+            void* get_response();
+            void  cancel_request();
+            int   get_progress();
+
+        private:
+            std::shared_ptr<HakoServiceClient> client_;
+    };
+
     /*
      * Server Class
      */
