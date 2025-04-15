@@ -52,6 +52,7 @@ void hako::service::impl::HakoServiceServer::initialize(const char* serviceName,
     }
     if (assetName != nullptr) {
         asset_id_ = pro_data->get_asset_id(assetName);
+        asset_name_ = assetName;
     }
     else {
         asset_id_ = -1; //external
@@ -63,7 +64,6 @@ void hako::service::impl::HakoServiceServer::initialize(const char* serviceName,
         throw std::runtime_error("ERROR: service_id is invalid");
     }
     service_name_ = serviceName;
-    asset_name_ = assetName;
     auto& service_entry = pro_data->get_service_entry(service_name_);
     request_pdu_size_ = service_entry.pdu_size_request;
     response_pdu_size_ = service_entry.pdu_size_response;
@@ -172,49 +172,49 @@ bool hako::service::impl::HakoServiceServer::event_cancel_service(int client_id)
 /*
  * Service client API
  */
-int hako::service::impl::client::create(const char* serviceName, const char* clientName, int& client_id)
+void hako::service::impl::HakoServiceClient::initialize(const char* serviceName, const char* clientName, const char* assetName)
 {
-    if (!hako_service_instance.is_initialized) {
-        std::cerr << "Error: not initialized." << std::endl;
-        return -1;
-    }
     if (serviceName == nullptr || *serviceName == '\0') {
-        std::cerr << "Error: serviceName is not set." << std::endl;
-        return -1;
+        throw std::runtime_error("Error: serviceName is not set.");
     }
     if (clientName == nullptr || *clientName == '\0') {
-        std::cerr << "Error: clientName is not set." << std::endl;
-        return -1;
+        throw std::runtime_error("Error: clientName is not set.");
     }
     int namelen = strlen(serviceName);
     if (namelen > HAKO_SERVICE_NAMELEN_MAX) {
-        std::cerr << "ERROR: serviceName is too long" << std::endl;
-        return -1;
+        throw std::runtime_error("ERROR: serviceName is too long");
     }
     namelen = strlen(clientName);
     if (namelen > HAKO_CLIENT_NAMELEN_MAX) {
-        std::cerr << "ERROR: clientName is too long" << std::endl;
-        return -1;
+        throw std::runtime_error("ERROR: clientName is too long");
     }
-
     auto pro_data = hako::data::pro::hako_pro_get_data();
     if (!pro_data) {
-        std::cerr << "ERROR: hako_asset_impl_register_data_recv_event(): pro_data is null" << std::endl;
-        return -1;
+        throw std::runtime_error("ERROR: hako_asset_impl_register_data_recv_event(): pro_data is null");
     }
-    int service_id = -1;
-    pro_data->lock_memory();
-    {
-        service_id = pro_data->create_service_client(serviceName, clientName, client_id);
-    }
-    pro_data->unlock_memory();
-    if (service_id < 0) {
-        std::cerr << "ERROR: service_id is invalid" << std::endl;
+    if (assetName != nullptr) {
+        asset_id_ = pro_data->get_asset_id(assetName);
     }
     else {
-        std::cout << "INFO: Service client created successfully: " << clientName << std::endl;
+        asset_id_ = -1; //external
     }
-    return service_id;
+    pro_data->lock_memory();
+    service_id_ = pro_data->create_service_client(serviceName, clientName, client_id_);
+    pro_data->unlock_memory();
+    if (service_id_ < 0) {
+        throw std::runtime_error("ERROR: service_id is invalid");
+    }
+    service_name_ = serviceName;    
+    auto& service_entry = pro_data->get_service_entry(service_name_);
+    request_pdu_size_ = service_entry.pdu_size_request;
+    response_pdu_size_ = service_entry.pdu_size_response;
+    request_pdu_buffer_ = new char[request_pdu_size_];
+    response_pdu_buffer_ = new char[response_pdu_size_];
+    if (request_pdu_buffer_ == nullptr || response_pdu_buffer_ == nullptr) {
+        throw std::runtime_error("ERROR: request_pdu_buffer_ or response_pdu_buffer_ is null");
+    }
+    client_name_ = clientName;
+    return;
 }
 
 int hako::service::impl::client::put_request(int asset_id, int service_id, int client_id, char* packet, size_t packet_len)

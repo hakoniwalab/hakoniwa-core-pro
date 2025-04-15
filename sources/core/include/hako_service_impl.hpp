@@ -73,8 +73,18 @@ namespace hako::service::impl {
         public:
             HakoServiceClient() = default;
             ~HakoServiceClient() = default;
+            void initialize(const char* serviceName, const char* clientName, const char* assetName);
 
         private:
+            int service_id_ = -1;
+            int asset_id_ = -1;
+            int client_id_ = -1;
+            int request_pdu_size_ = 0;
+            int response_pdu_size_ = 0;
+            char* request_pdu_buffer_ = nullptr;
+            char* response_pdu_buffer_ = nullptr;
+            std::string service_name_;
+            std::string client_name_;
     };
 
 
