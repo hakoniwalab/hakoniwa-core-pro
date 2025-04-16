@@ -101,15 +101,9 @@ char* hako::service::impl::HakoServiceServer::recv_request(int client_id)
     if (ret < 0) {
         return nullptr;
     }
-    if (!convertor_request_.pdu2cpp(get_request_pdu_buffer(), request_header_)) {
-        std::cerr << "ERROR: convertor.pdu2cpp() failed" << std::endl;
-        return nullptr;
-    }
-    //TODO header check
-    event_start_service(client_id);
     return get_request_pdu_buffer();
 }
-bool hako::service::impl::HakoServiceServer::send_response(int client_id)
+bool hako::service::impl::HakoServiceServer::send_response(int client_id, void* packet, int packet_len)
 {
     if (client_id < 0 || client_id >= max_clients_) {
         std::cerr << "ERROR: client_id is invalid" << std::endl;
@@ -124,14 +118,8 @@ bool hako::service::impl::HakoServiceServer::send_response(int client_id)
         std::cerr << "ERROR: hako_asset_impl_register_data_recv_event(): pro_data is null" << std::endl;
         return false;
     }
-    //TODO set response header
-    int pdu_size = convertor_response_.cpp2pdu(response_header_, get_response_pdu_buffer(), get_response_pdu_size());
-    if (pdu_size < 0) {
-        std::cerr << "ERROR: convertor.cpp2pdu() failed" << std::endl;
-        return false;
-    }
     int ret = pro_data->put_response(asset_id_, service_id_, client_id, 
-        get_response_pdu_buffer(), pdu_size);
+        (char*)packet, packet_len);
     if (ret < 0) {
         return false;
     }

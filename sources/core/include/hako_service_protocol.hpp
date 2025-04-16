@@ -20,9 +20,9 @@ namespace hako::service {
              */
             bool initialize(const char* serviceName, const char* assetName);
             HakoServiceServerEventType run();
-            HakoServiceServerStateType state();
+            HakoServiceServerStateType state() { return server_->get_state(); }
             void* get_request();
-            void  put_reply(void* packet, int result_code);
+            bool  put_reply(void* packet, int packet_len, int result_code);
             void  cancel_done();
             void  put_progress(int percentage);
 

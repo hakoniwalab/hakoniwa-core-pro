@@ -31,7 +31,7 @@ namespace hako::service::impl {
             void initialize(const char* serviceName, const char* assetName) override;
 
             char* recv_request(int clinet_id) override;
-            bool send_response(int client_id) override;
+            bool send_response(int client_id, void* packet, int packet_len)  override;
             int get_current_client_id() override { return current_client_id_; }
             void next_client() override { current_client_id_ = (current_client_id_ + 1) % max_clients_; }
             HakoServiceServerStateType get_state() override { return state_[current_client_id_]; }
@@ -40,9 +40,16 @@ namespace hako::service::impl {
 
             int get_service_id() override { return service_id_; }
             int get_asset_id() override { return asset_id_; }
-            int get_request_pdu_size() override { return request_pdu_size_; }
-            int get_response_pdu_size() override { return response_pdu_size_; }
-            int get_max_clients() override { return max_clients_; }
+            void* get_request_buffer() override { return get_request_pdu_buffer(); }
+            void* get_response_buffer() override { return get_response_pdu_buffer(); }
+
+            /*
+             * EVENT APIs
+             */
+            bool event_start_service(int client_id) override;
+            bool event_done_service(int client_id) override;
+            bool event_cancel_service(int client_id) override;
+
         private:
             int service_id_ = -1;
             int asset_id_ = -1;
@@ -58,21 +65,9 @@ namespace hako::service::impl {
 
             char* get_request_pdu_buffer() { return request_pdu_buffer_; }
             char* get_response_pdu_buffer() { return response_pdu_buffer_; }
-
-            /*
-             * EVENT APIs
-             */
-            bool event_start_service(int client_id);
-            bool event_done_service(int client_id);
-            bool event_cancel_service(int client_id);
-
-            /*
-             * packet
-             */
-            hako::pdu::PduConvertor<HakoCpp_ServiceRequestHeader, hako::pdu::msgs::hako_srv_msgs::ServiceRequestHeader> convertor_request_;
-            hako::pdu::PduConvertor<HakoCpp_ServiceResponseHeader, hako::pdu::msgs::hako_srv_msgs::ServiceResponseHeader> convertor_response_;
-            HakoCpp_ServiceRequestHeader request_header_;
-            HakoCpp_ServiceResponseHeader response_header_;
+            int get_request_pdu_size() { return request_pdu_size_; }
+            int get_response_pdu_size() { return response_pdu_size_; }
+            int get_max_clients() { return max_clients_; }
     };
     /*
      * Client Class
