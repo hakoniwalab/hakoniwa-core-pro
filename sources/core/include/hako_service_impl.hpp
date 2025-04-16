@@ -25,23 +25,24 @@ namespace hako::service::impl {
             HakoServiceServer() = default;
             ~HakoServiceServer() = default;
             /*
-             * must be called after on_pdu_data_create()
+             * must be called after on_pdu_data_create(),
+             * i.e, initialize() callback on HakoAsset.
              */
             void initialize(const char* serviceName, const char* assetName) override;
 
-            char* recv_request(int clinet_id) ;
-            bool send_response(int client_id);
-            int get_current_client_id() { return current_client_id_; }
-            void next_client() { current_client_id_ = (current_client_id_ + 1) % max_clients_; }
-            HakoServiceServerStateType get_state() { return state_[current_client_id_]; }
+            char* recv_request(int clinet_id) override;
+            bool send_response(int client_id) override;
+            int get_current_client_id() override { return current_client_id_; }
+            void next_client() override { current_client_id_ = (current_client_id_ + 1) % max_clients_; }
+            HakoServiceServerStateType get_state() override { return state_[current_client_id_]; }
 
-            bool cancel_service(int client_id) { return event_cancel_service(client_id); }
+            bool cancel_service(int client_id) override { return event_cancel_service(client_id); }
 
-            int get_service_id() { return service_id_; }
-            int get_asset_id() { return asset_id_; }
-            int get_request_pdu_size() { return request_pdu_size_; }
-            int get_response_pdu_size() { return response_pdu_size_; }
-            int get_max_clients() { return max_clients_; }
+            int get_service_id() override { return service_id_; }
+            int get_asset_id() override { return asset_id_; }
+            int get_request_pdu_size() override { return request_pdu_size_; }
+            int get_response_pdu_size() override { return response_pdu_size_; }
+            int get_max_clients() override { return max_clients_; }
         private:
             int service_id_ = -1;
             int asset_id_ = -1;

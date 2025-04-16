@@ -28,6 +28,19 @@ namespace hako::service {
         public:
             virtual ~IHakoServiceServer() = default;
             virtual void initialize(const char* serviceName, const char* assetName) = 0;
+            virtual char* recv_request(int clinet_id) = 0;
+            virtual bool send_response(int client_id) = 0;
+            virtual int get_current_client_id() = 0;
+            virtual void next_client() = 0;
+            virtual HakoServiceServerStateType get_state() = 0;
+
+            virtual bool cancel_service(int client_id) = 0;
+
+            virtual int get_service_id() = 0;
+            virtual int get_asset_id() = 0;
+            virtual int get_request_pdu_size() = 0;
+            virtual int get_response_pdu_size() = 0;
+            virtual int get_max_clients() = 0;
     };
     class IHakoServiceClient {
         public:

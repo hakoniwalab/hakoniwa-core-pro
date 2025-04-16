@@ -1,6 +1,9 @@
 #pragma once
 
 #include "hako_service.hpp"
+#include "hako_srv_msgs/pdu_cpptype_conv_ServiceRequestHeader.hpp"
+#include "hako_srv_msgs/pdu_cpptype_conv_ServiceResponseHeader.hpp"
+#include "pdu_convertor.hpp"
 #include <memory>
 
 namespace hako::service {
@@ -11,7 +14,11 @@ namespace hako::service {
                 server_ = server;
             }
             ~HakoServiceServerProtocol() = default;
-
+            /*
+             * must be called after on_pdu_data_create(),
+             * i.e, initialize() callback on HakoAsset.
+             */
+            bool initialize(const char* serviceName, const char* assetName);
             HakoServiceServerEventType run();
             HakoServiceServerStateType state();
             void* get_request();
@@ -21,6 +28,13 @@ namespace hako::service {
 
         private:
             std::shared_ptr<IHakoServiceServer> server_;
+            /*
+             * packet
+             */
+            hako::pdu::PduConvertor<HakoCpp_ServiceRequestHeader, hako::pdu::msgs::hako_srv_msgs::ServiceRequestHeader> convertor_request_;
+            hako::pdu::PduConvertor<HakoCpp_ServiceResponseHeader, hako::pdu::msgs::hako_srv_msgs::ServiceResponseHeader> convertor_response_;
+            HakoCpp_ServiceRequestHeader request_header_;
+            HakoCpp_ServiceResponseHeader response_header_;
     };
     class HakoServiceClientProtocol {
         public:
@@ -39,5 +53,12 @@ namespace hako::service {
 
         private:
             std::shared_ptr<IHakoServiceClient> client_;
+            /*
+             * packet
+             */
+            hako::pdu::PduConvertor<HakoCpp_ServiceRequestHeader, hako::pdu::msgs::hako_srv_msgs::ServiceRequestHeader> convertor_request_;
+            hako::pdu::PduConvertor<HakoCpp_ServiceResponseHeader, hako::pdu::msgs::hako_srv_msgs::ServiceResponseHeader> convertor_response_;
+            HakoCpp_ServiceRequestHeader request_header_;
+            HakoCpp_ServiceResponseHeader response_header_;
     };
 }
