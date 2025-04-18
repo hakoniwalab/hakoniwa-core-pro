@@ -4,6 +4,7 @@
 #include "hako_srv_msgs/pdu_cpptype_conv_ServiceRequestHeader.hpp"
 #include "hako_srv_msgs/pdu_cpptype_conv_ServiceResponseHeader.hpp"
 #include "pdu_convertor.hpp"
+#include "hako.hpp"
 #include <memory>
 
 namespace hako::service {
@@ -36,7 +37,7 @@ namespace hako::service {
             void* get_request();
             bool  put_reply(void* packet, int packet_len, int result_code);
             void  cancel_done();
-            void  put_progress(int percentage);
+            void  put_progress(int percentage) { percentage_ = percentage; }
 
         private:
             std::shared_ptr<IHakoServiceServer> server_;
@@ -53,6 +54,8 @@ namespace hako::service {
             bool copy_user_buffer(const HakoCpp_ServiceRequestHeader& header);
             char* request_pdu_buffer_ = nullptr;
             char* response_pdu_buffer_ = nullptr;
+            int percentage_ = 0;
+            HakoTimeType last_poll_time_ = 0;
 
     };
     class HakoServiceClientProtocol {

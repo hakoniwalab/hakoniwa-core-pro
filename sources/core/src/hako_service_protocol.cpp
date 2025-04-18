@@ -1,4 +1,5 @@
 #include "hako_service_protocol.hpp"
+#include "hako_impl.hpp"
 
 bool hako::service::HakoServiceServerProtocol::initialize(const char* serviceName, const char* assetName)
 {
@@ -18,10 +19,16 @@ bool hako::service::HakoServiceServerProtocol::initialize(const char* serviceNam
     }
     return true;
 }
+/*
+ * result:
+ *  data_recv_in: true if data is received
+ *  return value: true if received packet is valid or no data received
+ */
 bool hako::service::HakoServiceServerProtocol::recv_request(int client_id, HakoCpp_ServiceRequestHeader& header, bool& data_recv_in)
 {
     data_recv_in = false;
     if (server_->recv_request(client_id) != nullptr) {
+        // data received
         data_recv_in = true;
         if (!convertor_request_.pdu2cpp((char*)server_->get_request_buffer(), header)) {
             std::cerr << "ERROR: convertor.pdu2cpp() failed" << std::endl;
@@ -33,7 +40,8 @@ bool hako::service::HakoServiceServerProtocol::recv_request(int client_id, HakoC
         }
         return true;
     }
-    return false;
+    // no data received
+    return true;
 }
 
 bool hako::service::HakoServiceServerProtocol::validate_header(HakoCpp_ServiceRequestHeader& header)
@@ -67,23 +75,37 @@ hako::service::HakoServiceServerEventType hako::service::HakoServiceServerProtoc
     auto event = HAKO_SERVICE_SERVER_EVENT_NONE;
     auto client_id = server_->get_current_client_id();
     HakoServiceServerStateType state = server_->get_state();
-
-    bool data_recv_in = false;
-    bool rcv_result = recv_request(client_id, header, data_recv_in);
-    if (data_recv_in == false) {
+    auto pro_data = hako::data::pro::hako_pro_get_data();
+    if (!pro_data) {
+        std::cerr << "ERROR: hako_asset_impl_register_data_recv_event(): pro_data is null" << std::endl;
         return HAKO_SERVICE_SERVER_EVENT_NONE;
     }
-    if (rcv_result == false) {
+
+    bool data_recv_in = false;
+    bool result = recv_request(client_id, header, data_recv_in);
+    if (result == false) {
         std::cerr << "ERROR: recv_request() failed" << std::endl;
         //TODO error reply
         return HAKO_SERVICE_SERVER_EVENT_NONE;
     }
+    else if (data_recv_in == false) {
+        if ((state == HAKO_SERVICE_SERVER_STATE_DOING) && (header.status_poll_interval_msec > 0)) {
+            auto now = pro_data->get_world_time_usec();
+            if ((last_poll_time_ == 0) || (now - last_poll_time_) > header.status_poll_interval_msec * 1000) {
+                //TODO put reply for progress
+            }
+            last_poll_time_ = now;
+        }
+        return HAKO_SERVICE_SERVER_EVENT_NONE;
+    }
+
     switch (state) {
         case HAKO_SERVICE_SERVER_STATE_IDLE:
             if (header.opcode == HAKO_SERVICE_OPERATION_CODE_REQUEST) {
                 event = HAKO_SERVICE_SERVER_REQUEST_IN;
                 copy_user_buffer(header);
                 server_->event_start_service(client_id);
+                percentage_ = 0;
             }
             else {
                 //TODO error reply

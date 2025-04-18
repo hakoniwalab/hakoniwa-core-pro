@@ -66,6 +66,11 @@ class HakoProData : public std::enable_shared_from_this<HakoProData>, public hak
         virtual ~HakoProData()
         {
         }
+        HakoTimeType get_world_time_usec()
+        {
+            return this->master_data_->ref_time_nolock().current;
+        }
+
         std::shared_ptr<hako::utils::HakoSharedMemory> get_shared_memory()
         {
             return shmp_;
