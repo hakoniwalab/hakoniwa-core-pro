@@ -253,7 +253,6 @@ bool hako::service::impl::HakoServiceClient::send_request()
     if (ret < 0) {
         return false;
     }
-    event_start_service();
     return true;
 }
 char* hako::service::impl::HakoServiceClient::recv_response()
@@ -272,8 +271,6 @@ char* hako::service::impl::HakoServiceClient::recv_response()
         std::cerr << "ERROR: convertor.pdu2cpp() failed" << std::endl;
         return nullptr;
     }
-    //TODO header check
-    event_done_service();
     return get_response_pdu_buffer();
 }
 

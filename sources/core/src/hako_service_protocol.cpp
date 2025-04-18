@@ -34,7 +34,7 @@ bool hako::service::HakoServiceServerProtocol::recv_request(int client_id, HakoC
             std::cerr << "ERROR: convertor.pdu2cpp() failed" << std::endl;
             return false;
         }
-        if (!validate_header(request_header_)) {
+        if (!validate_header(header)) {
             std::cerr << "ERROR: header is invalid" << std::endl;
             return false;
         }
@@ -164,6 +164,11 @@ bool hako::service::HakoServiceServerProtocol::reply(char* packet, int packet_le
     }
     server_->next_client();
     return ret;
+}
+void hako::service::HakoServiceServerProtocol::cancel_done()
+{
+    server_->event_done_service(server_->get_current_client_id());
+    server_->next_client();
 }
 
 bool hako::service::HakoServiceServerProtocol::send_response(HakoServiceStatusType status, HakoServiceResultCodeType result_code)
