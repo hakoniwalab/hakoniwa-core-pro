@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 namespace hako::service {
     enum HakoServiceServerStateType {
         HAKO_SERVICE_SERVER_STATE_IDLE = 0,
@@ -43,6 +44,12 @@ namespace hako::service {
             virtual bool event_start_service(int client_id);
             virtual bool event_done_service(int client_id);
             virtual bool event_cancel_service(int client_id);
+
+            virtual int get_request_pdu_size() = 0;
+            virtual int get_response_pdu_size() = 0;
+
+            virtual std::string get_service_name() = 0;
+            virtual bool is_exist_client(std::string client_name);
     };
     class IHakoServiceClient {
         public:

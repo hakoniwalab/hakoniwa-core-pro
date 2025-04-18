@@ -23,7 +23,14 @@ namespace hako::service::impl {
     class HakoServiceServer: public IHakoServiceServer {
         public:
             HakoServiceServer() = default;
-            ~HakoServiceServer() = default;
+            ~HakoServiceServer() {
+                if (request_pdu_buffer_) {
+                    delete[] request_pdu_buffer_;
+                }
+                if (response_pdu_buffer_) {
+                    delete[] response_pdu_buffer_;
+                }
+            }
             /*
              * must be called after on_pdu_data_create(),
              * i.e, initialize() callback on HakoAsset.
@@ -42,6 +49,8 @@ namespace hako::service::impl {
             int get_asset_id() override { return asset_id_; }
             void* get_request_buffer() override { return get_request_pdu_buffer(); }
             void* get_response_buffer() override { return get_response_pdu_buffer(); }
+            int get_request_pdu_size() override { return request_pdu_size_; }
+            int get_response_pdu_size() override { return response_pdu_size_; }
 
             /*
              * EVENT APIs
@@ -50,6 +59,9 @@ namespace hako::service::impl {
             bool event_done_service(int client_id) override;
             bool event_cancel_service(int client_id) override;
 
+            std::string get_service_name() override { return service_name_; }
+            bool is_exist_client(std::string client_name) override;
+            
         private:
             int service_id_ = -1;
             int asset_id_ = -1;
@@ -65,8 +77,6 @@ namespace hako::service::impl {
 
             char* get_request_pdu_buffer() { return request_pdu_buffer_; }
             char* get_response_pdu_buffer() { return response_pdu_buffer_; }
-            int get_request_pdu_size() { return request_pdu_size_; }
-            int get_response_pdu_size() { return response_pdu_size_; }
             int get_max_clients() { return max_clients_; }
     };
     /*

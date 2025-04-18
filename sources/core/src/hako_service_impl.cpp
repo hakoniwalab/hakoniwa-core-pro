@@ -165,7 +165,15 @@ bool hako::service::impl::HakoServiceServer::event_cancel_service(int client_id)
     state_[client_id] = HAKO_SERVICE_SERVER_STATE_CANCELING;
     return true;
 }
-
+bool hako::service::impl::HakoServiceServer::is_exist_client(std::string client_name)
+{
+    auto pro_data = hako::data::pro::hako_pro_get_data();
+    if (!pro_data) {
+        std::cerr << "ERROR: hako_asset_impl_register_data_recv_event(): pro_data is null" << std::endl;
+        return false;
+    }
+    return pro_data->is_exist_client_on_service(service_name_, client_name);
+}
 
 
 /*
