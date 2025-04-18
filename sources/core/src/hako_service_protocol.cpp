@@ -85,14 +85,18 @@ hako::service::HakoServiceServerEventType hako::service::HakoServiceServerProtoc
     bool result = recv_request(client_id, header, data_recv_in);
     if (result == false) {
         std::cerr << "ERROR: recv_request() failed" << std::endl;
-        //TODO error reply
+        if (send_response(HAKO_SERVICE_STATUS_ERROR, HAKO_SERVICE_RESULT_CODE_INVALID) == false) {
+            std::cerr << "ERROR: send_response() failed" << std::endl;
+        }
         return HAKO_SERVICE_SERVER_EVENT_NONE;
     }
     else if (data_recv_in == false) {
         if ((state == HAKO_SERVICE_SERVER_STATE_DOING) && (header.status_poll_interval_msec > 0)) {
             auto now = pro_data->get_world_time_usec();
             if ((last_poll_time_ == 0) || (now - last_poll_time_) > header.status_poll_interval_msec * 1000) {
-                //TODO put reply for progress
+                if (send_response(HAKO_SERVICE_STATUS_DOING, HAKO_SERVICE_RESULT_CODE_OK) == false) {
+                    std::cerr << "ERROR: send_response() failed" << std::endl;
+                }
             }
             last_poll_time_ = now;
         }
@@ -108,7 +112,9 @@ hako::service::HakoServiceServerEventType hako::service::HakoServiceServerProtoc
                 percentage_ = 0;
             }
             else {
-                //TODO error reply
+                if (send_response(HAKO_SERVICE_STATUS_ERROR, HAKO_SERVICE_RESULT_CODE_INVALID) == false) {
+                    std::cerr << "ERROR: send_response() failed" << std::endl;
+                }
             }
             break;
         case HAKO_SERVICE_SERVER_STATE_DOING:
@@ -117,11 +123,15 @@ hako::service::HakoServiceServerEventType hako::service::HakoServiceServerProtoc
                 server_->event_cancel_service(client_id);
             }
             else {
-                //TODO error reply
+                if (send_response(HAKO_SERVICE_STATUS_DOING, HAKO_SERVICE_RESULT_CODE_BUSY) == false) {
+                    std::cerr << "ERROR: send_response() failed" << std::endl;
+                }
             }
             break;
         case HAKO_SERVICE_SERVER_STATE_CANCELING:
-            //TODO error reply
+            if (send_response(HAKO_SERVICE_STATUS_CANCELING, HAKO_SERVICE_RESULT_CODE_BUSY) == false) {
+                std::cerr << "ERROR: send_response() failed" << std::endl;
+            }
             break;
         default:
             break;
@@ -136,21 +146,34 @@ void* hako::service::HakoServiceServerProtocol::get_request()
     }
     return request_pdu_buffer_;
 }
-bool hako::service::HakoServiceServerProtocol::put_reply(void* packet, int packet_len, int result_code)
+bool hako::service::HakoServiceServerProtocol::set_response_header(HakoCpp_ServiceResponseHeader& header, HakoServiceStatusType status, HakoServiceResultCodeType result_code)
 {
-    if (server_->get_state() != HAKO_SERVICE_SERVER_STATE_DOING) {
-        return false;
-    }
-    //TODO set response header
-    response_header_.result_code = result_code;
-    int pdu_size = convertor_response_.cpp2pdu(response_header_, (char*)packet, packet_len);
-    if (pdu_size < 0) {
-        std::cerr << "ERROR: convertor.cpp2pdu() failed" << std::endl;
-        return false;
-    }
+    header.request_id = request_header_.request_id;
+    header.service_name = server_->get_service_name();
+    header.client_name = server_->get_client_name(server_->get_current_client_id());
+    header.status = status;
+    header.processing_percentage = percentage_;
+    header.result_code = result_code;
+    return true;
+}
+bool hako::service::HakoServiceServerProtocol::reply(char* packet, int packet_len)
+{
     auto ret = server_->send_response(server_->get_current_client_id(), packet, packet_len);
     if (ret) {
         server_->event_done_service(server_->get_current_client_id());
     }
+    server_->next_client();
     return ret;
+}
+
+bool hako::service::HakoServiceServerProtocol::send_response(HakoServiceStatusType status, HakoServiceResultCodeType result_code)
+{
+    HakoCpp_ServiceResponseHeader header;
+    set_response_header(header, status, result_code);
+    int pdu_size = convertor_response_.cpp2pdu(header, (char*)server_->get_request_buffer(), server_->get_response_pdu_size());
+    if (pdu_size < 0) {
+        std::cerr << "ERROR: convertor.cpp2pdu() failed" << std::endl;
+        return false;
+    }
+    return reply((char*)server_->get_request_buffer(), server_->get_response_pdu_size());
 }

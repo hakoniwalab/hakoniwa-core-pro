@@ -60,6 +60,7 @@ namespace hako::service::impl {
             bool event_cancel_service(int client_id) override;
 
             std::string get_service_name() override { return service_name_; }
+            std::string get_client_name(int client_id) override;
             bool is_exist_client(std::string client_name) override;
             
         private:

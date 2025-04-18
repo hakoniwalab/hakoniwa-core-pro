@@ -49,6 +49,7 @@ namespace hako::service {
             virtual int get_response_pdu_size() = 0;
 
             virtual std::string get_service_name() = 0;
+            virtual std::string get_client_name(int client_id) = 0;
             virtual bool is_exist_client(std::string client_name);
     };
     class IHakoServiceClient {

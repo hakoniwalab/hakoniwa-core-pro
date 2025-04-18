@@ -80,6 +80,15 @@ void hako::service::impl::HakoServiceServer::initialize(const char* serviceName,
     std::cout << "INFO: Service server initialized successfully: " << serviceName << std::endl;
     return;
 }
+std::string hako::service::impl::HakoServiceServer::get_client_name(int client_id)
+{
+    auto pro_data = hako::data::pro::hako_pro_get_data();
+    if (!pro_data) {
+        std::cerr << "ERROR: hako_asset_impl_register_data_recv_event(): pro_data is null" << std::endl;
+        return "";
+    }
+    return pro_data->get_client_name(service_id_, client_id);
+}
 
 char* hako::service::impl::HakoServiceServer::recv_request(int client_id)
 {
@@ -123,7 +132,6 @@ bool hako::service::impl::HakoServiceServer::send_response(int client_id, void* 
     if (ret < 0) {
         return false;
     }
-    event_done_service(client_id);
     return true;
 }
 bool hako::service::impl::HakoServiceServer::event_start_service(int client_id)
