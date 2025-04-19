@@ -43,7 +43,6 @@ namespace hako::service::impl {
             void next_client() override { current_client_id_ = (current_client_id_ + 1) % max_clients_; }
             HakoServiceServerStateType get_state() override { return state_[current_client_id_]; }
 
-            bool cancel_service(int client_id) override { return event_cancel_service(client_id); }
 
             int get_service_id() override { return service_id_; }
             int get_asset_id() override { return asset_id_; }
@@ -89,15 +88,23 @@ namespace hako::service::impl {
             ~HakoServiceClient() = default;
             void initialize(const char* serviceName, const char* clientName, const char* assetName) override;
 
-            bool send_request();//TODO
-            char* recv_response();//TODO
-            bool cancel_service();//TODO timeout
+            char* recv_response() override;
+            bool send_request(void* packet, int packet_len) override;
+            HakoServiceClientStateType get_state() override { return state_; }
 
-            int get_service_id() { return service_id_; }
-            int get_asset_id() { return asset_id_; }
-            int get_request_pdu_size() { return request_pdu_size_; }
-            int get_response_pdu_size() { return response_pdu_size_; }
-            int get_client_id() { return client_id_; }
+
+            int get_service_id() override { return service_id_; }
+            int get_asset_id() override { return asset_id_; }
+            int get_client_id() override { return client_id_; }
+            void* get_request_buffer() override { return request_pdu_buffer_; }
+            void* get_response_buffer() override { return response_pdu_buffer_; }
+
+            bool event_start_service() override;
+            bool event_done_service() override;
+            bool event_cancel_service() override;
+
+            int get_request_pdu_size() override { return request_pdu_size_; }
+            int get_response_pdu_size() override { return response_pdu_size_; }
         private:
             int service_id_ = -1;
             int asset_id_ = -1;
@@ -108,23 +115,12 @@ namespace hako::service::impl {
             char* response_pdu_buffer_ = nullptr;
             std::string service_name_;
             std::string client_name_;
-            char* get_request_pdu_buffer() { return request_pdu_buffer_; }
-            char* get_response_pdu_buffer() { return response_pdu_buffer_; }
 
             /*
              * EVENT APIs
              */
             HakoServiceClientStateType state_ = HAKO_SERVICE_CLIENT_STATE_IDLE;
-            bool event_start_service();
-            bool event_done_service();
-            bool event_cancel_service();
-            /*
-             * packet
-             */
-            hako::pdu::PduConvertor<HakoCpp_ServiceRequestHeader, hako::pdu::msgs::hako_srv_msgs::ServiceRequestHeader> convertor_request_;
-            hako::pdu::PduConvertor<HakoCpp_ServiceResponseHeader, hako::pdu::msgs::hako_srv_msgs::ServiceResponseHeader> convertor_response_;
-            HakoCpp_ServiceRequestHeader request_header_;
-            HakoCpp_ServiceResponseHeader response_header_;
-    };
+
+        };
  
 }

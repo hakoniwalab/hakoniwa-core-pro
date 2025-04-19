@@ -96,10 +96,6 @@ char* hako::service::impl::HakoServiceServer::recv_request(int client_id)
         std::cerr << "ERROR: client_id is invalid" << std::endl;
         return nullptr;
     }
-    if (state_[client_id] != HAKO_SERVICE_SERVER_STATE_IDLE) {
-        std::cerr << "ERROR: service is not idle" << std::endl;
-        return nullptr;
-    }
     auto pro_data = hako::data::pro::hako_pro_get_data();
     if (!pro_data) {
         std::cerr << "ERROR: hako_asset_impl_register_data_recv_event(): pro_data is null" << std::endl;
@@ -116,10 +112,6 @@ bool hako::service::impl::HakoServiceServer::send_response(int client_id, void* 
 {
     if (client_id < 0 || client_id >= max_clients_) {
         std::cerr << "ERROR: client_id is invalid" << std::endl;
-        return false;
-    }
-    if ((state_[client_id] != HAKO_SERVICE_SERVER_STATE_DOING) && (state_[client_id] != HAKO_SERVICE_SERVER_STATE_CANCELING)) {
-        std::cerr << "ERROR: service is not doing" << std::endl;
         return false;
     }
     auto pro_data = hako::data::pro::hako_pro_get_data();
@@ -231,30 +223,6 @@ void hako::service::impl::HakoServiceClient::initialize(const char* serviceName,
     client_name_ = clientName;
     return;
 }
-
-bool hako::service::impl::HakoServiceClient::send_request()
-{
-    auto pro_data = hako::data::pro::hako_pro_get_data();
-    if (!pro_data) {
-        std::cerr << "ERROR: hako_asset_impl_register_data_recv_event(): pro_data is null" << std::endl;
-        return false;
-    }
-    if (state_ != HAKO_SERVICE_CLIENT_STATE_IDLE) {
-        std::cerr << "ERROR: service is not idle" << std::endl;
-        return false;
-    }
-    //TODO set request header
-    int pdu_size = convertor_request_.cpp2pdu(request_header_, get_request_pdu_buffer(), get_request_pdu_size());
-    if (pdu_size < 0) {
-        std::cerr << "ERROR: convertor.cpp2pdu() failed" << std::endl;
-        return false;
-    }
-    int ret = pro_data->put_request(asset_id_, service_id_, client_id_, get_request_pdu_buffer(), pdu_size);
-    if (ret < 0) {
-        return false;
-    }
-    return true;
-}
 char* hako::service::impl::HakoServiceClient::recv_response()
 {
     auto pro_data = hako::data::pro::hako_pro_get_data();
@@ -263,21 +231,28 @@ char* hako::service::impl::HakoServiceClient::recv_response()
         return nullptr;
     }
     int ret = pro_data->get_response(asset_id_, service_id_, client_id_, 
-        get_response_pdu_buffer(), get_response_pdu_size());
+        (char*)get_response_buffer(), get_response_pdu_size());
     if (ret < 0) {
         return nullptr;
     }
-    if (!convertor_response_.pdu2cpp(get_response_pdu_buffer(), response_header_)) {
-        std::cerr << "ERROR: convertor.pdu2cpp() failed" << std::endl;
-        return nullptr;
-    }
-    return get_response_pdu_buffer();
+    return (char*)get_response_buffer();
 }
 
-bool hako::service::impl::HakoServiceClient::cancel_service()
+bool hako::service::impl::HakoServiceClient::send_request(void* packet, int packet_len)
 {
-    return event_cancel_service();
+    auto pro_data = hako::data::pro::hako_pro_get_data();
+    if (!pro_data) {
+        std::cerr << "ERROR: hako_asset_impl_register_data_recv_event(): pro_data is null" << std::endl;
+        return false;
+    }
+
+    int ret = pro_data->put_request(asset_id_, service_id_, client_id_, (char*)packet, packet_len);
+    if (ret < 0) {
+        return false;
+    }
+    return true;
 }
+
 
 bool hako::service::impl::HakoServiceClient::event_start_service()
 {

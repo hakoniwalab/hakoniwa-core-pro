@@ -35,7 +35,6 @@ namespace hako::service {
             virtual void next_client() = 0;
             virtual HakoServiceServerStateType get_state() = 0;
 
-            virtual bool cancel_service(int client_id) = 0;
 
             virtual int get_service_id() = 0;
             virtual int get_asset_id() = 0;
@@ -56,5 +55,25 @@ namespace hako::service {
         public:
             virtual ~IHakoServiceClient() = default;
             virtual void initialize(const char* serviceName, const char* clientName, const char* assetName) = 0;
+
+            virtual char* recv_response() = 0;
+            virtual bool send_request(void* packet, int packet_len) = 0;
+            virtual HakoServiceClientStateType get_state() = 0;
+
+            virtual int get_service_id() = 0;
+            virtual int get_asset_id() = 0;
+            virtual int get_client_id() = 0;
+            virtual void* get_request_buffer() = 0;
+            virtual void* get_response_buffer() = 0;
+
+            virtual bool event_start_service();
+            virtual bool event_done_service();
+            virtual bool event_cancel_service();
+
+            virtual int get_request_pdu_size() = 0;
+            virtual int get_response_pdu_size() = 0;
+
+            virtual std::string get_service_name() = 0;
+            virtual std::string get_client_name(int client_id) = 0;
     };
 }
