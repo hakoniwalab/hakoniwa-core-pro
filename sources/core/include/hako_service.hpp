@@ -40,16 +40,16 @@ namespace hako::service {
             virtual int get_asset_id() = 0;
             virtual void* get_request_buffer() = 0;
             virtual void* get_response_buffer() = 0;
-            virtual bool event_start_service(int client_id);
-            virtual bool event_done_service(int client_id);
-            virtual bool event_cancel_service(int client_id);
+            virtual bool event_start_service(int client_id) = 0;
+            virtual bool event_done_service(int client_id) = 0;
+            virtual bool event_cancel_service(int client_id) = 0;
 
             virtual int get_request_pdu_size() = 0;
             virtual int get_response_pdu_size() = 0;
 
             virtual std::string get_service_name() = 0;
             virtual std::string get_client_name(int client_id) = 0;
-            virtual bool is_exist_client(std::string client_name);
+            virtual bool is_exist_client(std::string client_name) = 0;
     };
     class IHakoServiceClient {
         public:
@@ -66,9 +66,9 @@ namespace hako::service {
             virtual void* get_request_buffer() = 0;
             virtual void* get_response_buffer() = 0;
 
-            virtual bool event_start_service();
-            virtual bool event_done_service();
-            virtual bool event_cancel_service();
+            virtual bool event_start_service() = 0;
+            virtual bool event_done_service() = 0;
+            virtual bool event_cancel_service() = 0;
 
             virtual int get_request_pdu_size() = 0;
             virtual int get_response_pdu_size() = 0;

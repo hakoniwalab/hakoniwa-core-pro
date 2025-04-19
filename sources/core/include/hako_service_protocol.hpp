@@ -57,6 +57,8 @@ namespace hako::service {
             bool  reply(char* packet, int packet_len);
             void  cancel_done();
             void  put_progress(int percentage) { percentage_ = percentage; }
+            int   get_service_id() { return server_->get_service_id(); }
+            std::string get_service_name() { return server_->get_service_name(); }
 
         private:
             std::shared_ptr<IHakoServiceServer> server_;

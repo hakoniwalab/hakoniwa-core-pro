@@ -12,10 +12,11 @@ extern int hako_asset_service_initialize(const char* service_config_path);
 /**
  * Create a service server for a specific service name.
  *
+ * @param assetName The name of the asset.
  * @param serviceName The name of the service.
  * @return 0 on success, -1 on failure.
  */
-extern int hako_asset_service_server_create(const char* serviceName);
+extern int hako_asset_service_server_create(const char* assetName, const char* serviceName);
 
 /**
  * Get the request packet 
