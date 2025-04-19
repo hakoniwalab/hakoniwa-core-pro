@@ -8,6 +8,7 @@
 #include "hako_service.hpp"
 #include <vector>
 #include <string>
+#include <memory>
 
 namespace hako::service::impl {
 
@@ -23,14 +24,7 @@ namespace hako::service::impl {
     class HakoServiceServer: public IHakoServiceServer {
         public:
             HakoServiceServer() = default;
-            ~HakoServiceServer() {
-                if (request_pdu_buffer_) {
-                    delete[] request_pdu_buffer_;
-                }
-                if (response_pdu_buffer_) {
-                    delete[] response_pdu_buffer_;
-                }
-            }
+            ~HakoServiceServer() = default;
             /*
              * must be called after on_pdu_data_create(),
              * i.e, initialize() callback on HakoAsset.
@@ -67,16 +61,16 @@ namespace hako::service::impl {
             int asset_id_ = -1;
             int request_pdu_size_ = 0;
             int response_pdu_size_ = 0;
-            char* request_pdu_buffer_ = nullptr;
-            char* response_pdu_buffer_ = nullptr;
+            std::unique_ptr<char[]> request_pdu_buffer_;
+            std::unique_ptr<char[]> response_pdu_buffer_;
             int max_clients_ = 0;
             std::string service_name_;
             std::string asset_name_;
             int current_client_id_ = 0;
             std::vector<HakoServiceServerStateType> state_;
 
-            char* get_request_pdu_buffer() { return request_pdu_buffer_; }
-            char* get_response_pdu_buffer() { return response_pdu_buffer_; }
+            char* get_request_pdu_buffer() { return request_pdu_buffer_.get(); }
+            char* get_response_pdu_buffer() { return response_pdu_buffer_.get(); }
             int get_max_clients() { return max_clients_; }
     };
     /*
@@ -96,8 +90,8 @@ namespace hako::service::impl {
             int get_service_id() override { return service_id_; }
             int get_asset_id() override { return asset_id_; }
             int get_client_id() override { return client_id_; }
-            void* get_request_buffer() override { return request_pdu_buffer_; }
-            void* get_response_buffer() override { return response_pdu_buffer_; }
+            void* get_request_buffer() override { return request_pdu_buffer_.get(); }
+            void* get_response_buffer() override { return response_pdu_buffer_.get(); }
 
             bool event_start_service() override;
             bool event_done_service() override;
@@ -111,8 +105,8 @@ namespace hako::service::impl {
             int client_id_ = -1;
             int request_pdu_size_ = 0;
             int response_pdu_size_ = 0;
-            char* request_pdu_buffer_ = nullptr;
-            char* response_pdu_buffer_ = nullptr;
+            std::unique_ptr<char[]> request_pdu_buffer_;
+            std::unique_ptr<char[]> response_pdu_buffer_;
             std::string service_name_;
             std::string client_name_;
 

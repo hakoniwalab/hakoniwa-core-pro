@@ -68,8 +68,8 @@ void hako::service::impl::HakoServiceServer::initialize(const char* serviceName,
     request_pdu_size_ = service_entry.pdu_size_request;
     response_pdu_size_ = service_entry.pdu_size_response;
     max_clients_ = service_entry.maxClients;
-    request_pdu_buffer_ = new char[request_pdu_size_];
-    response_pdu_buffer_ = new char[response_pdu_size_];
+    request_pdu_buffer_ = std::make_unique<char[]>(request_pdu_size_);
+    response_pdu_buffer_ = std::make_unique<char[]>(response_pdu_size_);
     if (request_pdu_buffer_ == nullptr || response_pdu_buffer_ == nullptr) {
         throw std::runtime_error("ERROR: request_pdu_buffer_ or response_pdu_buffer_ is null");
     }
@@ -215,8 +215,8 @@ void hako::service::impl::HakoServiceClient::initialize(const char* serviceName,
     auto& service_entry = pro_data->get_service_entry(service_name_);
     request_pdu_size_ = service_entry.pdu_size_request;
     response_pdu_size_ = service_entry.pdu_size_response;
-    request_pdu_buffer_ = new char[request_pdu_size_];
-    response_pdu_buffer_ = new char[response_pdu_size_];
+    request_pdu_buffer_ = std::make_unique<char[]>(request_pdu_size_);
+    response_pdu_buffer_ = std::make_unique<char[]>(response_pdu_size_);
     if (request_pdu_buffer_ == nullptr || response_pdu_buffer_ == nullptr) {
         throw std::runtime_error("ERROR: request_pdu_buffer_ or response_pdu_buffer_ is null");
     }
