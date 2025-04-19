@@ -11,8 +11,8 @@ bool hako::service::HakoServiceServerProtocol::initialize(const char* serviceNam
         std::cerr << "ERROR: request_pdu_size_ or response_pdu_size_ is invalid" << std::endl;
         return false;
     }
-    request_pdu_buffer_ = new char[server_->get_request_pdu_size()];
-    response_pdu_buffer_ = new char[server_->get_response_pdu_size()];
+    request_pdu_buffer_ = std::make_unique<char[]>(server_->get_request_pdu_size());
+    response_pdu_buffer_ = std::make_unique<char[]>(server_->get_response_pdu_size());
     if (request_pdu_buffer_ == nullptr || response_pdu_buffer_ == nullptr) {
         std::cerr << "ERROR: request_pdu_buffer_ or response_pdu_buffer_ is null" << std::endl;
         return false;
@@ -63,7 +63,7 @@ bool hako::service::HakoServiceServerProtocol::validate_header(HakoCpp_ServiceRe
 bool hako::service::HakoServiceServerProtocol::copy_user_buffer(const HakoCpp_ServiceRequestHeader& header)
 {
     char* src = (char*)server_->get_request_buffer();
-    char* dst = (char*)request_pdu_buffer_;
+    char* dst = (char*)request_pdu_buffer_.get();
     int src_len = server_->get_request_pdu_size();
     memcpy(dst, src, src_len);
     request_header_ = header;
@@ -144,7 +144,7 @@ void* hako::service::HakoServiceServerProtocol::get_request()
     if (server_->get_state() != HAKO_SERVICE_SERVER_STATE_DOING) {
         return nullptr;
     }
-    return request_pdu_buffer_;
+    return request_pdu_buffer_.get();
 }
 bool hako::service::HakoServiceServerProtocol::set_response_header(HakoCpp_ServiceResponseHeader& header, HakoServiceStatusType status, HakoServiceResultCodeType result_code)
 {
@@ -175,12 +175,12 @@ bool hako::service::HakoServiceServerProtocol::send_response(HakoServiceStatusTy
 {
     HakoCpp_ServiceResponseHeader header;
     set_response_header(header, status, result_code);
-    int pdu_size = convertor_response_.cpp2pdu(header, (char*)server_->get_request_buffer(), server_->get_response_pdu_size());
+    int pdu_size = convertor_response_.cpp2pdu(header, (char*)server_->get_response_buffer(), server_->get_response_pdu_size());
     if (pdu_size < 0) {
         std::cerr << "ERROR: convertor.cpp2pdu() failed" << std::endl;
         return false;
     }
-    return reply((char*)server_->get_request_buffer(), server_->get_response_pdu_size());
+    return reply((char*)server_->get_response_buffer(), server_->get_response_pdu_size());
 }
 /*
  * HakoServiceClientProtocol
@@ -195,8 +195,8 @@ bool hako::service::HakoServiceClientProtocol::initialize(const char* serviceNam
         std::cerr << "ERROR: request_pdu_size_ or response_pdu_size_ is invalid" << std::endl;
         return false;
     }
-    request_pdu_buffer_ = new char[client_->get_request_pdu_size()];
-    response_pdu_buffer_ = new char[client_->get_response_pdu_size()];
+    request_pdu_buffer_ = std::make_unique<char[]>(client_->get_request_pdu_size());
+    response_pdu_buffer_ = std::make_unique<char[]>(client_->get_response_pdu_size());    
     if (request_pdu_buffer_ == nullptr || response_pdu_buffer_ == nullptr) {
         std::cerr << "ERROR: request_pdu_buffer_ or response_pdu_buffer_ is null" << std::endl;
         return false;
@@ -241,7 +241,7 @@ bool hako::service::HakoServiceClientProtocol::validate_header(HakoCpp_ServiceRe
 bool hako::service::HakoServiceClientProtocol::copy_user_buffer(const HakoCpp_ServiceResponseHeader& header)
 {
     char* src = (char*)client_->get_response_buffer();
-    char* dst = (char*)request_pdu_buffer_;
+    char* dst = (char*)request_pdu_buffer_.get();
     int src_len = client_->get_response_pdu_size();
     memcpy(dst, src, src_len);
     response_header_ = header;
@@ -255,6 +255,11 @@ hako::service::HakoServiceClientEventType hako::service::HakoServiceClientProtoc
     if (state == HAKO_SERVICE_CLIENT_STATE_IDLE) {
         return HAKO_SERVICE_CLIENT_EVENT_NONE;
     }
+    auto pro_data = hako::data::pro::hako_pro_get_data();
+    if (!pro_data) {
+        std::cerr << "ERROR: hako_asset_impl_register_data_recv_event(): pro_data is null" << std::endl;
+        return HAKO_SERVICE_CLIENT_EVENT_NONE;
+    }
     bool data_recv_in = false;
     bool result = recv_response(header, data_recv_in);
     if (result == false) {
@@ -264,28 +269,46 @@ hako::service::HakoServiceClientEventType hako::service::HakoServiceClientProtoc
     else if (data_recv_in == false) {
         return HAKO_SERVICE_CLIENT_EVENT_NONE;
     }
-    event = HAKO_SERVICE_CLIENT_RESPONSE_IN;
+    event = HAKO_SERVICE_CLIENT_EVENT_NONE;
     switch (header.status)
     {
         case HAKO_SERVICE_STATUS_DONE:
+            event = HAKO_SERVICE_CLIENT_RESPONSE_IN;
             copy_user_buffer(header);
             client_->event_done_service();
+            request_id_++;
             break;
         case HAKO_SERVICE_STATUS_ERROR:
             event = HAKO_SERVICE_CLIENT_RESPONSE_IN;
             std::cerr << "ERROR: service error" << std::endl;
+            copy_user_buffer(header);
             client_->event_done_service();
+            request_id_++;
+            break;
+        case HAKO_SERVICE_STATUS_DOING:
+            //TIMEOUT check
+            if (request_header_.status_poll_interval_msec > 0) {
+                auto now = pro_data->get_world_time_usec();
+                if ((last_poll_time_ == 0) || (now - last_poll_time_) > request_header_.status_poll_interval_msec * 1000) {
+                    event = HAKO_SERVICE_CLIENT_REQUEST_TIMEOUT;
+                    std::cerr << "ERROR: request timeout" << std::endl;
+                    cancel_request();
+                }
+                last_poll_time_ = now;
+            }
             break;
         default:
+            //HAKO_SERVICE_STATUS_NONE
+            //HAKO_SERVICE_STATUS_CANCELING
+            //nothing to do
             break;
     }
-    //TODO TIMEOUT check
 
     return event;
 }
 bool hako::service::HakoServiceClientProtocol::set_request_header(HakoCpp_ServiceRequestHeader& header, HakoServiceOperationCodeType opcode, int poll_interval_msec)
 {
-    header.request_id = 0; //TODO
+    header.request_id = request_id_;
     header.service_name = client_->get_service_name();
     header.client_name = client_->get_client_name(client_->get_client_id());
     header.opcode = opcode;
@@ -308,24 +331,33 @@ void* hako::service::HakoServiceClientProtocol::get_response()
     if (client_->get_state() != HAKO_SERVICE_CLIENT_STATE_DOING) {
         return nullptr;
     }
-    return response_pdu_buffer_;
+    return response_pdu_buffer_.get();
 }
 bool hako::service::HakoServiceClientProtocol::request(char* packet, int packet_len)
 {
+    HakoCpp_ServiceRequestHeader header;
+    int pdu_size = convertor_request_.cpp2pdu(header, packet, packet_len);
+    if (pdu_size < 0) {
+        std::cerr << "ERROR: convertor.cpp2pdu() failed" << std::endl;
+        return false;
+    }
     auto ret = client_->send_request(packet, packet_len);
     if (ret) {
+        request_header_ = header;
         client_->event_start_service();
     }
     return ret;
 }
 void hako::service::HakoServiceClientProtocol::cancel_request()
 {
-    client_->event_cancel_service();
-}
-int hako::service::HakoServiceClientProtocol::get_progress()
-{
     if (client_->get_state() != HAKO_SERVICE_CLIENT_STATE_DOING) {
-        return -1;
+        return;
     }
-    return response_header_.processing_percentage;
+    //send cancel request
+    auto ret = send_request(HAKO_SERVICE_OPERATION_CODE_CANCEL, 0);
+    if (ret == false) {
+        std::cerr << "ERROR: send_request() failed" << std::endl;
+        return;
+    }
+    client_->event_cancel_service();
 }

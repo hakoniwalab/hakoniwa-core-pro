@@ -42,12 +42,6 @@ namespace hako::service {
                 server_ = server;
             }
             ~HakoServiceServerProtocol() {
-                if (request_pdu_buffer_) {
-                    delete[] request_pdu_buffer_;
-                }
-                if (response_pdu_buffer_) {
-                    delete[] response_pdu_buffer_;
-                }
             };
             /*
              * must be called after on_pdu_data_create(),
@@ -57,7 +51,7 @@ namespace hako::service {
             HakoServiceServerEventType poll();
             HakoServiceServerStateType state() { return server_->get_state(); }
             void* get_request();
-            void* get_response_buffer() { return response_pdu_buffer_; }
+            void* get_response_buffer() { return response_pdu_buffer_.get(); }
             int   get_response_pdu_size() { return server_->get_response_pdu_size(); }
             bool  set_response_header(HakoCpp_ServiceResponseHeader& header, HakoServiceStatusType status, HakoServiceResultCodeType result_code);
             bool  reply(char* packet, int packet_len);
@@ -76,8 +70,8 @@ namespace hako::service {
             bool validate_header(HakoCpp_ServiceRequestHeader& header);
             bool copy_user_buffer(const HakoCpp_ServiceRequestHeader& header);
             bool send_response(HakoServiceStatusType status, HakoServiceResultCodeType result_code);
-            char* request_pdu_buffer_ = nullptr;
-            char* response_pdu_buffer_ = nullptr;
+            std::unique_ptr<char[]> request_pdu_buffer_;
+            std::unique_ptr<char[]> response_pdu_buffer_;
             int percentage_ = 0;
             HakoTimeType last_poll_time_ = 0;
 
@@ -89,12 +83,6 @@ namespace hako::service {
                 client_ = client;
             }
             ~HakoServiceClientProtocol() {
-                if (request_pdu_buffer_) {
-                    delete[] request_pdu_buffer_;
-                }
-                if (response_pdu_buffer_) {
-                    delete[] response_pdu_buffer_;
-                }
             };
             /*
              * must be called after on_pdu_data_create(),
@@ -105,12 +93,12 @@ namespace hako::service {
             HakoServiceClientEventType poll();
             HakoServiceClientStateType state() { return client_->get_state(); }
             void* get_response();
-            void* get_request_buffer() { return request_pdu_buffer_; }
+            void* get_request_buffer() { return request_pdu_buffer_.get(); }
             int   get_request_pdu_size() { return client_->get_request_pdu_size(); }
             bool  set_request_header(HakoCpp_ServiceRequestHeader& header, HakoServiceOperationCodeType opcode, int poll_interval_msec);
             bool  request(char* packet, int packet_len);
             void  cancel_request();
-            int   get_progress();
+            int   get_progress() { return percentage_; }
 
         private:
             std::shared_ptr<IHakoServiceClient> client_;
@@ -125,7 +113,11 @@ namespace hako::service {
             hako::pdu::PduConvertor<HakoCpp_ServiceRequestHeader, hako::pdu::msgs::hako_srv_msgs::ServiceRequestHeader> convertor_request_;
             hako::pdu::PduConvertor<HakoCpp_ServiceResponseHeader, hako::pdu::msgs::hako_srv_msgs::ServiceResponseHeader> convertor_response_;
             HakoCpp_ServiceResponseHeader response_header_;
-            char* request_pdu_buffer_ = nullptr;
-            char* response_pdu_buffer_ = nullptr;
+            HakoCpp_ServiceRequestHeader request_header_;
+            std::unique_ptr<char[]> request_pdu_buffer_;
+            std::unique_ptr<char[]> response_pdu_buffer_;
+            int percentage_ = 0;
+            int request_id_ = 0;
+            HakoTimeType last_poll_time_ = 0;
     };
 }
