@@ -72,7 +72,6 @@ namespace hako::service {
             hako::pdu::PduConvertor<HakoCpp_ServiceRequestHeader, hako::pdu::msgs::hako_srv_msgs::ServiceRequestHeader> convertor_request_;
             hako::pdu::PduConvertor<HakoCpp_ServiceResponseHeader, hako::pdu::msgs::hako_srv_msgs::ServiceResponseHeader> convertor_response_;
             HakoCpp_ServiceRequestHeader request_header_;
-            HakoServiceServerEventType handle_polling();
             bool recv_request(int client_id, HakoCpp_ServiceRequestHeader& header, bool& data_recv_in);
             bool validate_header(HakoCpp_ServiceRequestHeader& header);
             bool copy_user_buffer(const HakoCpp_ServiceRequestHeader& header);
@@ -89,23 +88,44 @@ namespace hako::service {
             {
                 client_ = client;
             }
-            ~HakoServiceClientProtocol() = default;
+            ~HakoServiceClientProtocol() {
+                if (request_pdu_buffer_) {
+                    delete[] request_pdu_buffer_;
+                }
+                if (response_pdu_buffer_) {
+                    delete[] response_pdu_buffer_;
+                }
+            };
+            /*
+             * must be called after on_pdu_data_create(),
+             * i.e, initialize() callback on HakoAsset.
+             */
+            bool initialize(const char* serviceName, const char* clientName, const char* assetName);
 
-            HakoServiceClientEventType run();
-            HakoServiceClientStateType state();
-            bool  put_request(void* packet);
+            HakoServiceClientEventType poll();
+            HakoServiceClientStateType state() { return client_->get_state(); }
             void* get_response();
+            void* get_request_buffer() { return request_pdu_buffer_; }
+            int   get_request_pdu_size() { return client_->get_request_pdu_size(); }
+            bool  set_request_header(HakoCpp_ServiceRequestHeader& header, HakoServiceOperationCodeType opcode, int poll_interval_msec);
+            bool  request(char* packet, int packet_len);
             void  cancel_request();
             int   get_progress();
 
         private:
             std::shared_ptr<IHakoServiceClient> client_;
+            bool recv_response(HakoCpp_ServiceResponseHeader& header, bool& data_recv_in);
+            bool validate_header(HakoCpp_ServiceResponseHeader& header);
+            bool copy_user_buffer(const HakoCpp_ServiceResponseHeader& header);
+            bool send_request(HakoServiceOperationCodeType opcode, int poll_interval_msec);
+
             /*
              * packet
              */
             hako::pdu::PduConvertor<HakoCpp_ServiceRequestHeader, hako::pdu::msgs::hako_srv_msgs::ServiceRequestHeader> convertor_request_;
             hako::pdu::PduConvertor<HakoCpp_ServiceResponseHeader, hako::pdu::msgs::hako_srv_msgs::ServiceResponseHeader> convertor_response_;
-            HakoCpp_ServiceRequestHeader request_header_;
             HakoCpp_ServiceResponseHeader response_header_;
+            char* request_pdu_buffer_ = nullptr;
+            char* response_pdu_buffer_ = nullptr;
     };
 }
