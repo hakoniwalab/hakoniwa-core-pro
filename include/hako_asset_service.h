@@ -18,6 +18,16 @@ extern int hako_asset_service_initialize(const char* service_config_path);
  */
 extern int hako_asset_service_server_create(const char* assetName, const char* serviceName);
 
+#define HAKO_SERVICE_SERVER_EVENT_EVENT_NONE        0
+#define HAKO_SERVICE_SERVER_EVENT_REQUEST_IN        1
+#define HAKO_SERVICE_SERVER_EVENT_REQUEST_CANCEL    2
+/**
+ * Poll the service server for incoming requests.
+ * @param service_id The ID of the service.
+ * @return 0 on success, -1 on failure.
+ */
+extern int hako_asset_service_server_poll(int service_id);
+
 /**
  * Get the request packet 
  * @param service_id The ID of the service.
@@ -25,7 +35,17 @@ extern int hako_asset_service_server_create(const char* assetName, const char* s
  * @param packet_len The length of the buffer.
  * @return 0 on success, -1 on failure.
  */
-extern int hako_asset_service_server_get_request(int service_id, char* packet, size_t packet_len);
+extern int hako_asset_service_server_get_request(int service_id, char** packet, size_t *packet_len);
+
+/**
+ * Get the response packet from the service server.
+ * @param service_id The ID of the service.
+ * @param packet The buffer to store the response packet.
+ * @param packet_len The length of the buffer.
+ * @return 0 on success, -1 on failure.
+ */
+extern int hako_asset_service_get_response_buffer(int service_id, char** packet, size_t *packet_len);
+
 /**
  * Send a response packet to the client.
  * @param service_id The ID of the service.
@@ -46,10 +66,9 @@ extern int hako_asset_service_server_is_canceled(int service_id);
  * Set the status of the service server.
  *
  * @param percentage The percentage of completion (0-100).
- * @param status The status of the service server (0: not started, 1: in progress, 2: completed).
  * @return 0 on success, -1 on failure.
  */
-extern int hako_asset_service_server_set_status(int status, int percentage);
+extern int hako_asset_service_server_set_progress(int service_id, int percentage);
 
 typedef struct {
     int service_id;
