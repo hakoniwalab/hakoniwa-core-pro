@@ -96,6 +96,8 @@ namespace hako::service::impl {
             bool event_start_service() override;
             bool event_done_service() override;
             bool event_cancel_service() override;
+            std::string get_service_name() override { return service_name_; }
+            std::string get_client_name() override { return client_name_; }
 
             int get_request_pdu_size() override { return request_pdu_size_; }
             int get_response_pdu_size() override { return response_pdu_size_; }

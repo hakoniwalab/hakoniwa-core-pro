@@ -102,6 +102,11 @@ namespace hako::service {
             bool  request(char* packet, int packet_len);
             void  cancel_request();
             int   get_progress() { return percentage_; }
+            int  get_service_id() { return client_->get_service_id(); }
+            int get_client_id() { return client_->get_client_id(); }
+            std::string get_service_name() { return client_->get_service_name(); }
+            std::string get_client_name() { return client_->get_client_name(); }
+            int get_response_pdu_size() { return client_->get_response_pdu_size(); }
 
         private:
             std::shared_ptr<IHakoServiceClient> client_;

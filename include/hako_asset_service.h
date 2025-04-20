@@ -81,7 +81,28 @@ typedef struct {
  * @param handle The handle to be used for the service client.
  * @return 0 on success, -1 on failure.
  */
-extern int hako_asset_service_client_create(const char* serviceName, const char* clientName, HakoServiceHandleType* handle);
+extern int hako_asset_service_client_create(const char* assetName, const char* serviceName, const char* clientName, HakoServiceHandleType* handle);
+
+#define HAKO_SERVICE_CLIENT_EVENT_EVENT_NONE 0
+#define HAKO_SERVICE_CLIENT_EVENT_RESPONSE_IN 1
+#define HAKO_SERVICE_CLIENT_EVENT_REQUEST_TIMEOUT 2
+#define HAKO_SERVICE_CLIENT_EVENT_REQUEST_CANCEL_DONE 3
+
+/**
+ * Poll the service client for incoming responses.
+ * @param handle The handle of the service client.
+ * @return 0 on success, -1 on failure.
+ */
+extern int hako_asset_service_client_poll(const HakoServiceHandleType* handle);
+
+/*
+ * Get the request packet from the service client.
+ * @param handle The handle of the service client.
+ * @param packet The buffer to store the request packet.
+ * @param packet_len The length of the buffer.
+ * @return 0 on success, -1 on failure.
+ */
+extern int hako_asset_service_cleint_get_response(const HakoServiceHandleType* handle, char** packet, size_t *packet_len);
 
 /**
  * Call a service request.
@@ -101,7 +122,7 @@ extern int hako_asset_service_client_call_request(const HakoServiceHandleType* h
  * @param timeout The timeout for the response in milliseconds.
  * @return 0 on success, -1 on failure.
  */
-extern int hako_asset_service_client_get_response(const HakoServiceHandleType* handle, char *packet, size_t packet_len, int timeout);
+extern int hako_asset_service_client_get_response(const HakoServiceHandleType* handle, char **packet, size_t *packet_len, int timeout);
 
 /**
  * Cancel the service request.
@@ -109,11 +130,22 @@ extern int hako_asset_service_client_get_response(const HakoServiceHandleType* h
  * @return 0 on success, -1 on failure.
  */
 extern int hako_asset_service_client_cancel_request(const HakoServiceHandleType* handle);
+
+/**
+ * Get the progress of the service client.
+ * @param handle The handle of the service client.
+ * @return The progress of the service client (0-100).
+ */
+extern int hako_asset_service_client_get_progress(const HakoServiceHandleType* handle);
+
+#define HAKO_SERVICE_CLIENT_API_STATE_IDLE 0
+#define HAKO_SERVICE_CLIENT_API_STATE_DOING 1
+#define HAKO_SERVICE_CLIENT_API_STATE_CANCELING 2
+
 /**
  * Check the status of the service client.
  * @param handle The handle of the service client.
- * @param status The status of the service client (0: not started, 1: in progress, 2: completed).
- * @param percentage The percentage of completion (0-100).
+ * @param status The status of the service client.
  * @return 0 on success, -1 on failure.
  */
-extern int hako_asset_service_client_status(const HakoServiceHandleType* handle, int* status, int* percentage);
+extern int hako_asset_service_client_status(const HakoServiceHandleType* handle, int* status);

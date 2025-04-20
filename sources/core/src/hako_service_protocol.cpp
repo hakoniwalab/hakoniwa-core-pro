@@ -228,7 +228,7 @@ bool hako::service::HakoServiceClientProtocol::validate_header(HakoCpp_ServiceRe
         std::cerr << "ERROR: service_name is invalid" << std::endl;
         return false;
     }
-    if (header.client_name != client_->get_client_name(client_->get_client_id())) {
+    if (header.client_name != client_->get_client_name()) {
         std::cerr << "ERROR: client_name is invalid" << std::endl;
         return false;
     }
@@ -310,7 +310,7 @@ bool hako::service::HakoServiceClientProtocol::set_request_header(HakoCpp_Servic
 {
     header.request_id = request_id_;
     header.service_name = client_->get_service_name();
-    header.client_name = client_->get_client_name(client_->get_client_id());
+    header.client_name = client_->get_client_name();
     header.opcode = opcode;
     header.status_poll_interval_msec = poll_interval_msec;
     return true;
