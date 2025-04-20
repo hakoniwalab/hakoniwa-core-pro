@@ -82,15 +82,21 @@ class HakoProData : public std::enable_shared_from_this<HakoProData>, public hak
     
         void lock_memory()
         {
-            std::cout << "INFO: HakoProData::before lock_memory()" << std::endl;
-            this->shmp_->lock_memory(HAKO_SHARED_MEMORY_ID_2);
-            std::cout << "INFO: HakoProData::after lock_memory()" << std::endl;
+            if (lock_count_ == 0) {
+                this->shmp_->lock_memory(HAKO_SHARED_MEMORY_ID_2);
+            }
+            lock_count_++;
+            std::cout << "INFO: HakoProData::lock_memory() : " << lock_count_ << std::endl;
         }
         void unlock_memory()
         {
-            std::cout << "INFO: HakoProData::before unlock_memory()" << std::endl;
-            this->shmp_->unlock_memory(HAKO_SHARED_MEMORY_ID_2);
-            std::cout << "INFO: HakoProData::after unlock_memory()" << std::endl;
+            if (lock_count_ > 0) {
+                lock_count_--;
+            }
+            if (lock_count_ == 0) {
+                this->shmp_->unlock_memory(HAKO_SHARED_MEMORY_ID_2);
+            }
+            std::cout << "INFO: HakoProData::unlock_memory() : " << lock_count_ << std::endl;
         }
         std::shared_ptr<hako::extension::IHakoAssetExtension> get_asset_extension()
         {
@@ -167,6 +173,7 @@ class HakoProData : public std::enable_shared_from_this<HakoProData>, public hak
         std::string shm_type_;
         std::shared_ptr<data::HakoMasterData> master_data_;
         HakoServiceImplType service_impl_;
+        int lock_count_ = 0;
 };
     
 class HakoProAssetExtension: public hako::extension::IHakoAssetExtension {

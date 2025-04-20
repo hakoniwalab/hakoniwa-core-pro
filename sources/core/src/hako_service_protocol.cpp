@@ -7,6 +7,10 @@ bool hako::service::HakoServiceServerProtocol::initialize(const char* serviceNam
         return false;
     }
     bool ret = server_->initialize(serviceName, assetName);
+    if (!ret) {
+        std::cerr << "ERROR: server_->initialize() failed" << std::endl;
+        return false;
+    }
     if (server_->get_request_pdu_size() <= 0 || server_->get_response_pdu_size() <= 0) {
         std::cerr << "ERROR: request_pdu_size_ or response_pdu_size_ is invalid" << std::endl;
         return false;

@@ -21,7 +21,8 @@ bool hako::data::pro::HakoProData::register_data_recv_event(const std::string& r
         return false;
     }
     bool ret = false;
-    this->shmp_->lock_memory(HAKO_SHARED_MEMORY_ID_2);
+    //this->shmp_->lock_memory(HAKO_SHARED_MEMORY_ID_2);
+    this->lock_memory();
     for (int i = 0; i < HAKO_RECV_EVENT_MAX; i++) {
         if (recv_event_table_->entries[i].enabled == false) {
             hako::core::context::HakoContext context;
@@ -43,7 +44,8 @@ bool hako::data::pro::HakoProData::register_data_recv_event(const std::string& r
             break;
         }
     }
-    this->shmp_->unlock_memory(HAKO_SHARED_MEMORY_ID_2);
+    //this->shmp_->unlock_memory(HAKO_SHARED_MEMORY_ID_2);
+    this->unlock_memory();
     std::cout << "INFO: register_data_recv_event() robot_name: " << robot_name << " channel_id: " << channel_id << " ret: " << ret << std::endl;
     return ret;
 }
