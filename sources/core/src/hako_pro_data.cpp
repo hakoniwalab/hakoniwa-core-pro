@@ -12,8 +12,9 @@ bool pro::HakoProData::on_pdu_data_create()
         return false;
     }
     (void)shmid;
-    void *datap = this->get_shared_memory()->lock_memory(HAKO_SHARED_MEMORY_ID_2);
-    this->set_recv_event_table(static_cast<HakoRecvEventTableType*>(datap));
+    char *datap = (char*)this->get_shared_memory()->lock_memory(HAKO_SHARED_MEMORY_ID_2);
+    this->set_recv_event_table(reinterpret_cast<HakoRecvEventTableType*>(&datap[OFFSET_HAKO_RECV_EVENT_TABLE]));
+    this->set_service_table(reinterpret_cast<HakoServiceTableType*>(&datap[OFFSET_HAKO_SERVICE_TABLE]));
     {
         memset(datap, 0, sizeof(HakoRecvEventTableType));
         this->set_service_data();

@@ -29,7 +29,7 @@ namespace hako::service::impl {
              * must be called after on_pdu_data_create(),
              * i.e, initialize() callback on HakoAsset.
              */
-            void initialize(const char* serviceName, const char* assetName) override;
+            bool initialize(const char* serviceName, const char* assetName) override;
 
             char* recv_request(int clinet_id) override;
             bool send_response(int client_id, void* packet, int packet_len)  override;
@@ -80,7 +80,7 @@ namespace hako::service::impl {
         public:
             HakoServiceClient() = default;
             ~HakoServiceClient() = default;
-            void initialize(const char* serviceName, const char* clientName, const char* assetName) override;
+            bool initialize(const char* serviceName, const char* clientName, const char* assetName) override;
 
             char* recv_response() override;
             bool send_request(void* packet, int packet_len) override;

@@ -28,7 +28,7 @@ namespace hako::service {
     class IHakoServiceServer {
         public:
             virtual ~IHakoServiceServer() = default;
-            virtual void initialize(const char* serviceName, const char* assetName) = 0;
+            virtual bool initialize(const char* serviceName, const char* assetName) = 0;
             virtual char* recv_request(int clinet_id) = 0;
             virtual bool send_response(int client_id, void* packet, int packet_len) = 0;
             virtual int get_current_client_id() = 0;
@@ -54,7 +54,7 @@ namespace hako::service {
     class IHakoServiceClient {
         public:
             virtual ~IHakoServiceClient() = default;
-            virtual void initialize(const char* serviceName, const char* clientName, const char* assetName) = 0;
+            virtual bool initialize(const char* serviceName, const char* clientName, const char* assetName) = 0;
 
             virtual char* recv_response() = 0;
             virtual bool send_request(void* packet, int packet_len) = 0;

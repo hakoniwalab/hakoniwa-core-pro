@@ -19,7 +19,12 @@ static int service_id = -1;
 static int my_on_initialize(hako_asset_context_t* context)
 {
     (void)context;
-
+    service_id = hako_asset_service_server_create(asset_name, service_name);
+    if (service_id < 0) {
+        printf("ERORR: hako_asset_service_server_create() returns %d.\n", service_id);
+        return 1;
+    }
+    printf("INFO: hako_asset_service_server_create() returns %d.\n", service_id);
     return 0;
 }
 static int my_on_reset(hako_asset_context_t* context)
@@ -55,9 +60,10 @@ int main(int argc, const char* argv[])
     hako_conductor_start(delta_time_usec, delta_time_usec);
     int ret = hako_asset_service_initialize(service_config_path);
     if (ret != 0) {
-        printf("ERORR: hako_asset_service_initialize() returns %d.", ret);
+        printf("ERORR: hako_asset_service_initialize() returns %d.\n", ret);
         return 1;
     }
+
     ret = hako_asset_register(asset_name, config_path, &my_callback, delta_time_usec, HAKO_ASSET_MODEL_PLANT);
     if (ret != 0) {
         printf("ERORR: hako_asset_register() returns %d.", ret);

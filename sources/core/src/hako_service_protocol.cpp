@@ -6,7 +6,7 @@ bool hako::service::HakoServiceServerProtocol::initialize(const char* serviceNam
     if (server_ == nullptr) {
         return false;
     }
-    server_->initialize(serviceName, assetName);
+    bool ret = server_->initialize(serviceName, assetName);
     if (server_->get_request_pdu_size() <= 0 || server_->get_response_pdu_size() <= 0) {
         std::cerr << "ERROR: request_pdu_size_ or response_pdu_size_ is invalid" << std::endl;
         return false;
@@ -190,7 +190,11 @@ bool hako::service::HakoServiceClientProtocol::initialize(const char* serviceNam
     if (client_ == nullptr) {
         return false;
     }
-    client_->initialize(serviceName, clientName, assetName);
+    bool ret = client_->initialize(serviceName, clientName, assetName);
+    if (ret == false) {
+        std::cerr << "ERROR: client_->initialize() failed" << std::endl;
+        return false;
+    }
     if (client_->get_request_pdu_size() <= 0 || client_->get_response_pdu_size() <= 0) {
         std::cerr << "ERROR: request_pdu_size_ or response_pdu_size_ is invalid" << std::endl;
         return false;

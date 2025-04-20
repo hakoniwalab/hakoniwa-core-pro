@@ -67,10 +67,6 @@ int hako::data::pro::HakoProData::get_service_id(const std::string& service_name
 
  bool hako::data::pro::HakoProData::initialize_service(const std::string& service_config_path)
  {
-     if (service_table_ == nullptr) {
-         std::cerr << "ERROR: service_table_ is null" << std::endl;
-         return false;
-     }
      if (service_config_path.empty()) {
          std::cerr << "ERROR: service_config_path is empty" << std::endl;
          return false;
@@ -107,12 +103,20 @@ int hako::data::pro::HakoProData::get_service_id(const std::string& service_name
                      std::cerr << "Error: Failed to create PDU channel for service server: " << s.name << std::endl;
                      return false;
                  }
+                 std::cout << "INFO: create_lchannel() serviceName: "
+                     << s.name << " channel_id: " << server_channel_id
+                     << " total_size: " << s.server_total_size
+                     << std::endl;
                  int client_channel_id = HAKO_SERVICE_CLIENT_CHANNEL_ID + (HAKO_SERVICE_SERVER_CHANNEL_ID_MAX * i);
                  ret = this->master_data_->get_pdu_data()->create_lchannel(s.name, client_channel_id, s.client_total_size);
                  if (ret == false) {
                      std::cerr << "Error: Failed to create PDU channel for service client: " << s.name << std::endl;
                      return false;
                  }
+                 std::cout << "INFO: create_lchannel() serviceName: "
+                     << s.name << " channel_id: " << client_channel_id
+                     << " total_size: " << s.client_total_size
+                     << std::endl;
              }
              this->service_impl_.services.push_back(s);
          }
@@ -126,15 +130,16 @@ int hako::data::pro::HakoProData::get_service_id(const std::string& service_name
  }
  void hako::data::pro::HakoProData::set_service_data()
  {
+    std::cout << "INFO: set_service_data()" << std::endl;
      if (service_table_ == nullptr) {
-         std::cerr << "ERROR: service_table_ is null" << std::endl;
+         std::cerr << "ERROR: service_table_ is null on set_service_data()" << std::endl;
          return;
      }
      service_table_->entry_num = this->service_impl_.services.size();
+     std::cout << "INFO: service_table_->entry_num: " << service_table_->entry_num << std::endl;
      for (int i = 0; service_table_->entry_num; i++) {
         auto& service = this->service_impl_.services[i];
         if (i >= HAKO_SERVICE_MAX) {
-            std::cerr << "ERROR: service_table_ is full" << std::endl;
             break;
         }
         service_table_->entries[i].enabled = true;
@@ -154,6 +159,14 @@ int hako::data::pro::HakoProData::get_service_id(const std::string& service_name
             service_table_->entries[i].clientChannelMap[j].responseChannelId = HAKO_SERVICE_CLIENT_CHANNEL_ID + (HAKO_SERVICE_SERVER_CHANNEL_ID_MAX * j);
         }
     }
+    //debug
+    for (int i = 0; i < service_table_->entry_num; i++) {
+        std::cout << "INFO: service_table_[" << i << "].serviceName: " << service_table_->entries[i].serviceName << std::endl;
+        std::cout << "INFO: service_table_[" << i << "].maxClients: " << service_table_->entries[i].maxClients << std::endl;
+        std::cout << "INFO: service_table_[" << i << "].pdu_size_request: " << service_table_->entries[i].pdu_size_request << std::endl;
+        std::cout << "INFO: service_table_[" << i << "].pdu_size_response: " << service_table_->entries[i].pdu_size_response << std::endl;
+    }
+    std::cout << "INFO: set_service_data() done" << std::endl;
 }
 /*
  * Service server API
@@ -161,16 +174,16 @@ int hako::data::pro::HakoProData::get_service_id(const std::string& service_name
 int hako::data::pro::HakoProData::create_service(const std::string& serviceName)
 {
     if (service_table_ == nullptr) {
-        std::cerr << "ERROR: service_table_ is null" << std::endl;
+        std::cerr << "ERROR: service_table_ is null on create_service()" << std::endl;
         return -1;
     }
     if (service_table_->entry_num >= HAKO_SERVICE_MAX) {
-        std::cerr << "ERROR: service_table_ is full" << std::endl;
+        std::cerr << "ERROR: service_table_ is full on create_service()" << std::endl;
         return -1;
     }
     int service_id = get_service_id(serviceName);
     if (service_id < 0) {
-        std::cerr << "ERROR: service_id is invalid" << std::endl;
+        std::cerr << "ERROR: service_id is invalid on create_service()" << std::endl;
         return -1;
     }
     HakoServiceEntryTye& service_entry = service_table_->entries[service_id];
@@ -194,11 +207,11 @@ int hako::data::pro::HakoProData::create_service(const std::string& serviceName)
 int hako::data::pro::HakoProData::get_request(int asset_id, int service_id, int client_id, char* packet, size_t packet_len)
 {
     if (service_table_ == nullptr) {
-        std::cerr << "ERROR: service_table_ is null" << std::endl;
+        std::cerr << "ERROR: service_table_ is null on get_request()" << std::endl;
         return -1;
     }
     if (service_id < 0 || service_id >= HAKO_SERVICE_MAX) {
-        std::cerr << "ERROR: service_id is invalid" << std::endl;
+        std::cerr << "ERROR: service_id is invalid on get_request()" << std::endl;
         return -1;
     }
     if (packet == nullptr || packet_len <= 0) {
@@ -244,11 +257,11 @@ int hako::data::pro::HakoProData::put_response(int asset_id, int service_id, int
 {
     (void)asset_id; // asset_id is not used in this function
     if (service_table_ == nullptr) {
-        std::cerr << "ERROR: service_table_ is null" << std::endl;
+        std::cerr << "ERROR: service_table_ is null on put_request()" << std::endl;
         return -1;
     }
     if (service_id < 0 || service_id >= HAKO_SERVICE_MAX) {
-        std::cerr << "ERROR: service_id is invalid" << std::endl;
+        std::cerr << "ERROR: service_id is invalid on put_request()" << std::endl;
         return -1;
     }
     if (packet == nullptr || packet_len <= 0) {
@@ -286,7 +299,7 @@ int hako::data::pro::HakoProData::create_service_client(const std::string& servi
 {
     client_id = -1;
     if (service_table_ == nullptr) {
-        std::cerr << "ERROR: service_table_ is null" << std::endl;
+        std::cerr << "ERROR: service_table_ is null on create_service_client()" << std::endl;
         return -1;
     }
     if (serviceName.empty()) {
@@ -350,11 +363,11 @@ int hako::data::pro::HakoProData::put_request(int asset_id, int service_id, int 
 {
     (void)asset_id; // asset_id is not used in this function
     if (service_table_ == nullptr) {
-        std::cerr << "ERROR: service_table_ is null" << std::endl;
+        std::cerr << "ERROR: service_table_ is null on put_request()" << std::endl;
         return -1;
     }
     if (service_id < 0 || service_id >= HAKO_SERVICE_MAX) {
-        std::cerr << "ERROR: service_id is invalid" << std::endl;
+        std::cerr << "ERROR: service_id is invalid on put_request()" << std::endl;
         return -1;
     }
     if (packet == nullptr || packet_len <= 0) {
@@ -388,11 +401,11 @@ int hako::data::pro::HakoProData::put_request(int asset_id, int service_id, int 
 int hako::data::pro::HakoProData::get_response(int asset_id, int service_id, int client_id, char* packet, size_t packet_len)
 {
     if (service_table_ == nullptr) {
-        std::cerr << "ERROR: service_table_ is null" << std::endl;
+        std::cerr << "ERROR: service_table_ is null on get_response()" << std::endl;
         return -1;
     }
     if (service_id < 0 || service_id >= HAKO_SERVICE_MAX) {
-        std::cerr << "ERROR: service_id is invalid" << std::endl;
+        std::cerr << "ERROR: service_id is invalid on get_response()" << std::endl;
         return -1;
     }
     if (packet == nullptr || packet_len <= 0) {

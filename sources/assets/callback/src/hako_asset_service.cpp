@@ -15,7 +15,7 @@ int hako_asset_service_initialize(const char* service_config_path)
         std::cerr << "ERROR: hako_asset_service_initialize(): pro_data is null" << std::endl;
         return -1;
     }
-    if (pro_data->initialize_service(service_config_path) != 0) {
+    if (pro_data->initialize_service(service_config_path) == false) {
         std::cerr << "ERROR: hako_asset_service_initialize(): pro_data->initialize() failed" << std::endl;
         return -1;
     }
