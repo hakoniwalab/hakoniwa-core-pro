@@ -137,19 +137,20 @@ int hako::data::pro::HakoProData::get_service_id(const std::string& service_name
      }
      service_table_->entry_num = this->service_impl_.services.size();
      std::cout << "INFO: service_table_->entry_num: " << service_table_->entry_num << std::endl;
-     for (int i = 0; service_table_->entry_num; i++) {
+     for (int i = 0; i < service_table_->entry_num; i++) {
+        //std::cout << "INFO: service_table_->entries[" << i << "]" << std::endl;
         auto& service = this->service_impl_.services[i];
-        if (i >= HAKO_SERVICE_MAX) {
-            break;
-        }
         service_table_->entries[i].enabled = true;
         service_table_->entries[i].maxClients = service.maxClients;
         service_table_->entries[i].pdu_size_request = service.server_total_size;
         service_table_->entries[i].pdu_size_response = service.client_total_size;
+        //std::cout << "INFO: service_table_->entries[" << i << "].pdu_size_request: " << service_table_->entries[i].pdu_size_request << std::endl;
+        //std::cout << "INFO: service_table_->entries[" << i << "].pdu_size_response: " << service_table_->entries[i].pdu_size_response << std::endl;
         if (service.name.length() >= HAKO_SERVICE_NAMELEN_MAX) {
             std::cerr << "ERROR: service name is too long" << std::endl;
             break;
         }
+        //std::cout << "INFO: service_table_->entries[" << i << "].serviceName: " << service.name << std::endl;
         service_table_->entries[i].namelen = service.name.length();
         memcpy(service_table_->entries[i].serviceName, service.name.c_str(), service.name.length());
         service_table_->entries[i].serviceName[service.name.length()] = '\0';
@@ -165,6 +166,12 @@ int hako::data::pro::HakoProData::get_service_id(const std::string& service_name
         std::cout << "INFO: service_table_[" << i << "].maxClients: " << service_table_->entries[i].maxClients << std::endl;
         std::cout << "INFO: service_table_[" << i << "].pdu_size_request: " << service_table_->entries[i].pdu_size_request << std::endl;
         std::cout << "INFO: service_table_[" << i << "].pdu_size_response: " << service_table_->entries[i].pdu_size_response << std::endl;
+        for (int j = 0; j < service_table_->entries[i].maxClients; j++) {
+            std::cout << "INFO: service_table_[" << i << "].clientChannelMap[" << j << "].requestChannelId: "
+                << service_table_->entries[i].clientChannelMap[j].requestChannelId << std::endl;
+            std::cout << "INFO: service_table_[" << i << "].clientChannelMap[" << j << "].responseChannelId: "
+                << service_table_->entries[i].clientChannelMap[j].responseChannelId << std::endl;
+        }
     }
     std::cout << "INFO: set_service_data() done" << std::endl;
 }
@@ -186,8 +193,10 @@ int hako::data::pro::HakoProData::create_service(const std::string& serviceName)
         std::cerr << "ERROR: service_id is invalid on create_service()" << std::endl;
         return -1;
     }
+    std::cout << "INFO: create_service() service_id: " << service_id << std::endl;
     HakoServiceEntryTye& service_entry = service_table_->entries[service_id];
     for (int j = 0; j < service_entry.maxClients; j++) {
+        std::cout << "INFO: create_service() client_id: " << j << std::endl;
         int recv_event_id = -1;
         int server_channel_id = HAKO_SERVICE_SERVER_CHANNEL_ID + (HAKO_SERVICE_SERVER_CHANNEL_ID_MAX * j);
         bool ret = this->register_data_recv_event(serviceName, server_channel_id, nullptr, recv_event_id);

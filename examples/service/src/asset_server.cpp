@@ -19,6 +19,7 @@ static int service_id = -1;
 static int my_on_initialize(hako_asset_context_t* context)
 {
     (void)context;
+    printf("INFO: hako_asset_service_server_create()...\n");
     service_id = hako_asset_service_server_create(asset_name, service_name);
     if (service_id < 0) {
         printf("ERORR: hako_asset_service_server_create() returns %d.\n", service_id);

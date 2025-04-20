@@ -30,6 +30,7 @@ int hako::service::impl::initialize(const char* service_config_path)
  */
 bool hako::service::impl::HakoServiceServer::initialize(const char* serviceName, const char* assetName) 
 {
+    std::cout << "INFO: HakoServiceServer::initialize() called" << std::endl;
     if (serviceName == nullptr || *serviceName == '\0') {
         std::cerr << "Error: serviceName is not set." << std::endl;
         return false;
@@ -62,9 +63,10 @@ bool hako::service::impl::HakoServiceServer::initialize(const char* serviceName,
     else {
         asset_id_ = -1; //external
     }
-    pro_data->lock_memory();
+    std::cout << "INFO: asset_id_: " << asset_id_ << std::endl;
+    //pro_data->lock_memory(); do not lock memory because of deadlock
     service_id_ = pro_data->create_service(serviceName);
-    pro_data->unlock_memory();
+    //pro_data->unlock_memory();
     if (service_id_ < 0) {
         std::cerr << "ERROR: service_id_ is invalid on HakoServiceServer::initialize()" << std::endl;
         return false;

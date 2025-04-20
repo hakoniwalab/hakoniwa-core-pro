@@ -82,11 +82,15 @@ class HakoProData : public std::enable_shared_from_this<HakoProData>, public hak
     
         void lock_memory()
         {
+            std::cout << "INFO: HakoProData::before lock_memory()" << std::endl;
             this->shmp_->lock_memory(HAKO_SHARED_MEMORY_ID_2);
+            std::cout << "INFO: HakoProData::after lock_memory()" << std::endl;
         }
         void unlock_memory()
         {
+            std::cout << "INFO: HakoProData::before unlock_memory()" << std::endl;
             this->shmp_->unlock_memory(HAKO_SHARED_MEMORY_ID_2);
+            std::cout << "INFO: HakoProData::after unlock_memory()" << std::endl;
         }
         std::shared_ptr<hako::extension::IHakoAssetExtension> get_asset_extension()
         {
