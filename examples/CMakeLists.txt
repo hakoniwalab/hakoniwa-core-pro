@@ -9,4 +9,5 @@ project(hakoniwa-core-pro
 
 add_subdirectory(hello_world)
 add_subdirectory(pdu_communication)
+add_subdirectory(service)
 
