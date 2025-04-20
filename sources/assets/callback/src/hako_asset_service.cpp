@@ -64,13 +64,13 @@ int hako_asset_service_server_poll(int service_id)
     hako::service::HakoServiceServerEventType event = service_server_protocol->poll();
     switch (event) {
         case hako::service::HAKO_SERVICE_SERVER_REQUEST_IN:
-            return HAKO_SERVICE_SERVER_EVENT_REQUEST_IN;
+            return HAKO_SERVICE_SERVER_API_REQUEST_IN;
         case hako::service::HAKO_SERVICE_SERVER_REQUEST_CANCEL:
-            return HAKO_SERVICE_SERVER_EVENT_REQUEST_CANCEL;
+            return HAKO_SERVICE_SERVER_API_REQUEST_CANCEL;
         default:
             break;
     }
-    return HAKO_SERVICE_SERVER_EVENT_EVENT_NONE;
+    return HAKO_SERVICE_SERVER_API_EVENT_NONE;
 }
 
 int hako_asset_service_server_get_request(int service_id, char** packet, size_t *packet_len)
@@ -195,15 +195,15 @@ int hako_asset_service_client_poll(const HakoServiceHandleType* handle)
     auto event = client_protocol->poll();
     switch (event) {
         case hako::service::HAKO_SERVICE_CLIENT_RESPONSE_IN:
-            return HAKO_SERVICE_CLIENT_EVENT_RESPONSE_IN;
+            return HAKO_SERVICE_CLIENT_API_RESPONSE_IN;
         case hako::service::HAKO_SERVICE_CLIENT_REQUEST_CANCEL_DONE:
-            return HAKO_SERVICE_CLIENT_EVENT_REQUEST_CANCEL_DONE;
+            return HAKO_SERVICE_CLIENT_API_REQUEST_CANCEL_DONE;
         case hako::service::HAKO_SERVICE_CLIENT_REQUEST_TIMEOUT:
-            return HAKO_SERVICE_CLIENT_EVENT_REQUEST_TIMEOUT;
+            return HAKO_SERVICE_CLIENT_API_REQUEST_TIMEOUT;
         default:
             break;
     }
-    return HAKO_SERVICE_CLIENT_EVENT_EVENT_NONE;
+    return HAKO_SERVICE_CLIENT_API_EVENT_NONE;
 }
 int hako_asset_service_client_get_response(const HakoServiceHandleType* handle, char** packet, size_t *packet_len)
 {

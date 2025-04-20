@@ -18,9 +18,9 @@ extern int hako_asset_service_initialize(const char* service_config_path);
  */
 extern int hako_asset_service_server_create(const char* assetName, const char* serviceName);
 
-#define HAKO_SERVICE_SERVER_EVENT_EVENT_NONE        0
-#define HAKO_SERVICE_SERVER_EVENT_REQUEST_IN        1
-#define HAKO_SERVICE_SERVER_EVENT_REQUEST_CANCEL    2
+#define HAKO_SERVICE_SERVER_API_EVENT_NONE        0
+#define HAKO_SERVICE_SERVER_API_REQUEST_IN        1
+#define HAKO_SERVICE_SERVER_API_REQUEST_CANCEL    2
 /**
  * Poll the service server for incoming requests.
  * @param service_id The ID of the service.
@@ -83,10 +83,10 @@ typedef struct {
  */
 extern int hako_asset_service_client_create(const char* assetName, const char* serviceName, const char* clientName, HakoServiceHandleType* handle);
 
-#define HAKO_SERVICE_CLIENT_EVENT_EVENT_NONE 0
-#define HAKO_SERVICE_CLIENT_EVENT_RESPONSE_IN 1
-#define HAKO_SERVICE_CLIENT_EVENT_REQUEST_TIMEOUT 2
-#define HAKO_SERVICE_CLIENT_EVENT_REQUEST_CANCEL_DONE 3
+#define HAKO_SERVICE_CLIENT_API_EVENT_NONE 0
+#define HAKO_SERVICE_CLIENT_API_RESPONSE_IN 1
+#define HAKO_SERVICE_CLIENT_API_REQUEST_TIMEOUT 2
+#define HAKO_SERVICE_CLIENT_API_REQUEST_CANCEL_DONE 3
 
 /**
  * Poll the service client for incoming responses.
@@ -102,7 +102,7 @@ extern int hako_asset_service_client_poll(const HakoServiceHandleType* handle);
  * @param packet_len The length of the buffer.
  * @return 0 on success, -1 on failure.
  */
-extern int hako_asset_service_cleint_get_response(const HakoServiceHandleType* handle, char** packet, size_t *packet_len);
+extern int hako_asset_service_client_get_response(const HakoServiceHandleType* handle, char** packet, size_t *packet_len);
 
 /**
  * Call a service request.
