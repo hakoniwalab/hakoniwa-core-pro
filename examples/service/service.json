@@ -7,11 +7,11 @@
             "maxClients": 1,
             "pduSize": {
                 "server": {
-                    "baseSize": 72,
+                    "baseSize": 288,
                     "heapSize": 0
                 },
                 "client": {
-                    "baseSize": 72,
+                    "baseSize": 288,
                     "heapSize": 0
                 }
             }

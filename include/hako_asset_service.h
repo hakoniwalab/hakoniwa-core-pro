@@ -2,6 +2,10 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * Initialize the service.
  * @param service_config_path The path to the service configuration file.
@@ -95,15 +99,6 @@ extern int hako_asset_service_client_create(const char* assetName, const char* s
  */
 extern int hako_asset_service_client_poll(const HakoServiceHandleType* handle);
 
-/*
- * Get the request packet from the service client.
- * @param handle The handle of the service client.
- * @param packet The buffer to store the request packet.
- * @param packet_len The length of the buffer.
- * @return 0 on success, -1 on failure.
- */
-extern int hako_asset_service_client_get_response(const HakoServiceHandleType* handle, char** packet, size_t *packet_len);
-
 /**
  * Call a service request.
  * @param handle The handle of the service client.
@@ -149,3 +144,7 @@ extern int hako_asset_service_client_get_progress(const HakoServiceHandleType* h
  * @return 0 on success, -1 on failure.
  */
 extern int hako_asset_service_client_status(const HakoServiceHandleType* handle, int* status);
+
+#ifdef __cplusplus
+}
+#endif
