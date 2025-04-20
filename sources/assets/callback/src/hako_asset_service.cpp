@@ -205,25 +205,25 @@ int hako_asset_service_client_poll(const HakoServiceHandleType* handle)
     }
     return HAKO_SERVICE_CLIENT_EVENT_EVENT_NONE;
 }
-int hako_asset_service_cleint_get_response(const HakoServiceHandleType* handle, char** packet, size_t *packet_len)
+int hako_asset_service_client_get_response(const HakoServiceHandleType* handle, char** packet, size_t *packet_len)
 {
     if (handle == nullptr) {
-        std::cerr << "ERROR: hako_asset_service_cleint_get_response(): handle is null" << std::endl;
+        std::cerr << "ERROR: hako_asset_service_client_get_response(): handle is null" << std::endl;
         return -1;
     }
     auto it = service_clients.find(handle->client_id);
     if (it == service_clients.end()) {
-        std::cerr << "ERROR: hako_asset_service_cleint_get_response(): client not found" << std::endl;
+        std::cerr << "ERROR: hako_asset_service_client_get_response(): client not found" << std::endl;
         return -1;
     }
     auto client_protocol = it->second.second;
     if (!client_protocol) {
-        std::cerr << "ERROR: hako_asset_service_cleint_get_response(): client_protocol is null" << std::endl;
+        std::cerr << "ERROR: hako_asset_service_client_get_response(): client_protocol is null" << std::endl;
         return -1;
     }
     char* response_buffer = (char*)client_protocol->get_response();
     if (response_buffer == nullptr) {
-        std::cerr << "ERROR: hako_asset_service_cleint_get_response(): response_buffer is null" << std::endl;
+        std::cerr << "ERROR: hako_asset_service_client_get_response(): response_buffer is null" << std::endl;
         return -1;
     }
     *packet = response_buffer;
