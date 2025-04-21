@@ -96,7 +96,7 @@ namespace hako::service {
             HakoServiceClientEventType poll();
             HakoServiceClientStateType state() { return client_->get_state(); }
             void* get_response();
-            void* get_request_buffer() { return request_pdu_buffer_.get(); }
+            void* get_request_buffer(int opcode, int poll_interval_msec);
             int   get_request_pdu_size() { return client_->get_request_pdu_size(); }
             bool  set_request_header(HakoCpp_ServiceRequestHeader& header, HakoServiceOperationCodeType opcode, int poll_interval_msec);
             bool  request(char* packet, int packet_len);
@@ -106,6 +106,7 @@ namespace hako::service {
             int get_client_id() { return client_->get_client_id(); }
             std::string get_service_name() { return client_->get_service_name(); }
             std::string get_client_name() { return client_->get_client_name(); }
+            void* get_response_buffer() { return response_pdu_buffer_.get(); }
             int get_response_pdu_size() { return client_->get_response_pdu_size(); }
 
         private:

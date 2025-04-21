@@ -51,15 +51,15 @@ bool hako::service::HakoServiceServerProtocol::recv_request(int client_id, HakoC
 bool hako::service::HakoServiceServerProtocol::validate_header(HakoCpp_ServiceRequestHeader& header)
 {
     if (header.service_name != server_->get_service_name()) {
-        std::cerr << "ERROR: service_name is invalid" << std::endl;
+        std::cerr << "ERROR: service_name is invalid: " << header.service_name << std::endl;
         return false;
     }
     if (server_->is_exist_client(header.client_name) == false) {
-        std::cerr << "ERROR: client_name is invalid" << std::endl;
+        std::cerr << "ERROR: client_name is invalid: " << header.client_name << std::endl;
         return false;
     }
     if (header.opcode >= HAKO_SERVICE_OPERATION_NUM) {
-        std::cerr << "ERROR: opcode is invalid" << std::endl;
+        std::cerr << "ERROR: opcode is invalid: " << header.opcode << std::endl;
         return false;
     }
     return true;
@@ -233,15 +233,15 @@ bool hako::service::HakoServiceClientProtocol::recv_response(HakoCpp_ServiceResp
 bool hako::service::HakoServiceClientProtocol::validate_header(HakoCpp_ServiceResponseHeader& header)
 {
     if (header.service_name != client_->get_service_name()) {
-        std::cerr << "ERROR: service_name is invalid" << std::endl;
+        std::cerr << "ERROR: service_name is invalid: " << header.service_name << std::endl;
         return false;
     }
     if (header.client_name != client_->get_client_name()) {
-        std::cerr << "ERROR: client_name is invalid" << std::endl;
+        std::cerr << "ERROR: client_name is invalid: " << header.client_name << std::endl;
         return false;
     }
     if (header.result_code >= HAKO_SERVICE_RESULT_CODE_NUM) {
-        std::cerr << "ERROR: result_code is invalid" << std::endl;
+        std::cerr << "ERROR: result_code is invalid: " << header.result_code << std::endl;
         return false;
     }
     return true;
@@ -319,10 +319,25 @@ bool hako::service::HakoServiceClientProtocol::set_request_header(HakoCpp_Servic
     header.request_id = request_id_;
     header.service_name = client_->get_service_name();
     header.client_name = client_->get_client_name();
+    //std::cout << "INFO: client_name=" << header.client_name << std::endl;
+    //std::cout << "INFO: request_id=" << header.request_id << std::endl;
+    //std::cout << "INFO: service_name=" << header.service_name << std::endl;
     header.opcode = opcode;
     header.status_poll_interval_msec = poll_interval_msec;
     return true;
 }
+void* hako::service::HakoServiceClientProtocol::get_request_buffer(int opcode, int poll_interval_msec)
+{
+    HakoCpp_ServiceRequestHeader header;
+    set_request_header(header, (HakoServiceOperationCodeType)opcode, poll_interval_msec);
+    int pdu_size = convertor_request_.cpp2pdu(header, (char*)this->request_pdu_buffer_.get(), client_->get_request_pdu_size());
+    if (pdu_size < 0) {
+        std::cerr << "ERROR: convertor.cpp2pdu() failed" << std::endl;
+        return nullptr;
+    }
+    return this->request_pdu_buffer_.get();
+}
+
 bool hako::service::HakoServiceClientProtocol::send_request(HakoServiceOperationCodeType opcode, int poll_interval_msec)
 {
     HakoCpp_ServiceRequestHeader header;
@@ -343,8 +358,9 @@ void* hako::service::HakoServiceClientProtocol::get_response()
 }
 bool hako::service::HakoServiceClientProtocol::request(char* packet, int packet_len)
 {
+    std::cout << "INFO: request() packet_len=" << packet_len << std::endl;
     HakoCpp_ServiceRequestHeader header;
-    int pdu_size = convertor_request_.cpp2pdu(header, packet, packet_len);
+    int pdu_size = convertor_request_.pdu2cpp(packet, header);
     if (pdu_size < 0) {
         std::cerr << "ERROR: convertor.cpp2pdu() failed" << std::endl;
         return false;
@@ -354,6 +370,7 @@ bool hako::service::HakoServiceClientProtocol::request(char* packet, int packet_
         request_header_ = header;
         client_->event_start_service();
     }
+    std::cout << "INFO: request_header_.request_id=" << request_header_.request_id << std::endl;
     return ret;
 }
 void hako::service::HakoServiceClientProtocol::cancel_request()

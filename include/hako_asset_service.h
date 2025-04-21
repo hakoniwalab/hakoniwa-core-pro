@@ -99,6 +99,20 @@ extern int hako_asset_service_client_create(const char* assetName, const char* s
  */
 extern int hako_asset_service_client_poll(const HakoServiceHandleType* handle);
 
+#define HAKO_SERVICE_CLIENT_API_OPCODE_REQUEST 0
+#define HAKO_SERVICE_CLIENT_API_OPCODE_CANCEL 1
+/**
+ * Get the request packet buffer from the service client.
+ * @param handle The handle of the service client.
+ * @param packet The buffer to store the request packet.
+ * @param packet_len The length of the buffer.
+ * @param opcode The operation code (request or cancel).
+ * @param poll_interval_msec The polling interval in milliseconds.
+ * @return 0 on success, -1 on failure.
+ */
+extern int hako_asset_service_client_get_request_buffer(const HakoServiceHandleType* handle, char** packet, size_t *packet_len, int opcode, int poll_interval_msec);
+
+
 /**
  * Call a service request.
  * @param handle The handle of the service client.

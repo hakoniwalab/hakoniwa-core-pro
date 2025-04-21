@@ -16,6 +16,8 @@ static const char* asset_name = "Server";
 static const char* service_config_path = "./examples/service/service.json";
 static const char* service_name = "Service/Add";
 static int service_id = -1;
+static hako_time_t delta_time_usec = 1000 * 1000;
+
 static int my_on_initialize(hako_asset_context_t* context)
 {
     (void)context;
@@ -37,9 +39,16 @@ static int my_on_reset(hako_asset_context_t* context)
 static int my_on_manual_timing_control(hako_asset_context_t* context)
 {
     (void)context;
-
-
-    
+    while (true) {
+        int ret = hako_asset_service_server_poll(service_id);
+        if (ret < 0) {
+            printf("ERORR: hako_asset_service_server_poll() returns %d.\n", ret);
+            return 1;
+        }
+        std::cout << "INFO: hako_asset_service_server_poll() returns " << ret << std::endl;
+        hako_asset_usleep(delta_time_usec);
+        usleep(delta_time_usec);
+    }
     return 0;
 }
 
@@ -56,7 +65,6 @@ int main(int argc, const char* argv[])
         return 1;
     }
     const char* config_path = argv[1];
-    hako_time_t delta_time_usec = 1000;
 
     hako_conductor_start(delta_time_usec, delta_time_usec);
     int ret = hako_asset_register(asset_name, config_path, &my_callback, delta_time_usec, HAKO_ASSET_MODEL_PLANT);

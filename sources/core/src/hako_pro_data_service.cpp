@@ -395,13 +395,13 @@ int hako::data::pro::HakoProData::put_request(int asset_id, int service_id, int 
     char* serviceName = service_table_->entries[service_id].serviceName;
     HakoPduChannelIdType real_id = this->master_data_->get_pdu_data()->get_pdu_channel(serviceName, channel_id);
     if (real_id < 0) {
-        std::cerr << "ERROR: real_id is invalid" << std::endl;
+        std::cerr << "ERROR: real_id is invalid: serviceName: " << serviceName << " channel_id: " << channel_id << std::endl;
         return -1;
     }
     bool write_result = false;
     write_result = master_data_->get_pdu_data()->write_pdu(real_id, packet, packet_len);
     if (write_result == false) {
-        std::cerr << "ERROR: put_request() failed to write pdu" << std::endl;
+        std::cerr << "ERROR: put_request() failed to write pdu: real_id = " << real_id <<" packet_len = " << packet_len << std::endl;
         return -1;
     }
     return 0;

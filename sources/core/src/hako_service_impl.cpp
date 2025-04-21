@@ -272,11 +272,13 @@ bool hako::service::impl::HakoServiceClient::send_request(void* packet, int pack
 
 bool hako::service::impl::HakoServiceClient::event_start_service()
 {
+    std::cout << "INFO: HakoServiceClient::event_start_service() called" << std::endl;
     if (state_ != HAKO_SERVICE_CLIENT_STATE_IDLE) {
-        std::cerr << "ERROR: service is not idle" << std::endl;
+        std::cerr << "ERROR: service is not idle: state = " << state_ << std::endl;
         return false;
     }
     state_ = HAKO_SERVICE_CLIENT_STATE_DOING;
+    std::cout << "INFO: Service client started successfully" << std::endl;
     return true;
 }
 bool hako::service::impl::HakoServiceClient::event_done_service()

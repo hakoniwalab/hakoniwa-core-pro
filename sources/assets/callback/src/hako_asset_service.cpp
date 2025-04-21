@@ -211,6 +211,32 @@ int hako_asset_service_client_poll(const HakoServiceHandleType* handle)
     }
     return HAKO_SERVICE_CLIENT_API_EVENT_NONE;
 }
+int hako_asset_service_client_get_request_buffer(const HakoServiceHandleType* handle, char** packet, size_t *packet_len, int opcode, int poll_interval_msec)
+{
+    if (handle == nullptr) {
+        std::cerr << "ERROR: hako_asset_service_client_get_request_buffer(): handle is null" << std::endl;
+        return -1;
+    }
+    auto it = service_clients.find(handle->client_id);
+    if (it == service_clients.end()) {
+        std::cerr << "ERROR: hako_asset_service_client_get_request_buffer(): client not found" << std::endl;
+        return -1;
+    }
+    auto client_protocol = it->second.second;
+    if (!client_protocol) {
+        std::cerr << "ERROR: hako_asset_service_client_get_request_buffer(): client_protocol is null" << std::endl;
+        return -1;
+    }
+    char* request_buffer = (char*)client_protocol->get_request_buffer(opcode, poll_interval_msec);
+    if (request_buffer == nullptr) {
+        std::cerr << "ERROR: hako_asset_service_client_get_request_buffer(): request_buffer is null" << std::endl;
+        return -1;
+    }
+    *packet = request_buffer;
+    *packet_len = client_protocol->get_request_pdu_size();
+    return 0;
+}
+
 int hako_asset_service_client_get_response(const HakoServiceHandleType* handle, char** packet, size_t *packet_len)
 {
     if (handle == nullptr) {
@@ -240,6 +266,7 @@ int hako_asset_service_client_get_response(const HakoServiceHandleType* handle, 
 int hako_asset_service_client_call_request(const HakoServiceHandleType* handle, char *packet, size_t packet_len, int timeout)
 {
     (void)timeout; // TODO
+    std::cout << "INFO: hako_asset_service_client_call_request(): handle: " << handle->client_id << std::endl;
     if (handle == nullptr) {
         std::cerr << "ERROR: hako_asset_service_client_call_request(): handle is null" << std::endl;
         return -1;
@@ -279,7 +306,7 @@ int hako_asset_service_client_get_response(const HakoServiceHandleType* handle, 
         std::cerr << "ERROR: hako_asset_service_client_get_response(): client_protocol is null" << std::endl;
         return -1;
     }
-    *packet = (char*)client_protocol->get_request_buffer();
+    *packet = (char*)client_protocol->get_response_buffer();
     *packet_len = client_protocol->get_response_pdu_size();
 
     return 0;
