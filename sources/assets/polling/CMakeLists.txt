@@ -35,7 +35,7 @@ set(SHARED_SRC
     ${HAKO_CORE_PRO_SOURCE_DIR}/core/src/hako_pro_data.cpp
     ${HAKO_CORE_PRO_SOURCE_DIR}/core/src/hako_pro_data_recv_event.cpp
     ${HAKO_CORE_PRO_SOURCE_DIR}/core/src/hako_pro_data_service.cpp
-    ${HAKO_CORE_PRO_SOURCE_DIR}/core/src/hako_impl.cpp
+    ${HAKO_CORE_PRO_SOURCE_DIR}/core/src/hako_pro.cpp
 )
 
 

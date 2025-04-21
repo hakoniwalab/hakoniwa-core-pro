@@ -6,7 +6,7 @@
 #include "hako_asset_impl_measure.hpp"
 #endif /* ENABLE_HAKO_TIME_MEASURE */
 #endif
-#include "hako_impl.hpp"
+#include "hako_pro.hpp"
 
 HakoAssetType hako_asset_instance;
 

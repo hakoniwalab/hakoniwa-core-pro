@@ -55,7 +55,7 @@ add_library(
     src/hako_pro_data_service.cpp
     src/hako_service_impl.cpp
     src/hako_service_protocol.cpp
-    src/hako_impl.cpp
+    src/hako_pro.cpp
 )
 # POSIX特有のファイルをWIN32ではない場合にのみ追加
 if(NOT WIN32)

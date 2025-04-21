@@ -1,5 +1,5 @@
 #include "hako_service_protocol.hpp"
-#include "hako_impl.hpp"
+#include "hako_pro.hpp"
 
 bool hako::service::HakoServiceServerProtocol::initialize(const char* serviceName, const char* assetName)
 {
