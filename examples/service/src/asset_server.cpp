@@ -59,15 +59,14 @@ int main(int argc, const char* argv[])
     hako_time_t delta_time_usec = 1000;
 
     hako_conductor_start(delta_time_usec, delta_time_usec);
-    int ret = hako_asset_service_initialize(service_config_path);
-    if (ret != 0) {
-        printf("ERORR: hako_asset_service_initialize() returns %d.\n", ret);
-        return 1;
-    }
-
-    ret = hako_asset_register(asset_name, config_path, &my_callback, delta_time_usec, HAKO_ASSET_MODEL_PLANT);
+    int ret = hako_asset_register(asset_name, config_path, &my_callback, delta_time_usec, HAKO_ASSET_MODEL_PLANT);
     if (ret != 0) {
         printf("ERORR: hako_asset_register() returns %d.", ret);
+        return 1;
+    }
+    ret = hako_asset_service_initialize(service_config_path);
+    if (ret != 0) {
+        printf("ERORR: hako_asset_service_initialize() returns %d.\n", ret);
         return 1;
     }
     ret = hako_asset_start();

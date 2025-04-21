@@ -345,7 +345,7 @@ int hako::data::pro::HakoProData::create_service_client(const std::string& servi
         }
         int recv_event_id = -1;
         int client_channel_id = service_entry.clientChannelMap[i].responseChannelId;
-        bool ret = this->register_data_recv_event(clientName, client_channel_id, nullptr, recv_event_id);
+        bool ret = this->register_data_recv_event(serviceName, client_channel_id, nullptr, recv_event_id);
         if (ret == false) {
             std::cerr << "ERROR: Failed to register data receive event for service client" << std::endl;
             return -1;

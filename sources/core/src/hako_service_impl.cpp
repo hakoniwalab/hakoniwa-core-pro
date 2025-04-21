@@ -210,7 +210,7 @@ bool hako::service::impl::HakoServiceClient::initialize(const char* serviceName,
     }
     auto pro_data = hako::data::pro::hako_pro_get_data();
     if (!pro_data) {
-        std::cerr << "ERROR: hako_asset_impl_register_data_recv_event(): pro_data is null" << std::endl;
+        std::cerr << "ERROR: HakoServiceClient::initialize(): pro_data is null" << std::endl;
         return false;
     }
     if (assetName != nullptr) {
