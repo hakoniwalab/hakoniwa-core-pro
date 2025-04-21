@@ -100,7 +100,7 @@ static int my_on_manual_timing_control(hako_asset_context_t* context)
             char* response_buffer = nullptr;
             size_t response_buffer_len = 0;
             ret = hako_asset_service_server_get_response_buffer(service_id, &response_buffer, &response_buffer_len,
-                HAKO_SERVICE_API_STATUS_NONE, HAKO_SERVICE_API_RESULT_CODE_OK);
+                HAKO_SERVICE_API_STATUS_DONE, HAKO_SERVICE_API_RESULT_CODE_OK);
             if (ret < 0) {
                 printf("ERORR: hako_asset_service_get_response_buffer() returns %d.\n", ret);
                 return 1;

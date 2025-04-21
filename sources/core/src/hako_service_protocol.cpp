@@ -271,7 +271,7 @@ bool hako::service::HakoServiceClientProtocol::validate_header(HakoCpp_ServiceRe
 bool hako::service::HakoServiceClientProtocol::copy_user_buffer(const HakoCpp_ServiceResponseHeader& header)
 {
     char* src = (char*)client_->get_response_buffer();
-    char* dst = (char*)request_pdu_buffer_.get();
+    char* dst = (char*)response_pdu_buffer_.get();
     int src_len = client_->get_response_pdu_size();
     memcpy(dst, src, src_len);
     response_header_ = header;
@@ -299,6 +299,7 @@ hako::service::HakoServiceClientEventType hako::service::HakoServiceClientProtoc
     else if (data_recv_in == false) {
         return HAKO_SERVICE_CLIENT_EVENT_NONE;
     }
+    std::cout << "INFO: data_recv_in: status = " << (int)header.status << std::endl;
     event = HAKO_SERVICE_CLIENT_EVENT_NONE;
     switch (header.status)
     {
