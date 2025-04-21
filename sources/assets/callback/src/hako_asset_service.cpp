@@ -78,6 +78,20 @@ int hako_asset_service_server_poll(int service_id)
     }
     return HAKO_SERVICE_SERVER_API_EVENT_NONE;
 }
+int hako_asset_service_server_status(int service_id, int* status)
+{
+    auto service_server_protocol = service_servers[service_id];
+    if (!service_server_protocol) {
+        std::cerr << "ERROR: hako_asset_service_server_status(): service_server_protocol is null" << std::endl;
+        return -1;
+    }
+    if (status == nullptr) {
+        std::cerr << "ERROR: hako_asset_service_server_status(): status is null" << std::endl;
+        return -1;
+    }
+    *status = (int)service_server_protocol->state();
+    return 0;
+}
 
 int hako_asset_service_server_get_request(int service_id, char** packet, size_t *packet_len)
 {

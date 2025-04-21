@@ -63,16 +63,15 @@ static int my_on_manual_timing_control(hako_asset_context_t* context)
         printf("ERORR: hako_asset_service_client_get_request_buffer() returns %d.\n", ret);
         return 1;
     }
+    std::cout << "INFO: hako_asset_service_client_get_request_buffer() buffer_len= " << request_buffer_len << std::endl;
     ret = request_convertor.pdu2cpp(request_buffer, request_packet);
     if (ret < 0) {
         printf("ERORR: request_convertor.pdu2cpp() returns %d.\n", ret);
         return 1;
     }
-    debug_packet(request_packet);
     request_packet.body.a = 1;
     request_packet.body.b = 2;
-    std::cout << "INFO: hako_asset_service_client_get_request_buffer() buffer_len= " << request_buffer_len << std::endl;
-
+    debug_packet(request_packet);
     while (true) {
         ret = hako_asset_service_client_poll(&service_client_handle);
         if (ret < 0) {
@@ -81,8 +80,8 @@ static int my_on_manual_timing_control(hako_asset_context_t* context)
         }
         std::cout << "INFO: hako_asset_service_client_poll() returns " << ret << std::endl;
         int status = 0;
-        ret = hako_asset_service_client_status(&service_client_handle, &status);
-        if ((ret == HAKO_SERVICE_SERVER_API_EVENT_NONE) && (status == HAKO_SERVICE_CLIENT_API_STATE_IDLE)) {
+        hako_asset_service_client_status(&service_client_handle, &status);
+        if ((ret == HAKO_SERVICE_CLIENT_API_EVENT_NONE) && (status == HAKO_SERVICE_CLIENT_API_STATE_IDLE)) {
             ret = request_convertor.cpp2pdu(request_packet, request_buffer, request_buffer_len);
             if (ret < 0) {
                 printf("ERORR: request_convertor.cpp2pdu() returns %d.\n", ret);
@@ -93,6 +92,9 @@ static int my_on_manual_timing_control(hako_asset_context_t* context)
                 printf("ERORR: hako_asset_service_client_call_request() returns %d.\n", ret);
                 return 1;
             }
+        }
+        else if (ret == HAKO_SERVICE_CLIENT_API_RESPONSE_IN) {
+            std::cout << "INFO: hako_asset_service_client_get_response()..." << std::endl;
         }
         hako_asset_usleep(delta_time_usec);
         usleep(delta_time_usec);

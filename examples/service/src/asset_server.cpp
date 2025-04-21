@@ -45,7 +45,16 @@ static int my_on_manual_timing_control(hako_asset_context_t* context)
             printf("ERORR: hako_asset_service_server_poll() returns %d.\n", ret);
             return 1;
         }
-        std::cout << "INFO: hako_asset_service_server_poll() returns " << ret << std::endl;
+        int status = 0;
+        int stat_ret = hako_asset_service_server_status(service_id, &status);
+        if (stat_ret < 0) {
+            printf("ERORR: hako_asset_service_server_status() returns %d.\n", ret);
+            return 1;
+        }
+        std::cout << "INFO: hako_asset_service_server_poll() returns " << ret << " status: " << status << std::endl;
+        if (ret == HAKO_SERVICE_SERVER_API_REQUEST_IN) {
+            std::cout << "INFO: hako_asset_service_server_get_request()..." << std::endl;
+        }
         hako_asset_usleep(delta_time_usec);
         usleep(delta_time_usec);
     }

@@ -32,6 +32,17 @@ extern int hako_asset_service_server_create(const char* assetName, const char* s
  */
 extern int hako_asset_service_server_poll(int service_id);
 
+#define HAKO_SERVICE_SERVER_API_STATUS_IDLE        0
+#define HAKO_SERVICE_SERVER_API_STATUS_DOING       1
+#define HAKO_SERVICE_SERVER_API_STATUS_CANCELING   2
+/*
+ * Get the status of the service server.
+ * @param service_id The ID of the service.
+ * @param status The status of the service server.
+ * @return 0 on success, -1 on failure.
+ */
+extern int hako_asset_service_server_status(int service_id, int* status);
+
 /**
  * Get the request packet 
  * @param service_id The ID of the service.
