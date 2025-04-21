@@ -1,4 +1,6 @@
 #include "hako_pro_data.hpp"
+#include "hako_impl.hpp"
+
 #include <fstream>
 #include <iostream>
 using namespace hako::data;
@@ -39,6 +41,7 @@ bool hako::data::pro::HakoProData::register_data_recv_event(const std::string& r
                 recv_event_table_->entries[i].on_recv = nullptr;
             }
             recv_event_id = i;
+            std::cout << "INFO: register_data_recv_event() recv_event_id: " << recv_event_id << std::endl;
             recv_event_table_->entry_num++;
             ret = true;
             break;
@@ -46,7 +49,9 @@ bool hako::data::pro::HakoProData::register_data_recv_event(const std::string& r
     }
     //this->shmp_->unlock_memory(HAKO_SHARED_MEMORY_ID_2);
     this->unlock_memory();
-    std::cout << "INFO: register_data_recv_event() robot_name: " << robot_name << " channel_id: " << channel_id << " ret: " << ret << std::endl;
+    auto now = hako::data::pro::get_timestamp();
+    std::cout << now << ": register_data_recv_event() recv_event_table_->entry_num: " << recv_event_table_->entry_num << std::endl;  
+    std::cout << "INFO: register_data_recv_event() robot_name: " << robot_name << " real_id: " << channel_id << " ret: " << ret << std::endl;
     return ret;
 }
 bool hako::data::pro::HakoProData::get_recv_event(const char* asset_name, const std::string& robot_name, int channel_id, int& recv_event_id)
@@ -104,13 +109,13 @@ bool hako::data::pro::HakoProData::get_recv_event(int asset_id, int channel_id, 
         }
         this->master_data_->get_pdu_data()->read_pdu_spin_lock(asset_id, channel_id);
         bool recv_flag = recv_event_table_->entries[i].recv_flag;
-        //std::cout << "INFO: get_recv_event() recv_flag: " << recv_flag << std::endl;
+        std::cout << "INFO: get_recv_event() recv_flag: " << recv_flag << std::endl;
         if (recv_flag) {
             recv_event_table_->entries[i].recv_flag = false;
             recv_event_id = i;
         }
         this->master_data_->get_pdu_data()->read_pdu_spin_unlock(asset_id, channel_id);
-        //std::cout << "INFO: get_recv_event() asset_id: " << asset_id << " channel_id: " << channel_id << " recv_event_id: " << recv_event_id << std::endl;
+        std::cout << "INFO: get_recv_event() asset_id: " << asset_id << " channel_id: " << channel_id << " recv_event_id: " << recv_event_id << std::endl;
         return recv_flag;
     }
     return false;

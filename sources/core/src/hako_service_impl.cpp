@@ -64,9 +64,9 @@ bool hako::service::impl::HakoServiceServer::initialize(const char* serviceName,
         asset_id_ = -1; //external
     }
     std::cout << "INFO: asset_id_: " << asset_id_ << std::endl;
-    pro_data->lock_memory();
+    //pro_data->lock_memory();
     service_id_ = pro_data->create_service(serviceName);
-    pro_data->unlock_memory();
+    //pro_data->unlock_memory();
     if (service_id_ < 0) {
         std::cerr << "ERROR: service_id_ is invalid on HakoServiceServer::initialize()" << std::endl;
         return false;
@@ -219,9 +219,9 @@ bool hako::service::impl::HakoServiceClient::initialize(const char* serviceName,
     else {
         asset_id_ = -1; //external
     }
-    pro_data->lock_memory();
+    //pro_data->lock_memory();
     service_id_ = pro_data->create_service_client(serviceName, clientName, client_id_);
-    pro_data->unlock_memory();
+    //pro_data->unlock_memory();
     if (service_id_ < 0) {
         std::cerr << "ERROR: service_id_ is invalid on HakoServiceClient::initialize()" << std::endl;
         return false;

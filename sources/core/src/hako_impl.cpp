@@ -1,5 +1,24 @@
 #include "hako_impl.hpp"
 
+
+#include <chrono>
+#include <iostream>
+#include <iomanip>
+#include <sstream>
+
+std::string hako::data::pro::get_timestamp()
+{
+    using namespace std::chrono;
+    auto now = system_clock::now();
+    auto now_time = system_clock::to_time_t(now);
+    auto us = duration_cast<microseconds>(now.time_since_epoch()) % 1000000;
+
+    std::stringstream ss;
+    ss << std::put_time(std::localtime(&now_time), "%Y-%m-%d %H:%M:%S");
+    ss << "." << std::setfill('0') << std::setw(6) << us.count();
+    return ss.str();
+}
+
 static std::shared_ptr<hako::data::pro::HakoProData> pro_data_ptr = nullptr;
 static std::shared_ptr<hako::data::HakoMasterData> master_data_ptr = nullptr;
 static std::shared_ptr<hako::IHakoMasterController> master_ptr = nullptr;

@@ -260,6 +260,17 @@ static bool hako_asset_impl_wait_event(HakoSimulationAssetEventType target)
                 usleep(HAKO_ASSET_WAIT_TIME_USEC);
                 break;
             case HakoSimAssetEvent_Start:
+                if (hako_asset_instance.hako_asset->is_pdu_created() == false) {
+                    std::cerr << "ERROR: PDU is not created" << std::endl;
+                }
+                else {
+                    std::cout << "INFO: PDU is created successfully!" << std::endl;
+                }
+                if (hako_asset_instance.callback != NULL) {
+                    if (hako_asset_instance.callback->on_initialize != NULL) {
+                        hako_asset_instance.callback->on_initialize(nullptr);
+                    }
+                }
                 hako_asset_instance.hako_asset->start_feedback(hako_asset_instance.asset_name_str, true);
                 break;
             case HakoSimAssetEvent_Stop:
@@ -307,14 +318,6 @@ bool hako_asset_impl_wait_running(void)
     std::cout << "PDU CREATED" << std::endl;
     if (hako_asset_impl_wait_pdu_created() == false) {
         return false;
-    }
-    if (hako_asset_instance.callback != NULL) {
-        if (hako_asset_instance.callback->on_initialize != NULL) {
-            hako_asset_instance.callback->on_initialize(nullptr);
-        }
-    }
-    else {
-	// nothing to do
     }
     return true;
 }

@@ -12,5 +12,6 @@
 #include "hako_pro_data.hpp"
 
 namespace hako::data::pro {
-    std::shared_ptr<HakoProData> hako_pro_get_data();    
+    std::shared_ptr<HakoProData> hako_pro_get_data();
+    std::string get_timestamp();
 }

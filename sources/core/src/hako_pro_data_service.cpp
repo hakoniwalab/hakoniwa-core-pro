@@ -184,6 +184,9 @@ int hako::data::pro::HakoProData::create_service(const std::string& serviceName)
         std::cerr << "ERROR: service_table_ is null on create_service()" << std::endl;
         return -1;
     }
+    if (service_table_->entry_num == 0) {
+        this->set_service_data();        
+    }
     if (service_table_->entry_num >= HAKO_SERVICE_MAX) {
         std::cerr << "ERROR: service_table_ is full on create_service()" << std::endl;
         return -1;
@@ -311,6 +314,10 @@ int hako::data::pro::HakoProData::create_service_client(const std::string& servi
         std::cerr << "ERROR: service_table_ is null on create_service_client()" << std::endl;
         return -1;
     }
+    if (service_table_->entry_num == 0) {
+        this->set_service_data();        
+    }
+
     if (serviceName.empty()) {
         std::cerr << "ERROR: serviceName is empty" << std::endl;
         return -1;
@@ -404,6 +411,7 @@ int hako::data::pro::HakoProData::put_request(int asset_id, int service_id, int 
         std::cerr << "ERROR: put_request() failed to write pdu: real_id = " << real_id <<" packet_len = " << packet_len << std::endl;
         return -1;
     }
+    std::cout << "INFO: put_request() success: real_id = " << real_id << " packet_len = " << packet_len << std::endl;
     return 0;
 }
 

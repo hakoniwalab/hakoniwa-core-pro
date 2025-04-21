@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 
 add_compile_definitions(HAKO_CORE_EXTENSION=TRUE)
+add_compile_definitions(FIX_PDU_CREATE_TIMING=TRUE)
 
 if (MSVC)
 add_compile_options(/wd4061 /wd4819)
