@@ -158,12 +158,20 @@ bool hako::service::HakoServiceServerProtocol::set_response_header(HakoCpp_Servi
     header.status = status;
     header.processing_percentage = percentage_;
     header.result_code = result_code;
+    //debug
+    //std::cout << "INFO: set_response_header() request_id=" << header.request_id << std::endl;
+    //std::cout << "INFO: set_response_header() service_name=" << header.service_name << std::endl;
+    //std::cout << "INFO: set_response_header() client_name=" << header.client_name << std::endl;
+    //std::cout << "INFO: set_response_header() status=" << (int)header.status << std::endl;
+    //std::cout << "INFO: set_response_header() processing_percentage=" << (int)header.processing_percentage << std::endl;
+    //std::cout << "INFO: set_response_header() result_code=" << (int)header.result_code << std::endl;
     return true;
 }
 bool hako::service::HakoServiceServerProtocol::reply(char* packet, int packet_len)
 {
     auto ret = server_->send_response(server_->get_current_client_id(), packet, packet_len);
     if (ret) {
+        std::cout << "INFO: reply() success" << std::endl;
         server_->event_done_service(server_->get_current_client_id());
     }
     server_->next_client();
@@ -175,6 +183,20 @@ void hako::service::HakoServiceServerProtocol::cancel_done()
     server_->next_client();
 }
 
+void* hako::service::HakoServiceServerProtocol::get_response_buffer(HakoServiceStatusType status, HakoServiceResultCodeType result_code)
+{
+    HakoCpp_ServiceResponseHeader header;
+    //std::cout << "INFO: get_response_buffer() called" << std::endl;
+    //std::cout << "INFO: get_response_buffer() status=" << (int)status << std::endl;
+    //std::cout << "INFO: get_response_buffer() result_code=" << (int)result_code << std::endl;
+    set_response_header(header, status, result_code);
+    int pdu_size = convertor_response_.cpp2pdu(header, (char*)response_pdu_buffer_.get(), server_->get_response_pdu_size());
+    if (pdu_size < 0) {
+        std::cerr << "ERROR: convertor.cpp2pdu() failed" << std::endl;
+        return nullptr;
+    }
+    return response_pdu_buffer_.get();
+}
 bool hako::service::HakoServiceServerProtocol::send_response(HakoServiceStatusType status, HakoServiceResultCodeType result_code)
 {
     HakoCpp_ServiceResponseHeader header;

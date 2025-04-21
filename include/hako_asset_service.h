@@ -52,6 +52,23 @@ extern int hako_asset_service_server_status(int service_id, int* status);
  */
 extern int hako_asset_service_server_get_request(int service_id, char** packet, size_t *packet_len);
 
+#define HAKO_SERVICE_API_STATUS_NONE 0
+#define HAKO_SERVICE_API_STATUS_DOING 1
+#define HAKO_SERVICE_API_STATUS_CANCELING 2
+#define HAKO_SERVICE_API_STATUS_DONE 3
+#define HAKO_SERVICE_API_STATUS_ERROR 4
+
+#define HAKO_SERVICE_API_RESULT_CODE_OK 0
+#define HAKO_SERVICE_API_RESULT_CODE_ERROR 1
+#define HAKO_SERVICE_API_RESULT_CODE_TIMEOUT 2
+#define HAKO_SERVICE_API_RESULT_CODE_CANCEL 3
+#define HAKO_SERVICE_API_RESULT_CODE_INVALID 4
+#define HAKO_SERVICE_API_RESULT_CODE_BUSY 5
+#define HAKO_SERVICE_API_RESULT_CODE_NOT_FOUND 6
+#define HAKO_SERVICE_API_RESULT_CODE_NOT_SUPPORTED 7
+#define HAKO_SERVICE_API_RESULT_CODE_NOT_READY 8
+#define HAKO_SERVICE_API_RESULT_CODE_NOT_AVAILABLE 9
+#define HAKO_SERVICE_API_RESULT_CODE_NOT_IMPLEMENTED 10
 /**
  * Get the response packet from the service server.
  * @param service_id The ID of the service.
@@ -59,7 +76,7 @@ extern int hako_asset_service_server_get_request(int service_id, char** packet, 
  * @param packet_len The length of the buffer.
  * @return 0 on success, -1 on failure.
  */
-extern int hako_asset_service_get_response_buffer(int service_id, char** packet, size_t *packet_len);
+extern int hako_asset_service_server_get_response_buffer(int service_id, char** packet, size_t *packet_len, int status, int result_code);
 
 /**
  * Send a response packet to the client.

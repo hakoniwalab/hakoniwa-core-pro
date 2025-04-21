@@ -109,14 +109,14 @@ int hako_asset_service_server_get_request(int service_id, char** packet, size_t 
     *packet_len = service_server_protocol->get_request_pdu_size();
     return 0;
 }
-int hako_asset_service_get_response_buffer(int service_id, char** packet, size_t *packet_len)
+int hako_asset_service_server_get_response_buffer(int service_id, char** packet, size_t *packet_len, int status, int result_code)
 {
     auto service_server_protocol = service_servers[service_id];
     if (!service_server_protocol) {
         std::cerr << "ERROR: hako_asset_service_get_response_buffer(): service_server_protocol is null" << std::endl;
         return -1;
     }
-    char* response_buffer = (char*)service_server_protocol->get_response_buffer();
+    char* response_buffer = (char*)service_server_protocol->get_response_buffer((hako::service::HakoServiceStatusType)status, (hako::service::HakoServiceResultCodeType)result_code);
     if (response_buffer == nullptr) {
         std::cerr << "ERROR: hako_asset_service_get_response_buffer(): response_buffer is null" << std::endl;
         return -1;

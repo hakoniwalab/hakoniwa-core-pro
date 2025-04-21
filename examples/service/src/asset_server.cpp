@@ -50,11 +50,23 @@ static void debug_packet(HakoCpp_AddTwoIntsRequestPacket& request_packet)
     std::cout << "INFO: request_packet.body.b=" << request_packet.body.b << std::endl;
 }
 
+static void debug_response_packet(HakoCpp_AddTwoIntsResponsePacket& response_packet)
+{
+    std::cout << "INFO: response_packet.header.request_id=" << response_packet.header.request_id << std::endl;
+    std::cout << "INFO: response_packet.header.client_name=" << response_packet.header.client_name << std::endl;
+    std::cout << "INFO: response_packet.header.service_name=" << response_packet.header.service_name << std::endl;
+    std::cout << "INFO: response_packet.header.status=" << (int)response_packet.header.status << std::endl;
+    std::cout << "INFO: response_packet.header.processing_percentage=" << (int)response_packet.header.processing_percentage << std::endl;
+    std::cout << "INFO: response_packet.body.sum=" << response_packet.body.sum << std::endl;
+}
+
 static int my_on_manual_timing_control(hako_asset_context_t* context)
 {
     (void)context;
     HakoCpp_AddTwoIntsRequestPacket request_packet;
+    HakoCpp_AddTwoIntsResponsePacket response_packet;
     hako::pdu::PduConvertor<HakoCpp_AddTwoIntsRequestPacket, hako::pdu::msgs::hako_srv_msgs::AddTwoIntsRequestPacket> request_convertor;
+    hako::pdu::PduConvertor<HakoCpp_AddTwoIntsResponsePacket, hako::pdu::msgs::hako_srv_msgs::AddTwoIntsResponsePacket> response_convertor;
 
     while (true) {
         int ret = hako_asset_service_server_poll(service_id);
@@ -85,6 +97,31 @@ static int my_on_manual_timing_control(hako_asset_context_t* context)
                 return 1;
             }
             debug_packet(request_packet);
+            char* response_buffer = nullptr;
+            size_t response_buffer_len = 0;
+            ret = hako_asset_service_server_get_response_buffer(service_id, &response_buffer, &response_buffer_len,
+                HAKO_SERVICE_API_STATUS_NONE, HAKO_SERVICE_API_RESULT_CODE_OK);
+            if (ret < 0) {
+                printf("ERORR: hako_asset_service_get_response_buffer() returns %d.\n", ret);
+                return 1;
+            }
+            response_convertor.pdu2cpp(response_buffer, response_packet);
+            std::cout << "INFO: hako_asset_service_get_response_buffer() buffer_len= " << response_buffer_len << std::endl;
+            response_packet.body.sum = request_packet.body.a + request_packet.body.b;
+            debug_response_packet(response_packet);
+            ret = response_convertor.cpp2pdu(response_packet, response_buffer, response_buffer_len);
+            if (ret < 0) {
+                printf("ERORR: response_convertor.cpp2pdu() returns %d.\n", ret);
+                return 1;
+            }
+            
+            ret = hako_asset_service_server_put_response(service_id, response_buffer, response_buffer_len);
+            if (ret < 0) {
+                printf("ERORR: hako_asset_service_server_put_response() returns %d.\n", ret);
+                return 1;
+            }
+            std::cout << "INFO: hako_asset_service_server_put_response() returns " << ret << std::endl;
+
         }
         hako_asset_usleep(delta_time_usec);
         usleep(delta_time_usec);

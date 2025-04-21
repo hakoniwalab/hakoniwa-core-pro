@@ -52,7 +52,7 @@ namespace hako::service {
             HakoServiceServerStateType state() { return server_->get_state(); }
             void* get_request();
             int get_request_pdu_size() { return server_->get_request_pdu_size(); }
-            void* get_response_buffer() { return response_pdu_buffer_.get(); }
+            void* get_response_buffer(HakoServiceStatusType status, HakoServiceResultCodeType result_code);
             int   get_response_pdu_size() { return server_->get_response_pdu_size(); }
             bool  set_response_header(HakoCpp_ServiceResponseHeader& header, HakoServiceStatusType status, HakoServiceResultCodeType result_code);
             bool  reply(char* packet, int packet_len);
