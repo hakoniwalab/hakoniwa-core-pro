@@ -22,14 +22,8 @@ static const char* service_config_path = "./examples/service/service.json";
 static const char* service_name = "Service/Add";
 static hako_time_t delta_time_usec = 1000 * 1000;
 
-hako::service::HakoAssetServiceServer<
-    HakoCpp_AddTwoIntsRequestPacket, 
-    HakoCpp_AddTwoIntsResponsePacket,
-    HakoCpp_AddTwoIntsRequest, 
-    HakoCpp_AddTwoIntsResponse,
-    hako::pdu::msgs::hako_srv_msgs::AddTwoIntsRequestPacket,
-    hako::pdu::msgs::hako_srv_msgs::AddTwoIntsResponsePacket> 
-    service_server(asset_name, service_name);
+
+HakoAssetServiceServerTemplateType(AddTwoInts) service_server(asset_name, service_name);
 
 static int my_on_initialize(hako_asset_context_t* context)
 {

@@ -94,3 +94,13 @@ namespace hako::service
             CppResPacketType res_packet_;
     };
 }
+
+#define HAKO_SERVICE_SERVER_TYPE(type) hako::pdu::msgs::hako_srv_msgs::type
+#define HakoAssetServiceServerTemplateType(SRVNAME) \
+    hako::service::HakoAssetServiceServer< \
+        HakoCpp_##SRVNAME##RequestPacket, \
+        HakoCpp_##SRVNAME##ResponsePacket, \
+        HakoCpp_##SRVNAME##Request, \
+        HakoCpp_##SRVNAME##Response, \
+        HAKO_SERVICE_SERVER_TYPE(SRVNAME##RequestPacket), \
+        HAKO_SERVICE_SERVER_TYPE(SRVNAME##ResponsePacket)> 

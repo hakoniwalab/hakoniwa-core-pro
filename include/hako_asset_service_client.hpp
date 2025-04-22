@@ -108,3 +108,12 @@ namespace hako::service
             HakoServiceHandleType service_client_handle_;
     };
 }
+#define HAKO_SERVICE_CLIENT_TYPE(type) hako::pdu::msgs::hako_srv_msgs::type
+#define HakoAssetServiceClientTemplateType(SRVNAME) \
+    hako::service::HakoAssetServiceClient< \
+        HakoCpp_##SRVNAME##RequestPacket, \
+        HakoCpp_##SRVNAME##ResponsePacket, \
+        HakoCpp_##SRVNAME##Request, \
+        HakoCpp_##SRVNAME##Response, \
+        HAKO_SERVICE_CLIENT_TYPE(SRVNAME##RequestPacket), \
+        HAKO_SERVICE_CLIENT_TYPE(SRVNAME##ResponsePacket)> 

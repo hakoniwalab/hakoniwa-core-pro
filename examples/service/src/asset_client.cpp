@@ -18,18 +18,10 @@ static inline void usleep(long microseconds) {
 #endif
 static const char* asset_name = "Client";
 static const char* service_config_path = "./examples/service/service.json";
-static const char* service_name = "Service/Add";
-static const char* service_client_name = "Client01";
 
 hako_time_t delta_time_usec = 1000 * 1000;
-hako::service::HakoAssetServiceClient<
-    HakoCpp_AddTwoIntsRequestPacket, 
-    HakoCpp_AddTwoIntsResponsePacket,
-    HakoCpp_AddTwoIntsRequest, 
-    HakoCpp_AddTwoIntsResponse,
-    hako::pdu::msgs::hako_srv_msgs::AddTwoIntsRequestPacket,
-    hako::pdu::msgs::hako_srv_msgs::AddTwoIntsResponsePacket> 
-    service_client(asset_name, service_name, service_client_name);
+
+HakoAssetServiceClientTemplateType(AddTwoInts) service_client(asset_name, "Service/Add", "Client01");
 
 static int my_on_initialize(hako_asset_context_t* context)
 {
