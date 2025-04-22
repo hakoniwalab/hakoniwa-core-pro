@@ -52,9 +52,12 @@ add_library(
     ${HAKO_CORE_SOURCE_DIR}/src/hako/utils/hako_logger.cpp
     src/hako_pro_data.cpp
     src/hako_pro_data_recv_event.cpp
-    src/hako_pro_data_service.cpp
-    src/hako_service_impl.cpp
-    src/hako_service_protocol.cpp
+    src/service/hako_pro_data_service.cpp
+    src/service/hako_service_impl.cpp
+    src/service/hako_service_impl_server.cpp
+    src/service/hako_service_impl_client.cpp
+    src/service/hako_service_protocol_server.cpp
+    src/service/hako_service_protocol_client.cpp
     src/hako_pro.cpp
 )
 # POSIX特有のファイルをWIN32ではない場合にのみ追加
