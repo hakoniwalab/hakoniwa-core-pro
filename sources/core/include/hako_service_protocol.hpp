@@ -1,4 +1,5 @@
 #pragma once
+
 namespace hako::service {
     enum HakoServiceOperationCodeType {
         HAKO_SERVICE_OPERATION_CODE_REQUEST = 0,
@@ -17,7 +18,7 @@ namespace hako::service {
         HAKO_SERVICE_RESULT_CODE_OK = 0,
         HAKO_SERVICE_RESULT_CODE_ERROR,
         HAKO_SERVICE_RESULT_CODE_TIMEOUT,
-        HAKO_SERVICE_RESULT_CODE_CANCEL,
+        HAKO_SERVICE_RESULT_CODE_CANCELED,
         HAKO_SERVICE_RESULT_CODE_INVALID,
         HAKO_SERVICE_RESULT_CODE_BUSY,
         HAKO_SERVICE_RESULT_CODE_NOT_FOUND,

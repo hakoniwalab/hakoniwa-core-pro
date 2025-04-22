@@ -35,6 +35,7 @@ target_include_directories(
     PRIVATE /usr/local/include
     PRIVATE ${HAKO_INC_DIR}
     PRIVATE ${HAKO_PDU_SOURCE_DIR}
+    PRIVATE ${HAKO_CORE_PRO_SOURCE_DIR}/core/include
 )
 
 target_link_libraries(

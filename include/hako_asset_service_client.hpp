@@ -1,6 +1,7 @@
 #pragma once
 
 #include "hako_asset_service.h"
+#include "hako_service_protocol.hpp"
 #include "pdu_convertor.hpp"
 #include <string>
 
@@ -79,6 +80,10 @@ namespace hako::service
                         printf("ERORR: response_convertor.pdu2cpp() returns %d.\n", ret);
                         return -1;
                     }
+                    if (res_packet_.header.result_code == HAKO_SERVICE_RESULT_CODE_CANCELED) {
+                        printf("ERORR: request is canceled.\n");
+                        return HAKO_SERVICE_CLIENT_API_REQUEST_CANCEL_DONE;
+                    }
                     return HAKO_SERVICE_CLIENT_API_RESPONSE_IN;
                 }
                 return HAKO_SERVICE_SERVER_API_EVENT_NONE;
@@ -96,6 +101,15 @@ namespace hako::service
             CppResBodyType get_response()
             {
                 return res_packet_.body;
+            }
+            bool cancel_request()
+            {
+                int ret = hako_asset_service_client_cancel_request(&service_client_handle_);
+                if (ret < 0) {
+                    printf("ERORR: hako_asset_service_client_cancel_request() returns %d.\n", ret);
+                    return false;
+                }
+                return true;
             }
         private:
             hako::pdu::PduConvertor<CppReqPacketType, ConvertorReq> req_convertor_;

@@ -179,6 +179,9 @@ bool hako::service::HakoServiceServerProtocol::reply(char* packet, int packet_le
 }
 void hako::service::HakoServiceServerProtocol::cancel_done()
 {
+    if (send_response(HAKO_SERVICE_STATUS_DONE, HAKO_SERVICE_RESULT_CODE_CANCELED) == false) {
+        std::cerr << "ERROR: send_response() failed" << std::endl;
+    }
     server_->event_done_service(server_->get_current_client_id());
     server_->next_client();
 }
