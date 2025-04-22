@@ -24,38 +24,38 @@ int hako_asset_service_initialize(const char* service_config_path)
 
 int hako_asset_service_server_create(const char* assetName, const char* serviceName)
 {
-    std::cout << "INFO: hako_asset_service_server_create(): assetName: " << assetName << ", serviceName: " << serviceName << std::endl;
+    //std::cout << "INFO: hako_asset_service_server_create(): assetName: " << assetName << ", serviceName: " << serviceName << std::endl;
     for (const auto& [id, server] : service_servers) {
         if (server->get_service_name() == serviceName) {
             std::cout << "WARN: hako_asset_service_server_create(): service already exists" << std::endl;
             return id;
         }
     }
-    std::cout << "INFO: hako_asset_service_server_create(): creating new service server" << std::endl;
+    //std::cout << "INFO: hako_asset_service_server_create(): creating new service server" << std::endl;
     auto server_impl = std::make_shared<hako::service::impl::HakoServiceServer>();
     if (!server_impl) {
         std::cerr << "ERROR: hako_asset_service_server_create(): server_impl is null" << std::endl;
         return -1;
     }
-    std::cout << "INFO: hako_asset_service_server_create(): server_impl created" << std::endl;
+    //std::cout << "INFO: hako_asset_service_server_create(): server_impl created" << std::endl;
     auto server_protocol = std::make_shared<hako::service::HakoServiceServerProtocol>(server_impl);
     if (!server_protocol) {
         std::cerr << "ERROR: hako_asset_service_server_create(): server_protocol is null" << std::endl;
         return -1;
     }
-    std::cout << "INFO: hako_asset_service_server_create(): server_protocol created" << std::endl;
+    //std::cout << "INFO: hako_asset_service_server_create(): server_protocol created" << std::endl;
     bool ret = server_protocol->initialize(serviceName, assetName);
     if (!ret) {
         std::cerr << "ERROR: hako_asset_service_server_create(): server_protocol->initialize() failed" << std::endl;
         return -1;
     }
-    std::cout << "INFO: hako_asset_service_server_create(): server_protocol initialized" << std::endl;
+    //std::cout << "INFO: hako_asset_service_server_create(): server_protocol initialized" << std::endl;
     int service_id = server_protocol->get_service_id();
     if (service_id < 0) {
         std::cerr << "ERROR: hako_asset_service_server_create(): service_id is invalid" << std::endl;
         return -1;
     }
-    std::cout << "INFO: hako_asset_service_server_create(): service_id: " << service_id << std::endl;
+    //std::cout << "INFO: hako_asset_service_server_create(): service_id: " << service_id << std::endl;
     service_servers[service_id] = server_protocol;
     return service_id;
 }
@@ -280,7 +280,7 @@ int hako_asset_service_client_get_response(const HakoServiceHandleType* handle, 
 int hako_asset_service_client_call_request(const HakoServiceHandleType* handle, char *packet, size_t packet_len, int timeout)
 {
     (void)timeout; // TODO
-    std::cout << "INFO: hako_asset_service_client_call_request(): handle: " << handle->client_id << std::endl;
+    //std::cout << "INFO: hako_asset_service_client_call_request(): handle: " << handle->client_id << std::endl;
     if (handle == nullptr) {
         std::cerr << "ERROR: hako_asset_service_client_call_request(): handle is null" << std::endl;
         return -1;

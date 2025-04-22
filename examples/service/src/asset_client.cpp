@@ -38,6 +38,7 @@ static int my_on_initialize(hako_asset_context_t* context)
 static int my_on_manual_timing_control(hako_asset_context_t* context)
 {
     (void)context;
+    std::cout << "*************** START SERVICE CLIENT ***************" << std::endl;
     while (true) {
         int ret = service_client.poll();
         if (ret < 0) {

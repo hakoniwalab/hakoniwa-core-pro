@@ -130,13 +130,13 @@ int hako::data::pro::HakoProData::get_service_id(const std::string& service_name
  }
  void hako::data::pro::HakoProData::set_service_data()
  {
-    std::cout << "INFO: set_service_data()" << std::endl;
+     //std::cout << "INFO: set_service_data()" << std::endl;
      if (service_table_ == nullptr) {
          std::cerr << "ERROR: service_table_ is null on set_service_data()" << std::endl;
          return;
      }
      service_table_->entry_num = this->service_impl_.services.size();
-     std::cout << "INFO: service_table_->entry_num: " << service_table_->entry_num << std::endl;
+     //std::cout << "INFO: service_table_->entry_num: " << service_table_->entry_num << std::endl;
      for (int i = 0; i < service_table_->entry_num; i++) {
         //std::cout << "INFO: service_table_->entries[" << i << "]" << std::endl;
         auto& service = this->service_impl_.services[i];
@@ -161,6 +161,7 @@ int hako::data::pro::HakoProData::get_service_id(const std::string& service_name
         }
     }
     //debug
+#if false
     for (int i = 0; i < service_table_->entry_num; i++) {
         std::cout << "INFO: service_table_[" << i << "].serviceName: " << service_table_->entries[i].serviceName << std::endl;
         std::cout << "INFO: service_table_[" << i << "].maxClients: " << service_table_->entries[i].maxClients << std::endl;
@@ -174,6 +175,7 @@ int hako::data::pro::HakoProData::get_service_id(const std::string& service_name
         }
     }
     std::cout << "INFO: set_service_data() done" << std::endl;
+#endif
 }
 /*
  * Service server API
@@ -196,10 +198,10 @@ int hako::data::pro::HakoProData::create_service(const std::string& serviceName)
         std::cerr << "ERROR: service_id is invalid on create_service()" << std::endl;
         return -1;
     }
-    std::cout << "INFO: create_service() service_id: " << service_id << std::endl;
+    //std::cout << "INFO: create_service() service_id: " << service_id << std::endl;
     HakoServiceEntryTye& service_entry = service_table_->entries[service_id];
     for (int j = 0; j < service_entry.maxClients; j++) {
-        std::cout << "INFO: create_service() client_id: " << j << std::endl;
+        //std::cout << "INFO: create_service() client_id: " << j << std::endl;
         int recv_event_id = -1;
         int server_channel_id = HAKO_SERVICE_SERVER_CHANNEL_ID + (HAKO_SERVICE_SERVER_CHANNEL_ID_MAX * j);
         bool ret = this->register_data_recv_event(serviceName, server_channel_id, nullptr, recv_event_id);
@@ -209,9 +211,11 @@ int hako::data::pro::HakoProData::create_service(const std::string& serviceName)
         }
         service_entry.clientChannelMap[j].requestChannelId = server_channel_id;
         service_entry.clientChannelMap[j].requestRecvEventId = recv_event_id;
+#if false
         std::cout << "INFO: register_data_recv_event() serviceName: "
             << serviceName << " channel_id: " << server_channel_id
             << " recv_event_id: " << recv_event_id << std::endl;
+#endif
     }
     return service_id;
 }
@@ -411,7 +415,7 @@ int hako::data::pro::HakoProData::put_request(int asset_id, int service_id, int 
         std::cerr << "ERROR: put_request() failed to write pdu: real_id = " << real_id <<" packet_len = " << packet_len << std::endl;
         return -1;
     }
-    std::cout << "INFO: put_request() success: real_id = " << real_id << " packet_len = " << packet_len << std::endl;
+    //std::cout << "INFO: put_request() success: real_id = " << real_id << " packet_len = " << packet_len << std::endl;
     return 0;
 }
 

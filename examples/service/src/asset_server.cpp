@@ -28,20 +28,19 @@ HakoAssetServiceServerTemplateType(AddTwoInts) service_server(asset_name, servic
 static int my_on_initialize(hako_asset_context_t* context)
 {
     (void)context;
-    std::cout << "INFO: my_on_initialize()..." << std::endl;
     int ret = service_server.initialize();
     if (ret < 0) {
         std::cout << "ERROR: service_server.initialize() returns " << ret << std::endl;
         return 1;
     }
-    std::cout << "INFO: service_server.initialize() returns " << ret << std::endl;
+    //std::cout << "INFO: service_server.initialize() returns " << ret << std::endl;
     return 0;
 }
 
 static int my_on_manual_timing_control(hako_asset_context_t* context)
 {
     (void)context;
-
+    std::cout << "*************** START SERVICE SERVER ***************" << std::endl;
     while (true) {
         int ret = service_server.poll();
         if (ret < 0) {
@@ -55,7 +54,7 @@ static int my_on_manual_timing_control(hako_asset_context_t* context)
             std::cout << "IN: a=" << req.a << " b=" << req.b << std::endl;
             std::cout << "OUT: sum=" << res.sum << std::endl;
             auto ret = service_server.reply(res);
-            std::cout << "INFO: reply()...: ret = " << ret << std::endl;
+            //std::cout << "INFO: reply()...: ret = " << ret << std::endl;
         }
         hako_asset_usleep(delta_time_usec);
         usleep(delta_time_usec);

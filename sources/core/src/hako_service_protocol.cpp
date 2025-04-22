@@ -171,7 +171,7 @@ bool hako::service::HakoServiceServerProtocol::reply(char* packet, int packet_le
 {
     auto ret = server_->send_response(server_->get_current_client_id(), packet, packet_len);
     if (ret) {
-        std::cout << "INFO: reply() success" << std::endl;
+        //std::cout << "INFO: reply() success" << std::endl;
         server_->event_done_service(server_->get_current_client_id());
     }
     server_->next_client();
@@ -381,7 +381,7 @@ void* hako::service::HakoServiceClientProtocol::get_response()
 }
 bool hako::service::HakoServiceClientProtocol::request(char* packet, int packet_len)
 {
-    std::cout << "INFO: request() packet_len=" << packet_len << std::endl;
+    //std::cout << "INFO: request() packet_len=" << packet_len << std::endl;
     HakoCpp_ServiceRequestHeader header;
     int pdu_size = convertor_request_.pdu2cpp(packet, header);
     if (pdu_size < 0) {
@@ -393,7 +393,7 @@ bool hako::service::HakoServiceClientProtocol::request(char* packet, int packet_
         request_header_ = header;
         client_->event_start_service();
     }
-    std::cout << "INFO: request_header_.request_id=" << request_header_.request_id << std::endl;
+    //std::cout << "INFO: request_header_.request_id=" << request_header_.request_id << std::endl;
     return ret;
 }
 void hako::service::HakoServiceClientProtocol::cancel_request()

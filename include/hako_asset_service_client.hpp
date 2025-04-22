@@ -40,7 +40,7 @@ namespace hako::service
                     printf("ERORR: hako_asset_service_client_get_request_buffer() returns %d.\n", ret);
                     return false;
                 }
-                std::cout << "INFO: hako_asset_service_client_get_request_buffer() buffer_len= " << request_buffer_len << std::endl;
+                //std::cout << "INFO: hako_asset_service_client_get_request_buffer() buffer_len= " << request_buffer_len << std::endl;
                 ret = req_convertor_.pdu2cpp(request_buffer, req_packet_);
                 if (ret < 0) {
                     printf("ERORR: request_convertor.pdu2cpp() returns %d.\n", ret);
