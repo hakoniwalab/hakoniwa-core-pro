@@ -52,7 +52,7 @@ namespace hako::service
                 }
                 return HAKO_SERVICE_SERVER_API_EVENT_NONE;
             }
-            CppReqBodyType& get_request()
+            CppReqBodyType get_request()
             {
                 return req_packet_.body;
             }

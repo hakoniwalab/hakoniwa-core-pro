@@ -37,15 +37,10 @@ static int my_on_initialize(hako_asset_context_t* context)
     std::cout << "INFO: my_on_initialize()..." << std::endl;
     int ret = service_server.initialize();
     if (ret < 0) {
-        printf("ERORR: service_server.initialize() returns %d.\n", ret);
+        std::cout << "ERROR: service_server.initialize() returns " << ret << std::endl;
         return 1;
     }
     std::cout << "INFO: service_server.initialize() returns " << ret << std::endl;
-    return 0;
-}
-static int my_on_reset(hako_asset_context_t* context)
-{
-    (void)context;
     return 0;
 }
 
@@ -71,6 +66,12 @@ static int my_on_manual_timing_control(hako_asset_context_t* context)
         hako_asset_usleep(delta_time_usec);
         usleep(delta_time_usec);
     }
+    return 0;
+}
+
+static int my_on_reset(hako_asset_context_t* context)
+{
+    (void)context;
     return 0;
 }
 
