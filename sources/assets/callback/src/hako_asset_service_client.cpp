@@ -121,9 +121,8 @@ int hako_asset_service_client_get_response(const HakoServiceHandleType* handle, 
     return 0;
 }
 
-int hako_asset_service_client_call_request(const HakoServiceHandleType* handle, char *packet, size_t packet_len, int timeout)
+int hako_asset_service_client_call_request(const HakoServiceHandleType* handle, char *packet, size_t packet_len, int timeout_msec)
 {
-    (void)timeout; // TODO
     //std::cout << "INFO: hako_asset_service_client_call_request(): handle: " << handle->client_id << std::endl;
     if (handle == nullptr) {
         std::cerr << "ERROR: hako_asset_service_client_call_request(): handle is null" << std::endl;
@@ -139,7 +138,7 @@ int hako_asset_service_client_call_request(const HakoServiceHandleType* handle, 
         std::cerr << "ERROR: hako_asset_service_client_call_request(): client_protocol is null" << std::endl;
         return -1;
     }
-    bool ret = client_protocol->request(packet, packet_len);
+    bool ret = client_protocol->request(packet, packet_len, timeout_msec);
     if (!ret) {
         std::cerr << "ERROR: hako_asset_service_client_call_request(): request() failed" << std::endl;
         return -1;

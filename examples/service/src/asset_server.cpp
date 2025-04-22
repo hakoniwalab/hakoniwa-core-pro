@@ -53,8 +53,7 @@ static int my_on_manual_timing_control(hako_asset_context_t* context)
             res.sum = req.a + req.b;
             std::cout << "IN: a=" << req.a << " b=" << req.b << std::endl;
             std::cout << "OUT: sum=" << res.sum << std::endl;
-            auto ret = service_server.reply(res);
-            //std::cout << "INFO: reply()...: ret = " << ret << std::endl;
+            (void)service_server.reply(res);
         }
         hako_asset_usleep(delta_time_usec);
         usleep(delta_time_usec);

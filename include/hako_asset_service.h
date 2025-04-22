@@ -146,10 +146,10 @@ extern int hako_asset_service_client_get_request_buffer(const HakoServiceHandleT
  * @param handle The handle of the service client.
  * @param packet The request packet.
  * @param packet_len The length of the request packet.
- * @param timeout The timeout for the request in milliseconds.
+ * @param timeout_msec The timeout for the request in milliseconds.
  * @return 0 on success, -1 on failure.
  */
-extern int hako_asset_service_client_call_request(const HakoServiceHandleType* handle, char *packet, size_t packet_len, int timeout);
+extern int hako_asset_service_client_call_request(const HakoServiceHandleType* handle, char *packet, size_t packet_len, int timeout_msec);
 
 /**
  * Get the response packet from the service server.

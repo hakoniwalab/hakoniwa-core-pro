@@ -31,7 +31,7 @@ namespace hako::service
                 }
                 return true;
             }
-            bool request(CppReqBodyType& req_body, int timeout = -1, int poll_interval_msec = -1)
+            bool request(CppReqBodyType& req_body, int timeout_msec = -1, int poll_interval_msec = -1)
             {
                 char* request_buffer = nullptr;
                 size_t request_buffer_len = 0;
@@ -53,7 +53,7 @@ namespace hako::service
                     printf("ERORR: req_convertor_.cpp2pdu() returns %d.\n", ret);
                     return false;
                 }
-                ret = hako_asset_service_client_call_request(&service_client_handle_, request_buffer, request_buffer_len, timeout);
+                ret = hako_asset_service_client_call_request(&service_client_handle_, request_buffer, request_buffer_len, timeout_msec);
                 if (ret < 0) {
                     printf("ERORR: hako_asset_service_client_call_request() returns %d.\n", ret);
                     return false;
