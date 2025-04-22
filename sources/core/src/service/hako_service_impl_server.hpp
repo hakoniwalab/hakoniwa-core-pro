@@ -2,8 +2,6 @@
 
 #include "nlohmann/json.hpp"
 #include "hako_pro_data.hpp"
-#include "hako_srv_msgs/pdu_cpptype_conv_ServiceRequestHeader.hpp"
-#include "hako_srv_msgs/pdu_cpptype_conv_ServiceResponseHeader.hpp"
 #include "pdu_convertor.hpp"
 #include "ihako_service_server.hpp"
 #include <vector>
@@ -35,8 +33,8 @@ namespace hako::service::impl {
 
             int get_service_id() override { return service_id_; }
             int get_asset_id() override { return asset_id_; }
-            void* get_request_buffer() override { return get_request_pdu_buffer(); }
-            void* get_response_buffer() override { return get_response_pdu_buffer(); }
+            void* get_temp_request_buffer() override { return get_request_pdu_buffer(); }
+            void* get_temp_response_buffer() override { return get_response_pdu_buffer(); }
             int get_request_pdu_size() override { return request_pdu_size_; }
             int get_response_pdu_size() override { return response_pdu_size_; }
 

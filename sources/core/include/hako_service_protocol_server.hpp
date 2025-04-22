@@ -48,8 +48,8 @@ namespace hako::service {
             bool validate_header(HakoCpp_ServiceRequestHeader& header);
             bool copy_user_buffer(const HakoCpp_ServiceRequestHeader& header);
             bool send_response(HakoServiceStatusType status, HakoServiceResultCodeType result_code);
-            std::unique_ptr<char[]> request_pdu_buffer_;
-            std::unique_ptr<char[]> response_pdu_buffer_;
+            std::unique_ptr<char[]> request_user_buffer_;
+            std::unique_ptr<char[]> response_user_buffer_;
             int percentage_ = 0;
             HakoTimeType last_poll_time_ = 0;
 

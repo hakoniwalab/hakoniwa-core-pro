@@ -77,6 +77,7 @@ target_include_directories(
     PRIVATE ${HAKO_PDU_SOURCE_DIR}
     PRIVATE ${nlohmann_json_SOURCE_DIR}/single_include
     PRIVATE ${PROJECT_SOURCE_DIR}/include
+    PRIVATE ${PROJECT_SOURCE_DIR}/src/service
 )
 if (MSVC)
 elseif(WIN32)

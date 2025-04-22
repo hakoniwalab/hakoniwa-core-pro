@@ -15,10 +15,10 @@ bool hako::service::HakoServiceServerProtocol::initialize(const char* serviceNam
         std::cerr << "ERROR: request_pdu_size_ or response_pdu_size_ is invalid" << std::endl;
         return false;
     }
-    request_pdu_buffer_ = std::make_unique<char[]>(server_->get_request_pdu_size());
-    response_pdu_buffer_ = std::make_unique<char[]>(server_->get_response_pdu_size());
-    if (request_pdu_buffer_ == nullptr || response_pdu_buffer_ == nullptr) {
-        std::cerr << "ERROR: request_pdu_buffer_ or response_pdu_buffer_ is null" << std::endl;
+    request_user_buffer_ = std::make_unique<char[]>(server_->get_request_pdu_size());
+    response_user_buffer_ = std::make_unique<char[]>(server_->get_response_pdu_size());
+    if (request_user_buffer_ == nullptr || response_user_buffer_ == nullptr) {
+        std::cerr << "ERROR: request_user_buffer_ or response_user_buffer_ is null" << std::endl;
         return false;
     }
     return true;
@@ -34,7 +34,7 @@ bool hako::service::HakoServiceServerProtocol::recv_request(int client_id, HakoC
     if (server_->recv_request(client_id) != nullptr) {
         // data received
         data_recv_in = true;
-        if (!convertor_request_.pdu2cpp((char*)server_->get_request_buffer(), header)) {
+        if (!convertor_request_.pdu2cpp((char*)server_->get_temp_request_buffer(), header)) {
             std::cerr << "ERROR: convertor.pdu2cpp() failed" << std::endl;
             return false;
         }
@@ -66,8 +66,8 @@ bool hako::service::HakoServiceServerProtocol::validate_header(HakoCpp_ServiceRe
 }
 bool hako::service::HakoServiceServerProtocol::copy_user_buffer(const HakoCpp_ServiceRequestHeader& header)
 {
-    char* src = (char*)server_->get_request_buffer();
-    char* dst = (char*)request_pdu_buffer_.get();
+    char* src = (char*)server_->get_temp_request_buffer();
+    char* dst = (char*)request_user_buffer_.get();
     int src_len = server_->get_request_pdu_size();
     memcpy(dst, src, src_len);
     request_header_ = header;
@@ -148,7 +148,7 @@ void* hako::service::HakoServiceServerProtocol::get_request()
     if (server_->get_state() != HAKO_SERVICE_SERVER_STATE_DOING) {
         return nullptr;
     }
-    return request_pdu_buffer_.get();
+    return request_user_buffer_.get();
 }
 bool hako::service::HakoServiceServerProtocol::set_response_header(HakoCpp_ServiceResponseHeader& header, HakoServiceStatusType status, HakoServiceResultCodeType result_code)
 {
@@ -190,21 +190,21 @@ void* hako::service::HakoServiceServerProtocol::get_response_buffer(HakoServiceS
     //std::cout << "INFO: get_response_buffer() status=" << (int)status << std::endl;
     //std::cout << "INFO: get_response_buffer() result_code=" << (int)result_code << std::endl;
     set_response_header(header, status, result_code);
-    int pdu_size = convertor_response_.cpp2pdu(header, (char*)response_pdu_buffer_.get(), server_->get_response_pdu_size());
+    int pdu_size = convertor_response_.cpp2pdu(header, (char*)response_user_buffer_.get(), server_->get_response_pdu_size());
     if (pdu_size < 0) {
         std::cerr << "ERROR: convertor.cpp2pdu() failed" << std::endl;
         return nullptr;
     }
-    return response_pdu_buffer_.get();
+    return response_user_buffer_.get();
 }
 bool hako::service::HakoServiceServerProtocol::send_response(HakoServiceStatusType status, HakoServiceResultCodeType result_code)
 {
     HakoCpp_ServiceResponseHeader header;
     set_response_header(header, status, result_code);
-    int pdu_size = convertor_response_.cpp2pdu(header, (char*)server_->get_response_buffer(), server_->get_response_pdu_size());
+    int pdu_size = convertor_response_.cpp2pdu(header, (char*)server_->get_temp_response_buffer(), server_->get_response_pdu_size());
     if (pdu_size < 0) {
         std::cerr << "ERROR: convertor.cpp2pdu() failed" << std::endl;
         return false;
     }
-    return reply((char*)server_->get_response_buffer(), server_->get_response_pdu_size());
+    return reply((char*)server_->get_temp_response_buffer(), server_->get_response_pdu_size());
 }

@@ -37,7 +37,7 @@ namespace hako::service {
             int get_client_id() { return client_->get_client_id(); }
             std::string get_service_name() { return client_->get_service_name(); }
             std::string get_client_name() { return client_->get_client_name(); }
-            void* get_response_buffer() { return response_pdu_buffer_.get(); }
+            void* get_response_buffer() { return response_user_buffer_.get(); }
             int get_response_pdu_size() { return client_->get_response_pdu_size(); }
 
         private:
@@ -54,8 +54,8 @@ namespace hako::service {
             hako::pdu::PduConvertor<HakoCpp_ServiceResponseHeader, hako::pdu::msgs::hako_srv_msgs::ServiceResponseHeader> convertor_response_;
             HakoCpp_ServiceResponseHeader response_header_;
             HakoCpp_ServiceRequestHeader request_header_;
-            std::unique_ptr<char[]> request_pdu_buffer_;
-            std::unique_ptr<char[]> response_pdu_buffer_;
+            std::unique_ptr<char[]> request_user_buffer_;
+            std::unique_ptr<char[]> response_user_buffer_;
             int percentage_ = 0;
             int request_id_ = 0;
             HakoTimeType last_poll_time_ = 0;

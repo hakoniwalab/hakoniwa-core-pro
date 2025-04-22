@@ -18,10 +18,10 @@ bool hako::service::HakoServiceClientProtocol::initialize(const char* serviceNam
         std::cerr << "ERROR: request_pdu_size_ or response_pdu_size_ is invalid" << std::endl;
         return false;
     }
-    request_pdu_buffer_ = std::make_unique<char[]>(client_->get_request_pdu_size());
-    response_pdu_buffer_ = std::make_unique<char[]>(client_->get_response_pdu_size());    
-    if (request_pdu_buffer_ == nullptr || response_pdu_buffer_ == nullptr) {
-        std::cerr << "ERROR: request_pdu_buffer_ or response_pdu_buffer_ is null" << std::endl;
+    request_user_buffer_ = std::make_unique<char[]>(client_->get_request_pdu_size());
+    response_user_buffer_ = std::make_unique<char[]>(client_->get_response_pdu_size());    
+    if (request_user_buffer_ == nullptr || response_user_buffer_ == nullptr) {
+        std::cerr << "ERROR: request_user_buffer_ or response_user_buffer_ is null" << std::endl;
         return false;
     }
     return true;
@@ -32,7 +32,7 @@ bool hako::service::HakoServiceClientProtocol::recv_response(HakoCpp_ServiceResp
     if (client_->recv_response() != nullptr) {
         // data received
         data_recv_in = true;
-        if (!convertor_response_.pdu2cpp((char*)client_->get_response_buffer(), header)) {
+        if (!convertor_response_.pdu2cpp((char*)client_->get_temp_response_buffer(), header)) {
             std::cerr << "ERROR: convertor.pdu2cpp() failed" << std::endl;
             return false;
         }
@@ -63,8 +63,8 @@ bool hako::service::HakoServiceClientProtocol::validate_header(HakoCpp_ServiceRe
 }
 bool hako::service::HakoServiceClientProtocol::copy_user_buffer(const HakoCpp_ServiceResponseHeader& header)
 {
-    char* src = (char*)client_->get_response_buffer();
-    char* dst = (char*)response_pdu_buffer_.get();
+    char* src = (char*)client_->get_temp_response_buffer();
+    char* dst = (char*)response_user_buffer_.get();
     int src_len = client_->get_response_pdu_size();
     memcpy(dst, src, src_len);
     response_header_ = header;
@@ -146,31 +146,31 @@ void* hako::service::HakoServiceClientProtocol::get_request_buffer(int opcode, i
 {
     HakoCpp_ServiceRequestHeader header;
     set_request_header(header, (HakoServiceOperationCodeType)opcode, poll_interval_msec);
-    int pdu_size = convertor_request_.cpp2pdu(header, (char*)this->request_pdu_buffer_.get(), client_->get_request_pdu_size());
+    int pdu_size = convertor_request_.cpp2pdu(header, (char*)this->request_user_buffer_.get(), client_->get_request_pdu_size());
     if (pdu_size < 0) {
         std::cerr << "ERROR: convertor.cpp2pdu() failed" << std::endl;
         return nullptr;
     }
-    return this->request_pdu_buffer_.get();
+    return this->request_user_buffer_.get();
 }
 
 bool hako::service::HakoServiceClientProtocol::send_request(HakoServiceOperationCodeType opcode, int poll_interval_msec)
 {
     HakoCpp_ServiceRequestHeader header;
     set_request_header(header, opcode, poll_interval_msec);
-    int pdu_size = convertor_request_.cpp2pdu(header, (char*)client_->get_request_buffer(), client_->get_request_pdu_size());
+    int pdu_size = convertor_request_.cpp2pdu(header, (char*)client_->get_temp_request_buffer(), client_->get_request_pdu_size());
     if (pdu_size < 0) {
         std::cerr << "ERROR: convertor.cpp2pdu() failed" << std::endl;
         return false;
     }
-    return client_->send_request((char*)client_->get_request_buffer(), client_->get_request_pdu_size());
+    return client_->send_request((char*)client_->get_temp_request_buffer(), client_->get_request_pdu_size());
 }
 void* hako::service::HakoServiceClientProtocol::get_response()
 {
     if (client_->get_state() != HAKO_SERVICE_CLIENT_STATE_DOING) {
         return nullptr;
     }
-    return response_pdu_buffer_.get();
+    return response_user_buffer_.get();
 }
 bool hako::service::HakoServiceClientProtocol::request(char* packet, int packet_len)
 {

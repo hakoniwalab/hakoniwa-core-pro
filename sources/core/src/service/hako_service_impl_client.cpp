@@ -65,11 +65,11 @@ char* hako::service::impl::HakoServiceClient::recv_response()
         return nullptr;
     }
     int ret = pro_data->get_response(asset_id_, service_id_, client_id_, 
-        (char*)get_response_buffer(), get_response_pdu_size());
+        (char*)get_temp_response_buffer(), get_response_pdu_size());
     if (ret < 0) {
         return nullptr;
     }
-    return (char*)get_response_buffer();
+    return (char*)get_temp_response_buffer();
 }
 
 bool hako::service::impl::HakoServiceClient::send_request(void* packet, int packet_len)

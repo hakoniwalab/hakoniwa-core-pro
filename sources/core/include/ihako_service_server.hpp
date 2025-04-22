@@ -27,8 +27,8 @@ namespace hako::service {
 
             virtual int get_service_id() = 0;
             virtual int get_asset_id() = 0;
-            virtual void* get_request_buffer() = 0;
-            virtual void* get_response_buffer() = 0;
+            virtual void* get_temp_request_buffer() = 0;
+            virtual void* get_temp_response_buffer() = 0;
             virtual bool event_start_service(int client_id) = 0;
             virtual bool event_done_service(int client_id) = 0;
             virtual bool event_cancel_service(int client_id) = 0;
