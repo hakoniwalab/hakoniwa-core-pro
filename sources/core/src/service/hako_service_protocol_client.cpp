@@ -195,7 +195,7 @@ void hako::service::HakoServiceClientProtocol::cancel_request()
         return;
     }
     //send cancel request
-    auto ret = send_request(HAKO_SERVICE_OPERATION_CODE_CANCEL, 0);
+    auto ret = send_request(HAKO_SERVICE_OPERATION_CODE_CANCEL, -1);
     if (ret == false) {
         std::cerr << "ERROR: send_request() failed" << std::endl;
         return;

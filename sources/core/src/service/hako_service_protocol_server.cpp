@@ -106,7 +106,7 @@ hako::service::HakoServiceServerEventType hako::service::HakoServiceServerProtoc
         }
         return HAKO_SERVICE_SERVER_EVENT_NONE;
     }
-
+    // data received
     switch (state) {
         case HAKO_SERVICE_SERVER_STATE_IDLE:
             if (header.opcode == HAKO_SERVICE_OPERATION_CODE_REQUEST) {

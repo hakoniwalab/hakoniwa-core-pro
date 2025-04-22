@@ -29,7 +29,6 @@ namespace hako::service {
             int get_request_pdu_size() { return server_->get_request_pdu_size(); }
             void* get_response_buffer(HakoServiceStatusType status, HakoServiceResultCodeType result_code);
             int   get_response_pdu_size() { return server_->get_response_pdu_size(); }
-            bool  set_response_header(HakoCpp_ServiceResponseHeader& header, HakoServiceStatusType status, HakoServiceResultCodeType result_code);
             bool  reply(char* packet, int packet_len);
             void  cancel_done();
             void  put_progress(int percentage) { percentage_ = percentage; }
@@ -48,6 +47,7 @@ namespace hako::service {
             bool validate_header(HakoCpp_ServiceRequestHeader& header);
             bool copy_user_buffer(const HakoCpp_ServiceRequestHeader& header);
             bool send_response(HakoServiceStatusType status, HakoServiceResultCodeType result_code);
+            bool  set_response_header(HakoCpp_ServiceResponseHeader& header, HakoServiceStatusType status, HakoServiceResultCodeType result_code);
             std::unique_ptr<char[]> request_user_buffer_;
             std::unique_ptr<char[]> response_user_buffer_;
             int percentage_ = 0;

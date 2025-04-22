@@ -29,7 +29,6 @@ namespace hako::service {
             void* get_response();
             void* get_request_buffer(int opcode, int poll_interval_msec);
             int   get_request_pdu_size() { return client_->get_request_pdu_size(); }
-            bool  set_request_header(HakoCpp_ServiceRequestHeader& header, HakoServiceOperationCodeType opcode, int poll_interval_msec);
             bool  request(char* packet, int packet_len);
             void  cancel_request();
             int   get_progress() { return percentage_; }
@@ -45,6 +44,7 @@ namespace hako::service {
             bool recv_response(HakoCpp_ServiceResponseHeader& header, bool& data_recv_in);
             bool validate_header(HakoCpp_ServiceResponseHeader& header);
             bool copy_user_buffer(const HakoCpp_ServiceResponseHeader& header);
+            bool set_request_header(HakoCpp_ServiceRequestHeader& header, HakoServiceOperationCodeType opcode, int poll_interval_msec);
             bool send_request(HakoServiceOperationCodeType opcode, int poll_interval_msec);
 
             /*
