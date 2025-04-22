@@ -1,4 +1,4 @@
-#include "hako_service_protocol.hpp"
+#include "hako_service_protocol_client.hpp"
 #include "hako_pro.hpp"
 
 /*

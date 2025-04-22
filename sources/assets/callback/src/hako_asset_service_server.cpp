@@ -1,7 +1,7 @@
 #include "hako_pro.hpp"
 #include "hako_asset_service.h"
-#include "hako_service_protocol.hpp"
-#include "hako_service_impl.hpp"
+#include "hako_service_impl_server.hpp"
+#include "hako_service_protocol_server.hpp"
 #include <vector>
 #include <unordered_map>
 
