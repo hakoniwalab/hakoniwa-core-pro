@@ -80,9 +80,12 @@ static int my_on_manual_timing_control(hako_asset_context_t* context)
             continue;
         }
         else if (ret == HAKO_SERVICE_CLIENT_API_REQUEST_CANCEL_DONE) {
-            printf("INFO: APL request is canceled.\n");
-            continue;
-        }
+            printf("INFO: HAKO_SERVICE_CLIENT_API_REQUEST_CANCEL_DONE\n");
+            while (true) {
+                hako_asset_usleep(delta_time_usec);
+                usleep(delta_time_usec);
+            }
+    }
         else if ((service_client.status() == HAKO_SERVICE_CLIENT_API_STATE_IDLE) && (ret == HAKO_SERVICE_CLIENT_API_EVENT_NONE))
         {
             HakoCpp_AddTwoIntsRequest req = {};
