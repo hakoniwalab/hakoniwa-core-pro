@@ -115,6 +115,10 @@ hako::service::HakoServiceServerEventType hako::service::HakoServiceServerProtoc
                 server_->event_start_service(client_id);
                 percentage_ = 0;
             }
+            else if (header.opcode == HAKO_SERVICE_OPERATION_CODE_CANCEL) {
+                event = HAKO_SERVICE_SERVER_EVENT_NONE;
+                std::cout << "WARNING: cancel request is received but service is not started" << std::endl;
+            }
             else {
                 if (send_response(HAKO_SERVICE_STATUS_ERROR, HAKO_SERVICE_RESULT_CODE_INVALID) == false) {
                     std::cerr << "ERROR: send_response() failed" << std::endl;

@@ -57,10 +57,13 @@ static int my_on_manual_timing_control(hako_asset_context_t* context)
             }
             else if (service_client.status() == HAKO_SERVICE_CLIENT_API_STATE_IDLE) {
                 is_timeout_happened = false;
-                printf("INFO: APL response is received.\n");
+                printf("INFO: APL success response is received after canceling request....\n");
                 HakoCpp_AddTwoIntsResponse res = service_client.get_response();
                 std::cout << "OUT: sum=" << res.sum << std::endl;
-                break;
+                while (true) {
+                    hako_asset_usleep(delta_time_usec);
+                    usleep(delta_time_usec);
+                }
             }
             else {
                 printf("ERORR: APL request cancel failed.\n");
