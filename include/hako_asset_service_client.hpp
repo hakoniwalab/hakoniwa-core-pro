@@ -86,7 +86,7 @@ namespace hako::service
                     }
                     return HAKO_SERVICE_CLIENT_API_RESPONSE_IN;
                 }
-                return HAKO_SERVICE_SERVER_API_EVENT_NONE;
+                return ret;
             }
             int status()
             {

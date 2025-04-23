@@ -38,12 +38,43 @@ static int my_on_initialize(hako_asset_context_t* context)
 static int my_on_manual_timing_control(hako_asset_context_t* context)
 {
     (void)context;
+    bool is_timeout_happened = false;
     std::cout << "*************** START SERVICE CLIENT ***************" << std::endl;
     while (true) {
+        hako_asset_usleep(delta_time_usec);
+        usleep(delta_time_usec);
         int ret = service_client.poll();
         if (ret < 0) {
             printf("ERORR: hako_asset_service_client_poll() returns %d.\n", ret);
             return 1;
+        }
+        std::cout << "INFO: APL STAUTS: " << service_client.status() << std::endl;
+        if (is_timeout_happened) {
+            printf("ERORR: APL request timeout.\n");
+            if (service_client.cancel_request()) {
+                printf("INFO: APL request is canceled.\n");
+                is_timeout_happened = false;
+            }
+            else if (service_client.status() == HAKO_SERVICE_CLIENT_API_STATE_IDLE) {
+                is_timeout_happened = false;
+                printf("INFO: APL response is received.\n");
+                HakoCpp_AddTwoIntsResponse res = service_client.get_response();
+                std::cout << "OUT: sum=" << res.sum << std::endl;
+                break;
+            }
+            else {
+                printf("ERORR: APL request cancel failed.\n");
+                continue;
+            }
+        }
+        if (service_client.status() == HAKO_SERVICE_CLIENT_API_STATE_CANCELING) {
+            continue;
+        }
+        std::cout << "INFO: APL EVENT: " << ret << std::endl;
+        if (ret == HAKO_SERVICE_CLIENT_API_REQUEST_TIMEOUT) {
+            printf("ERORR: APL request timeout.\n");
+            is_timeout_happened = true;
+            continue;
         }
         if ((service_client.status() == HAKO_SERVICE_CLIENT_API_STATE_IDLE) && (ret == HAKO_SERVICE_CLIENT_API_EVENT_NONE))
         {
@@ -51,7 +82,7 @@ static int my_on_manual_timing_control(hako_asset_context_t* context)
             req.a = 1;
             req.b = 2;
             std::cout << "IN: a=" << req.a << ", b=" << req.b << std::endl;
-            int ret = service_client.request(req);
+            int ret = service_client.request(req, 1000, -1);
             if (ret < 0) {
                 printf("ERORR: service_client.request() returns %d.\n", ret);
                 return 1;
@@ -70,8 +101,6 @@ static int my_on_manual_timing_control(hako_asset_context_t* context)
             return 1;
 
         }
-        hako_asset_usleep(delta_time_usec);
-        usleep(delta_time_usec);
     }
     return 0;
 }

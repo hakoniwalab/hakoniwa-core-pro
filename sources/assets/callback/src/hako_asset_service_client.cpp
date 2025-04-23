@@ -184,7 +184,10 @@ int hako_asset_service_client_cancel_request(const HakoServiceHandleType* handle
         std::cerr << "ERROR: hako_asset_service_client_cancel_request(): client_protocol is null" << std::endl;
         return -1;
     }
-    client_protocol->cancel_request();
+    if (client_protocol->cancel_request() != true) {
+        std::cerr << "ERROR: hako_asset_service_client_cancel_request(): cancel_request() failed" << std::endl;
+        return -1;
+    }
     return 0;
 }
 int hako_asset_service_client_get_progress(const HakoServiceHandleType* handle)

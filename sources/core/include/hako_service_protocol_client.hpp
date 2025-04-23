@@ -30,7 +30,7 @@ namespace hako::service {
             void* get_request_buffer(int opcode, int poll_interval_msec);
             int   get_request_pdu_size() { return client_->get_request_pdu_size(); }
             bool  request(char* packet, int packet_len, int timeout_msec);
-            void  cancel_request();
+            bool  cancel_request();
             int   get_progress() { return percentage_; }
             int  get_service_id() { return client_->get_service_id(); }
             int get_client_id() { return client_->get_client_id(); }

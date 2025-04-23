@@ -93,7 +93,6 @@ hako::service::HakoServiceClientEventType hako::service::HakoServiceClientProtoc
     else if (data_recv_in == false) {
         if ((state != HAKO_SERVICE_CLIENT_STATE_CANCELING) && (is_heartbeat_timeout())) {
             std::cerr << "ERROR: heartbeat timeout" << std::endl;
-            cancel_request();
             return HAKO_SERVICE_CLIENT_REQUEST_TIMEOUT;
         }
         return HAKO_SERVICE_CLIENT_EVENT_NONE;
@@ -196,16 +195,18 @@ bool hako::service::HakoServiceClientProtocol::request(char* packet, int packet_
     //std::cout << "INFO: request_header_.request_id=" << request_header_.request_id << std::endl;
     return ret;
 }
-void hako::service::HakoServiceClientProtocol::cancel_request()
+bool hako::service::HakoServiceClientProtocol::cancel_request()
 {
     if (client_->get_state() != HAKO_SERVICE_CLIENT_STATE_DOING) {
-        return;
+        std::cerr << "ERROR: client_->get_state(" << client_->get_state() << ") != HAKO_SERVICE_CLIENT_STATE_DOING" << std::endl;
+        return false;
     }
     //send cancel request
     auto ret = send_request(HAKO_SERVICE_OPERATION_CODE_CANCEL, -1);
     if (ret == false) {
         std::cerr << "ERROR: send_request() failed" << std::endl;
-        return;
+        return false;
     }
     client_->event_cancel_service();
+    return true;
 }

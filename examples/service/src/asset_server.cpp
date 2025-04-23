@@ -42,6 +42,9 @@ static int my_on_manual_timing_control(hako_asset_context_t* context)
     (void)context;
     std::cout << "*************** START SERVICE SERVER ***************" << std::endl;
     while (true) {
+        hako_asset_usleep(5* delta_time_usec);
+        usleep(5* delta_time_usec);
+
         int ret = service_server.poll();
         if (ret < 0) {
             printf("ERORR: hako_asset_service_server_poll() returns %d.\n", ret);
