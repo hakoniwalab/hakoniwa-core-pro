@@ -88,6 +88,34 @@ namespace hako::service
                 }
                 return ret;
             }
+            bool is_no_event(int event)
+            {
+                if (event == HAKO_SERVICE_CLIENT_API_EVENT_NONE) {
+                    return true;
+                }
+                return false;
+            }
+            bool is_request_timeout(int event)
+            {
+                if (event == HAKO_SERVICE_CLIENT_API_REQUEST_TIMEOUT) {
+                    return true;
+                }
+                return false;
+            }
+            bool is_request_cancel_done(int event)
+            {
+                if (event == HAKO_SERVICE_CLIENT_API_REQUEST_CANCEL_DONE) {
+                    return true;
+                }
+                return false;
+            }
+            bool is_response_in(int event)
+            {
+                if (event == HAKO_SERVICE_CLIENT_API_RESPONSE_IN) {
+                    return true;
+                }
+                return false;
+            }
             int status()
             {
                 int status = 0;

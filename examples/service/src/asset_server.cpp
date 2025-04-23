@@ -55,14 +55,14 @@ static int my_on_manual_timing_control(hako_asset_context_t* context)
             HakoCpp_AddTwoIntsResponse res = {};
             res.sum = req.a + req.b;
             std::cout << "IN: a=" << req.a << " b=" << req.b << std::endl;
-#if false /* 1. for racing condition: cancel request is received after reply... */
+#if false /* 2. for racing condition: cancel request is received after reply... */
             hako_asset_usleep(5* delta_time_usec);//cancel request is sended while sleeping..
             usleep(5* delta_time_usec);
             std::cout << "OUT: sum=" << res.sum << std::endl;
             (void)service_server.normal_reply(res);
             int ret = service_server.poll();
             std::cout << "INFO: APL EVENT: " << ret << std::endl;
-#else      /* 2. for racing condition: cancel request is received before reply... */
+#else      /* 1. for racing condition: cancel request is received before reply... */
             hako_asset_usleep(5* delta_time_usec);
             usleep(5* delta_time_usec);
             int ret = service_server.poll();
