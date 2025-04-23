@@ -53,10 +53,40 @@ namespace hako::service
                 }
                 return ret;
             }
+            bool is_no_event(int event)
+            {
+                if (event == HAKO_SERVICE_SERVER_API_EVENT_NONE) {
+                    return true;
+                }
+                return false;
+            }
+            bool is_request_in(int event)
+            {
+                if (event == HAKO_SERVICE_SERVER_API_REQUEST_IN) {
+                    return true;
+                }
+                return false;
+            }
+            bool is_request_cancel(int event)
+            {
+                if (event == HAKO_SERVICE_SERVER_API_REQUEST_CANCEL) {
+                    return true;
+                }
+                return false;
+            }
             CppReqBodyType get_request()
             {
                 return req_packet_.body;
             }
+            bool normal_reply(CppResBodyType& res_body)
+            {
+                return reply(res_body, HAKO_SERVICE_API_RESULT_CODE_OK);
+            }
+            bool cancel_reply(CppResBodyType& res_body)
+            {
+                return reply(res_body, HAKO_SERVICE_API_RESULT_CODE_CANCEL);
+            }
+        private:
             bool reply(CppResBodyType& res_body, int result_code = HAKO_SERVICE_API_RESULT_CODE_OK)
             {
                 char* response_buffer = nullptr;
@@ -85,7 +115,6 @@ namespace hako::service
                 }
                 return true;
             }
-        private:
             hako::pdu::PduConvertor<CppReqPacketType, ConvertorReq> req_convertor_;
             hako::pdu::PduConvertor<CppResPacketType, ConvertorRes> res_convertor_;
             int service_id_ = -1;

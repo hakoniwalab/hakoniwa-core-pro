@@ -50,16 +50,16 @@ static int my_on_manual_timing_control(hako_asset_context_t* context)
             printf("ERORR: hako_asset_service_server_poll() returns %d.\n", ret);
             return 1;
         }
-        if (ret == HAKO_SERVICE_SERVER_API_REQUEST_IN) {
+        if (service_server.is_request_in(ret)) {
             HakoCpp_AddTwoIntsRequest req = service_server.get_request();
             HakoCpp_AddTwoIntsResponse res = {};
             res.sum = req.a + req.b;
             std::cout << "IN: a=" << req.a << " b=" << req.b << std::endl;
-#if true /* 1. for racing condition: cancel request is received after reply... */
+#if false /* 1. for racing condition: cancel request is received after reply... */
             hako_asset_usleep(5* delta_time_usec);//cancel request is sended while sleeping..
             usleep(5* delta_time_usec);
             std::cout << "OUT: sum=" << res.sum << std::endl;
-            (void)service_server.reply(res);
+            (void)service_server.normal_reply(res);
             int ret = service_server.poll();
             std::cout << "INFO: APL EVENT: " << ret << std::endl;
 #else      /* 2. for racing condition: cancel request is received before reply... */
@@ -67,13 +67,13 @@ static int my_on_manual_timing_control(hako_asset_context_t* context)
             usleep(5* delta_time_usec);
             int ret = service_server.poll();
             std::cout << "INFO: APL EVENT: " << ret << std::endl;
-            if (ret == HAKO_SERVICE_SERVER_API_REQUEST_CANCEL) {
+            if (service_server.is_request_cancel(ret)) {
                 printf("WARNING: APL cancel request is happened.\n");
-                service_server.reply(res, HAKO_SERVICE_API_RESULT_CODE_CANCEL);
+                service_server.cancel_reply(res);
             }
             else {
                 std::cout << "OUT: sum=" << res.sum << std::endl;
-                (void)service_server.reply(res);
+                (void)service_server.normal_reply(res);
             }
 #endif
         }
