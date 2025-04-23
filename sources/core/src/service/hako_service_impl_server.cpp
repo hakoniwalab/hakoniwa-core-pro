@@ -134,7 +134,8 @@ bool hako::service::impl::HakoServiceServer::event_done_service(int client_id)
         return false;
     }
     if ((state_[client_id] != HAKO_SERVICE_SERVER_STATE_DOING && state_[client_id] != HAKO_SERVICE_SERVER_STATE_CANCELING)) {
-        std::cerr << "ERROR: service is not doing" << std::endl;
+        //debug funcname, client_id, state
+        std::cerr << "ERROR: event_done_service() service is not doing or canceling: state[" << client_id << "] = " << state_[client_id] << std::endl;
         return false;
     }
     state_[client_id] = HAKO_SERVICE_SERVER_STATE_IDLE;
@@ -147,7 +148,7 @@ bool hako::service::impl::HakoServiceServer::event_cancel_service(int client_id)
         return false;
     }
     if (state_[client_id] != HAKO_SERVICE_SERVER_STATE_DOING) {
-        std::cerr << "ERROR: service is not doing" << std::endl;
+        std::cerr << "ERROR: event_cancel_service() service is not doing: state[" << client_id << "] = " << state_[client_id] << std::endl;
         return false;
     }
     state_[client_id] = HAKO_SERVICE_SERVER_STATE_CANCELING;

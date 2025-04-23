@@ -102,7 +102,8 @@ bool hako::service::impl::HakoServiceClient::event_start_service()
 bool hako::service::impl::HakoServiceClient::event_done_service()
 {
     if ((state_ != HAKO_SERVICE_CLIENT_STATE_DOING) && (state_ != HAKO_SERVICE_CLIENT_STATE_CANCELING)) {
-        std::cerr << "ERROR: service is not doing" << std::endl;
+        //state debug
+        std::cerr << "ERROR: event_cancel_service() service is not doing or canceling: state = " << state_ << std::endl;
         return false;
     }
     state_ = HAKO_SERVICE_CLIENT_STATE_IDLE;
@@ -111,7 +112,7 @@ bool hako::service::impl::HakoServiceClient::event_done_service()
 bool hako::service::impl::HakoServiceClient::event_cancel_service()
 {
     if (state_ != HAKO_SERVICE_CLIENT_STATE_DOING) {
-        std::cerr << "ERROR: service is not doing" << std::endl;
+        std::cerr << "ERROR: event_cancel_service() service is not doing: state = " << state_ << std::endl;
         return false;
     }
     state_ = HAKO_SERVICE_CLIENT_STATE_CANCELING;

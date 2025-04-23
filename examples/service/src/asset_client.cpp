@@ -76,7 +76,11 @@ static int my_on_manual_timing_control(hako_asset_context_t* context)
             is_timeout_happened = true;
             continue;
         }
-        if ((service_client.status() == HAKO_SERVICE_CLIENT_API_STATE_IDLE) && (ret == HAKO_SERVICE_CLIENT_API_EVENT_NONE))
+        else if (ret == HAKO_SERVICE_CLIENT_API_REQUEST_CANCEL_DONE) {
+            printf("INFO: APL request is canceled.\n");
+            continue;
+        }
+        else if ((service_client.status() == HAKO_SERVICE_CLIENT_API_STATE_IDLE) && (ret == HAKO_SERVICE_CLIENT_API_EVENT_NONE))
         {
             HakoCpp_AddTwoIntsRequest req = {};
             req.a = 1;

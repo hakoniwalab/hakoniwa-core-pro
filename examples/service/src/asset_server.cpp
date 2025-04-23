@@ -55,8 +55,18 @@ static int my_on_manual_timing_control(hako_asset_context_t* context)
             HakoCpp_AddTwoIntsResponse res = {};
             res.sum = req.a + req.b;
             std::cout << "IN: a=" << req.a << " b=" << req.b << std::endl;
-            std::cout << "OUT: sum=" << res.sum << std::endl;
-            (void)service_server.reply(res);
+            hako_asset_usleep(5* delta_time_usec);
+            usleep(5* delta_time_usec);
+            int ret = service_server.poll();
+            std::cout << "INFO: APL EVENT: " << ret << std::endl;
+            if (ret == HAKO_SERVICE_SERVER_API_REQUEST_CANCEL) {
+                printf("WARNING: APL cancel request is happened.\n");
+                service_server.reply(res, HAKO_SERVICE_API_RESULT_CODE_CANCEL);
+            }
+            else {
+                std::cout << "OUT: sum=" << res.sum << std::endl;
+                (void)service_server.reply(res);
+            }
         }
         hako_asset_usleep(delta_time_usec);
         usleep(delta_time_usec);

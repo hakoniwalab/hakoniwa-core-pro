@@ -35,6 +35,7 @@ namespace hako::service
                     std::cerr << "ERROR: hako_asset_service_server_poll() returns " << ret << std::endl;
                     return false;
                 }
+                //std::cout << "INFO: hako_asset_service_server_poll(): " << ret << std::endl;
                 if (ret == HAKO_SERVICE_SERVER_API_REQUEST_IN) {
                     char* request_buffer = nullptr;
                     size_t request_buffer_len = 0;
@@ -50,7 +51,7 @@ namespace hako::service
                     }
                     return HAKO_SERVICE_SERVER_API_REQUEST_IN;
                 }
-                return HAKO_SERVICE_SERVER_API_EVENT_NONE;
+                return ret;
             }
             CppReqBodyType get_request()
             {
