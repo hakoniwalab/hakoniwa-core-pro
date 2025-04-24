@@ -142,6 +142,7 @@ hako::service::HakoServiceServerEventType hako::service::HakoServiceServerProtoc
             }
             break;
         default:
+            std::cerr << "ERROR: Unknown service server state: " << state << std::endl;
             break;
     }
     return event;
