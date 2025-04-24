@@ -358,13 +358,13 @@ static PyObject* py_hako_asset_service_server_create(PyObject*, PyObject* args) 
         return NULL;
     }
 
-    int result = hako_asset_service_server_create(asset_name, service_name);
-    if (result == 0) {
-        Py_RETURN_TRUE;
-    } else {
-        Py_RETURN_FALSE;
+    int service_id = hako_asset_service_server_create(asset_name, service_name);
+    if (service_id < 0) {
+        Py_RETURN_NONE;  // または PyErr_SetString() してもOK
     }
+    return PyLong_FromLong(service_id);
 }
+
 //#HAKO_API int hako_asset_service_server_poll(int service_id);
 static PyObject* py_hako_asset_service_server_poll(PyObject*, PyObject* args) {
     int service_id;
@@ -373,12 +373,8 @@ static PyObject* py_hako_asset_service_server_poll(PyObject*, PyObject* args) {
         return NULL;
     }
 
-    int result = hako_asset_service_server_poll(service_id);
-    if (result == 0) {
-        Py_RETURN_TRUE;
-    } else {
-        Py_RETURN_FALSE;
-    }
+    int event = hako_asset_service_server_poll(service_id);
+    return PyLong_FromLong(event);
 }
 //#HAKO_API int hako_asset_service_server_get_current_client_id(int service_id);
 static PyObject* py_hako_asset_service_server_get_current_client_id(PyObject*, PyObject* args) {

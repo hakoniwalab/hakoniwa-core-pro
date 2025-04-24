@@ -4,12 +4,21 @@ import hakopy
 import hako_pdu
 import sys
 import time
-from sources.assets.bindings.python.hako_asset_service import HakoServiceHandle
-from sources.assets.bindings.python.hako_asset_service import HakoAssetService
+import sources.assets.bindings.python.hako_asset_service_constants as constants
+from sources.assets.bindings.python.hako_asset_service_server import HakoAssetServiceServer
 
+asset_name = 'Server'
+service_name = 'Service/Add'
 service_config_path = './examples/service/service.json'
+service_server = None
+delta_time_usec = 1000 * 1000
 def my_on_initialize(context):
-
+    global asset_name
+    global service_name
+    global service_server
+    service_server = HakoAssetServiceServer(pdu_manager, asset_name, service_name)
+    if service_server.initialize() == False:
+        raise RuntimeError("Failed to create asset service")
     return 0
 
 def my_on_reset(context):
@@ -19,6 +28,20 @@ def my_on_reset(context):
 pdu_manager = None
 def my_on_manual_timing_control(context):
     global pdu_manager
+    global service_server
+    global delta_time_usec
+    while True:
+        ret = service_server.poll()
+        if ret == constants.HAKO_SERVICE_SERVER_API_EVENT_REQUEST_IN:
+            # Process the request
+            print("Request received")
+            # Here you would typically process the request and prepare a response
+            # For example, you might modify the req_packet and send it back
+            # service_server.res_packet = service_server.req_packet
+            # hakopy.hako_asset_service_server_send_response(service_server.service_id, service_server.res_packet)
+        else:
+            hakopy.usleep(delta_time_usec)
+            time.sleep(1)
 
     return 0
 
@@ -37,7 +60,6 @@ def main():
     asset_name = 'Server'
     config_path = sys.argv[1]
     delta_time_usec = 1000 * 1000
-    service = HakoAssetService('cmake-build/sources/assets/polling/libshakoc.dylib')
 
     pdu_manager = hako_pdu.HakoPduManager('./hakoniwa-ros2pdu/pdu/offset', config_path)
 
