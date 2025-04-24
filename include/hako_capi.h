@@ -1,5 +1,4 @@
-#ifndef _HAKO_CLIENT_H_
-#define _HAKO_CLIENT_H_
+#pragma once
 
 
 #ifdef __cplusplus
@@ -67,4 +66,3 @@ extern "C" {
 }
 #endif
 
-#endif /* _HAKO_CLIENT_H_ */

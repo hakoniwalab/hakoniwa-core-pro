@@ -8,6 +8,7 @@
 extern "C" {
 #endif
 
+
 /*
  * Hakoniwa Service API - C Interface
  * ----------------------------------

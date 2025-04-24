@@ -43,7 +43,7 @@ set(SHARED_SRC
     ${HAKO_CORE_PRO_SOURCE_DIR}/assets/polling/src/hako_asset_service.cpp
     ${HAKO_CORE_PRO_SOURCE_DIR}/assets/polling/src/hako_asset_service_server.cpp
     ${HAKO_CORE_PRO_SOURCE_DIR}/assets/polling/src/hako_asset_service_client.cpp
-${HAKO_CORE_PRO_SOURCE_DIR}/core/src/hako_pro.cpp
+    ${HAKO_CORE_PRO_SOURCE_DIR}/core/src/hako_pro.cpp
 )
 
 

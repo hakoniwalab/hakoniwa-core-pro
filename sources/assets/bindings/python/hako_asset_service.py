@@ -1,5 +1,7 @@
 import ctypes
 
+
+
 class HakoServiceHandle(ctypes.Structure):
     _fields_ = [
         ('service_id', ctypes.c_int),
@@ -7,7 +9,8 @@ class HakoServiceHandle(ctypes.Structure):
     ]
 class HakoAssetService:
     def __init__(self, lib_path: str):
-        self.lib = ctypes.CDLL(lib_path)
+        self.lib = ctypes.CDLL(lib_path, mode=ctypes.RTLD_GLOBAL)
+
         # Server APIs
         #HAKO_API int hako_asset_service_initialize(const char* service_config_path);
         self.lib.hako_asset_service_initialize.argtypes = [ctypes.c_char_p]
