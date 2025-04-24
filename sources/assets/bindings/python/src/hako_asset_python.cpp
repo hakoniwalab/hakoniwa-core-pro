@@ -1,6 +1,7 @@
 #include "Python.h"
 #include <stdio.h>
 #include "hako_asset.h"
+#include "hako_asset_service.h"
 #include "hako_conductor.h"
 
 #ifdef __cplusplus
@@ -335,6 +336,365 @@ static PyObject* py_init_for_external(PyObject*, PyObject*) {
     }
 }
 
+static PyObject* py_hako_asset_service_initialize(PyObject*, PyObject* args) {
+    const char* service_config_path;
+    if (!PyArg_ParseTuple(args, "s", &service_config_path)) {
+        return NULL;
+    }
+    int result = hako_asset_service_initialize(service_config_path);
+    if (result == 0) {
+        Py_RETURN_TRUE;
+    } else {
+        Py_RETURN_FALSE;
+    }
+}
+
+//#HAKO_API int hako_asset_service_server_create(const char* assetName, const char* serviceName);
+static PyObject* py_hako_asset_service_server_create(PyObject*, PyObject* args) {
+    const char* asset_name;
+    const char* service_name;
+
+    if (!PyArg_ParseTuple(args, "ss", &asset_name, &service_name)) {
+        return NULL;
+    }
+
+    int result = hako_asset_service_server_create(asset_name, service_name);
+    if (result == 0) {
+        Py_RETURN_TRUE;
+    } else {
+        Py_RETURN_FALSE;
+    }
+}
+//#HAKO_API int hako_asset_service_server_poll(int service_id);
+static PyObject* py_hako_asset_service_server_poll(PyObject*, PyObject* args) {
+    int service_id;
+
+    if (!PyArg_ParseTuple(args, "i", &service_id)) {
+        return NULL;
+    }
+
+    int result = hako_asset_service_server_poll(service_id);
+    if (result == 0) {
+        Py_RETURN_TRUE;
+    } else {
+        Py_RETURN_FALSE;
+    }
+}
+//#HAKO_API int hako_asset_service_server_get_current_client_id(int service_id);
+static PyObject* py_hako_asset_service_server_get_current_client_id(PyObject*, PyObject* args) {
+    int service_id;
+
+    if (!PyArg_ParseTuple(args, "i", &service_id)) {
+        return NULL;
+    }
+
+    int result = hako_asset_service_server_get_current_client_id(service_id);
+    return PyLong_FromLong(result);
+}
+//#HAKO_API int hako_asset_service_server_get_current_channel_id(int service_id, int* request_channel_id, int* response_channel_id);
+static PyObject* py_hako_asset_service_server_get_current_channel_id(PyObject*, PyObject* args) {
+    int service_id;
+    int request_channel_id;
+    int response_channel_id;
+
+    if (!PyArg_ParseTuple(args, "i", &service_id)) {
+        return NULL;
+    }
+
+    int result = hako_asset_service_server_get_current_channel_id(service_id, &request_channel_id, &response_channel_id);
+    if (result == 0) {
+        return Py_BuildValue("(ii)", request_channel_id, response_channel_id);
+    } else {
+        return NULL;
+    }
+}
+//#HAKO_API int hako_asset_service_server_status(int service_id, int* status);
+static PyObject* py_hako_asset_service_server_status(PyObject*, PyObject* args) {
+    int service_id;
+    int status;
+
+    if (!PyArg_ParseTuple(args, "i", &service_id)) {
+        return NULL;
+    }
+
+    int result = hako_asset_service_server_status(service_id, &status);
+    if (result == 0) {
+        return PyLong_FromLong(status);
+    } else {
+        return NULL;
+    }
+}
+//#HAKO_API int hako_asset_service_server_get_request(int service_id, char** packet, size_t* packet_len);
+static PyObject* py_hako_asset_service_server_get_request(PyObject*, PyObject* args) {
+    int service_id;
+    char* packet;
+    size_t packet_len;
+
+    if (!PyArg_ParseTuple(args, "i", &service_id)) {
+        return NULL;
+    }
+
+    int result = hako_asset_service_server_get_request(service_id, &packet, &packet_len);
+    if (result == 0) {
+        PyObject* py_data = PyByteArray_FromStringAndSize(packet, packet_len);
+        return py_data;
+    } else {
+        return NULL;
+    }
+}
+//#HAKO_API int hako_asset_service_server_get_response_buffer(int service_id, char** packet, size_t* packet_len, int status, int result_code);
+static PyObject* py_hako_asset_service_server_get_response_buffer(PyObject*, PyObject* args) {
+    int service_id;
+    int status;
+    int result_code;
+    char* packet = NULL;
+    size_t packet_len = 0;
+
+    // ← 引数3つ: service_id, status, result_code を受け取るように修正
+    if (!PyArg_ParseTuple(args, "iii", &service_id, &status, &result_code)) {
+        return NULL;
+    }
+
+    int result = hako_asset_service_server_get_response_buffer(
+        service_id,
+        &packet,
+        &packet_len,
+        status,
+        result_code
+    );
+
+    if (result == 0 && packet != NULL) {
+        return PyByteArray_FromStringAndSize(packet, packet_len);
+    } else {
+        Py_RETURN_NONE;
+    }
+}
+
+//#HAKO_API int hako_asset_service_server_put_response(int service_id, char* packet, size_t packet_len);
+static PyObject* py_hako_asset_service_server_put_response(PyObject*, PyObject* args) {
+    int service_id;
+    PyObject* py_packet;
+
+    if (!PyArg_ParseTuple(args, "iO!", &service_id, &PyByteArray_Type, &py_packet)) {
+        return NULL;
+    }
+
+    char* packet = PyByteArray_AsString(py_packet);
+    Py_ssize_t packet_len = PyByteArray_Size(py_packet);
+
+    if (packet == NULL) {
+        PyErr_SetString(PyExc_ValueError, "Invalid bytearray object for packet");
+        return NULL;
+    }
+
+    int result = hako_asset_service_server_put_response(service_id, packet, (size_t)packet_len);
+    if (result == 0) {
+        Py_RETURN_TRUE;
+    } else {
+        Py_RETURN_FALSE;
+    }
+}
+
+//#HAKO_API int hako_asset_service_server_is_canceled(int service_id);
+static PyObject* py_hako_asset_service_server_is_canceled(PyObject*, PyObject* args) {
+    int service_id;
+
+    if (!PyArg_ParseTuple(args, "i", &service_id)) {
+        return NULL;
+    }
+
+    int result = hako_asset_service_server_is_canceled(service_id);
+    if (result == 0) {
+        Py_RETURN_TRUE;
+    } else {
+        Py_RETURN_FALSE;
+    }
+}
+//#HAKO_API int hako_asset_service_server_set_progress(int service_id, int percentage);
+static PyObject* py_hako_asset_service_server_set_progress(PyObject*, PyObject* args) {
+    int service_id;
+    int percentage;
+
+    if (!PyArg_ParseTuple(args, "ii", &service_id, &percentage)) {
+        return NULL;
+    }
+
+    int result = hako_asset_service_server_set_progress(service_id, percentage);
+    if (result == 0) {
+        Py_RETURN_TRUE;
+    } else {
+        Py_RETURN_FALSE;
+    }
+}
+static PyObject* py_hako_asset_service_client_create(PyObject*, PyObject* args) {
+    const char* asset_name;
+    const char* service_name;
+    const char* client_name;
+    HakoServiceHandleType* handle = (HakoServiceHandleType*)malloc(sizeof(HakoServiceHandleType));
+    if (handle == NULL) {
+        PyErr_NoMemory();
+        return NULL;
+    }
+
+    if (!PyArg_ParseTuple(args, "sss", &asset_name, &service_name, &client_name)) {
+        free(handle);
+        return NULL;
+    }
+
+    int result = hako_asset_service_client_create(asset_name, service_name, client_name, handle);
+    if (result == 0) {
+        // Python Capsule に包んで Python に渡す
+        PyObject* capsule = PyCapsule_New((void*)handle, "HakoServiceHandleType", NULL);
+        if (!capsule) {
+            free(handle);
+            return NULL;
+        }
+        return capsule;
+    } else {
+        free(handle);
+        Py_RETURN_NONE;
+    }
+}
+
+//#HAKO_API int hako_asset_service_client_poll(const HakoServiceHandleType* handle);
+static PyObject* py_hako_asset_service_client_poll(PyObject*, PyObject* args) {
+    PyObject* capsule;
+    if (!PyArg_ParseTuple(args, "O", &capsule)) {
+        return NULL;
+    }
+    HakoServiceHandleType* handle = (HakoServiceHandleType*)PyCapsule_GetPointer(capsule, "HakoServiceHandleType");
+    if (handle == NULL) {
+        PyErr_SetString(PyExc_RuntimeError, "Invalid capsule");
+        return NULL;
+    }
+    int result = hako_asset_service_client_poll(handle);
+    if (result == 0) {
+        Py_RETURN_TRUE;
+    } else {
+        Py_RETURN_FALSE;
+    }
+}
+static PyObject* py_hako_asset_service_client_get_current_channel_id(PyObject*, PyObject* args) {
+    PyObject* capsule;
+
+    if (!PyArg_ParseTuple(args, "O", &capsule)) {
+        return NULL;
+    }
+
+    HakoServiceHandleType* handle = (HakoServiceHandleType*)PyCapsule_GetPointer(capsule, "HakoServiceHandleType");
+    if (handle == NULL) {
+        PyErr_SetString(PyExc_RuntimeError, "Invalid capsule for HakoServiceHandleType");
+        return NULL;
+    }
+
+    int request_channel_id = 0;
+    int response_channel_id = 0;
+
+    int result = hako_asset_service_client_get_current_channel_id(handle->service_id, &request_channel_id, &response_channel_id);
+    if (result == 0) {
+        return Py_BuildValue("(ii)", request_channel_id, response_channel_id);
+    } else {
+        Py_RETURN_NONE;
+    }
+}
+
+//#HAKO_API int hako_asset_service_client_get_request_buffer(const HakoServiceHandleType* handle, char** packet, size_t* packet_len, int opcode, int poll_interval_msec);
+static PyObject* py_hako_asset_service_client_get_request_buffer(PyObject*, PyObject* args) {
+    PyObject* capsule;
+    int opcode, poll_interval_msec;
+    if (!PyArg_ParseTuple(args, "Oii", &capsule, &opcode, &poll_interval_msec)) {
+        return NULL;
+    }
+    HakoServiceHandleType* handle = (HakoServiceHandleType*)PyCapsule_GetPointer(capsule, "HakoServiceHandleType");
+    if (!handle) return NULL;
+    
+    char* packet = NULL;
+    size_t packet_len = 0;
+    
+    int result = hako_asset_service_client_get_request_buffer(handle, &packet, &packet_len, opcode, poll_interval_msec);
+    if (result == 0 && packet != NULL) {
+        return PyByteArray_FromStringAndSize(packet, packet_len);
+    }
+    Py_RETURN_NONE;
+}
+//#HAKO_API int hako_asset_service_client_call_request(const HakoServiceHandleType* handle, char* packet, size_t packet_len, int timeout_msec);
+static PyObject* py_hako_asset_service_client_call_request(PyObject*, PyObject* args) {
+    PyObject* capsule;
+    PyObject* py_packet;
+    int timeout_msec;
+    if (!PyArg_ParseTuple(args, "OOi", &capsule, &py_packet, &timeout_msec)) {
+        return NULL;
+    }
+    HakoServiceHandleType* handle = (HakoServiceHandleType*)PyCapsule_GetPointer(capsule, "HakoServiceHandleType");
+    if (!handle) return NULL;
+    
+    char* packet = PyByteArray_AsString(py_packet);
+    Py_ssize_t packet_len = PyByteArray_Size(py_packet);
+    
+    int result = hako_asset_service_client_call_request(handle, packet, packet_len, timeout_msec);
+    if (result == 0) Py_RETURN_TRUE;
+    Py_RETURN_FALSE;    
+}
+//#HAKO_API int hako_asset_service_client_get_response(const HakoServiceHandleType* handle, char** packet, size_t* packet_len, int timeout);
+static PyObject* py_hako_asset_service_client_get_response(PyObject*, PyObject* args) {
+    PyObject* capsule;
+    int timeout;
+    if (!PyArg_ParseTuple(args, "Oi", &capsule, &timeout)) {
+        return NULL;
+    }
+    HakoServiceHandleType* handle = (HakoServiceHandleType*)PyCapsule_GetPointer(capsule, "HakoServiceHandleType");
+    if (!handle) return NULL;
+    
+    char* packet = NULL;
+    size_t packet_len = 0;
+    
+    int result = hako_asset_service_client_get_response(handle, &packet, &packet_len, timeout);
+    if (result == 0 && packet != NULL) {
+        return PyByteArray_FromStringAndSize(packet, packet_len);
+    }
+    Py_RETURN_NONE;
+}
+//#HAKO_API int hako_asset_service_client_cancel_request(const HakoServiceHandleType* handle);
+static PyObject* py_hako_asset_service_client_cancel_request(PyObject*, PyObject* args) {
+    PyObject* capsule;
+    if (!PyArg_ParseTuple(args, "O", &capsule)) {
+        return NULL;
+    }
+    HakoServiceHandleType* handle = (HakoServiceHandleType*)PyCapsule_GetPointer(capsule, "HakoServiceHandleType");
+    if (!handle) return NULL;
+    
+    int result = hako_asset_service_client_cancel_request(handle);
+    if (result == 0) Py_RETURN_TRUE;
+    Py_RETURN_FALSE;    
+}
+//#HAKO_API int hako_asset_service_client_get_progress(const HakoServiceHandleType* handle);
+static PyObject* py_hako_asset_service_client_get_progress(PyObject*, PyObject* args) {
+    PyObject* capsule;
+    if (!PyArg_ParseTuple(args, "O", &capsule)) {
+        return NULL;
+    }
+    HakoServiceHandleType* handle = (HakoServiceHandleType*)PyCapsule_GetPointer(capsule, "HakoServiceHandleType");
+    if (!handle) return NULL;
+    
+    int progress = hako_asset_service_client_get_progress(handle);
+    return PyLong_FromLong(progress);    
+}
+//#HAKO_API int hako_asset_service_client_status(const HakoServiceHandleType* handle, int* status);
+static PyObject* py_hako_asset_service_client_status(PyObject*, PyObject* args) {
+    PyObject* capsule;
+    if (!PyArg_ParseTuple(args, "O", &capsule)) {
+        return NULL;
+    }
+    HakoServiceHandleType* handle = (HakoServiceHandleType*)PyCapsule_GetPointer(capsule, "HakoServiceHandleType");
+    if (!handle) return NULL;
+    
+    int status = 0;
+    int result = hako_asset_service_client_status(handle, &status);
+    if (result == 0) {
+        return PyLong_FromLong(status);
+    }
+    Py_RETURN_NONE;    
+}
 static PyMethodDef hako_asset_python_methods[] = {
     {"asset_register", asset_register, METH_VARARGS, "Register asset"},
     {"init_for_external", py_init_for_external, METH_NOARGS, "Initialize for external"},
@@ -348,6 +708,45 @@ static PyMethodDef hako_asset_python_methods[] = {
     {"check_data_recv_event", py_hako_asset_check_data_recv_event, METH_VARARGS, "Check if data was received for a given channel (flag-based)."},
     {"conductor_start", py_hako_conductor_start, METH_VARARGS, "Start the conductor with specified delta and max delay usec."},
     {"conductor_stop", py_hako_conductor_stop, METH_NOARGS, "Stop the conductor."},
+    {"service_initialize", py_hako_asset_service_initialize, METH_VARARGS, "Initialize asset service."},
+    //#HAKO_API int hako_asset_service_server_create(const char* assetName, const char* serviceName);
+    {"asset_service_create", py_hako_asset_service_server_create, METH_VARARGS, "Initialize asset service."},
+    //#HAKO_API int hako_asset_service_server_poll(int service_id);
+    {"hako_asset_service_server_poll", py_hako_asset_service_server_poll, METH_VARARGS, "Poll asset service."},
+    //#HAKO_API int hako_asset_service_server_get_current_client_id(int service_id);
+    {"hako_asset_service_server_get_current_client_id", py_hako_asset_service_server_get_current_client_id, METH_VARARGS, "Get current client ID."},
+    //#HAKO_API int hako_asset_service_server_get_current_channel_id(int service_id, int* request_channel_id, int* response_channel_id);
+    {"hako_asset_service_server_get_current_channel_id", py_hako_asset_service_server_get_current_channel_id, METH_VARARGS, "Get current channel ID."},
+    //#HAKO_API int hako_asset_service_server_status(int service_id, int* status);
+    {"hako_asset_service_server_status", py_hako_asset_service_server_status, METH_VARARGS, "Get server status."},
+    //#HAKO_API int hako_asset_service_server_get_request(int service_id, char** packet, size_t* packet_len);
+    {"hako_asset_service_server_get_request", py_hako_asset_service_server_get_request, METH_VARARGS, "Get request data."},
+    //#HAKO_API int hako_asset_service_server_get_response_buffer(int service_id, char** packet, size_t* packet_len, int status, int result_code);
+    {"hako_asset_service_server_get_response_buffer", py_hako_asset_service_server_get_response_buffer, METH_VARARGS, "Get response buffer."},
+    //#HAKO_API int hako_asset_service_server_put_response(int service_id, char* packet, size_t packet_len);
+    {"hako_asset_service_server_put_response", py_hako_asset_service_server_put_response, METH_VARARGS, "Put response data."},
+    //#HAKO_API int hako_asset_service_server_is_canceled(int service_id);
+    {"hako_asset_service_server_is_canceled", py_hako_asset_service_server_is_canceled, METH_VARARGS, "Check if service is canceled."},
+    //#HAKO_API int hako_asset_service_server_set_progress(int service_id, int percentage);
+    {"hako_asset_service_server_set_progress", py_hako_asset_service_server_set_progress, METH_VARARGS, "Set progress."},
+    //#HAKO_API int hako_asset_service_client_create(const char* assetName, const char* serviceName, const char* clientName, HakoServiceHandleType* handle);
+    {"hako_asset_service_client_create", py_hako_asset_service_client_create, METH_VARARGS, "Create asset service client."},
+    //#HAKO_API int hako_asset_service_client_poll(const HakoServiceHandleType* handle);
+    {"hako_asset_service_client_poll", py_hako_asset_service_client_poll, METH_VARARGS, "Poll asset service client."},
+    //#HAKO_API int hako_asset_service_client_get_current_channel_id(int service_id, int* request_channel_id, int* response_channel_id);
+    {"hako_asset_service_client_get_current_channel_id", py_hako_asset_service_client_get_current_channel_id, METH_VARARGS, "Get current channel ID."},
+    //#HAKO_API int hako_asset_service_client_get_request_buffer(const HakoServiceHandleType* handle, char** packet, size_t* packet_len, int opcode, int poll_interval_msec);
+    {"hako_asset_service_client_get_request_buffer", py_hako_asset_service_client_get_request_buffer, METH_VARARGS, "Get request buffer."},
+    //#HAKO_API int hako_asset_service_client_call_request(const HakoServiceHandleType* handle, char* packet, size_t packet_len, int timeout_msec);
+    {"hako_asset_service_client_call_request", py_hako_asset_service_client_call_request, METH_VARARGS, "Call request."},
+    //#HAKO_API int hako_asset_service_client_get_response(const HakoServiceHandleType* handle, char** packet, size_t* packet_len, int timeout);
+    {"hako_asset_service_client_get_response", py_hako_asset_service_client_get_response, METH_VARARGS, "Get response."},
+    //#HAKO_API int hako_asset_service_client_cancel_request(const HakoServiceHandleType* handle);
+    {"hako_asset_service_client_cancel_request", py_hako_asset_service_client_cancel_request, METH_VARARGS, "Cancel request."},
+    //#HAKO_API int hako_asset_service_client_get_progress(const HakoServiceHandleType* handle);
+    {"hako_asset_service_client_get_progress", py_hako_asset_service_client_get_progress, METH_VARARGS, "Get progress."},
+    //#HAKO_API int hako_asset_service_client_status(const HakoServiceHandleType* handle, int* status);
+    {"hako_asset_service_client_status", py_hako_asset_service_client_status, METH_VARARGS, "Get client status."},
     { NULL,  NULL,  0, NULL},
 };
 //module creator

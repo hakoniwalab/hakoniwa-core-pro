@@ -46,7 +46,7 @@ def main():
     if ret == False:
         print(f"ERROR: hako_asset_register() returns {ret}.")
         return 1
-    ret = service.initialize(service_config_path)
+    ret = hakopy.service_initialize(service_config_path)
     if ret < 0:
         print(f"ERROR: hako_asset_service_initialize() returns {ret}.")
         return 1
