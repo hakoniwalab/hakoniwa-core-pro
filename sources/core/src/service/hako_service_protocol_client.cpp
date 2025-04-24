@@ -97,6 +97,7 @@ hako::service::HakoServiceClientEventType hako::service::HakoServiceClientProtoc
         }
         return HAKO_SERVICE_CLIENT_EVENT_NONE;
     }
+
     //std::cout << "INFO: data_recv_in: status = " << (int)header.status << std::endl;
     event = (header.result_code == HAKO_SERVICE_RESULT_CODE_CANCELED) ? HAKO_SERVICE_CLIENT_REQUEST_CANCEL_DONE : HAKO_SERVICE_CLIENT_RESPONSE_IN;
     switch (header.status)
