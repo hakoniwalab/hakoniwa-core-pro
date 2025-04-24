@@ -2,6 +2,7 @@
 #define _HAKO_CAPI_TYPES_H_
 
 #include <stddef.h>
+#include "hako_export.h"
 
 typedef long long int hako_time_t;
 typedef struct {

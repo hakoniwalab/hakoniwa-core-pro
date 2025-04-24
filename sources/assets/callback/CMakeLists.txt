@@ -39,9 +39,9 @@ else()
             assets SHARED
             src/hako_asset.cpp
             src/hako_asset_impl.cpp
-            src/hako_asset_service.cpp
-            src/hako_asset_service_server.cpp
-            src/hako_asset_service_client.cpp
+            ${HAKO_CORE_PRO_SOURCE_DIR}/assets/polling/src/hako_asset_service.cpp
+            ${HAKO_CORE_PRO_SOURCE_DIR}/assets/polling/src/hako_asset_service_server.cpp
+            ${HAKO_CORE_PRO_SOURCE_DIR}/assets/polling/src/hako_asset_service_client.cpp
         )
     endif()
 endif()

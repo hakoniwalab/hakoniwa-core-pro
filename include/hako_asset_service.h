@@ -2,6 +2,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include "hako_export.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -25,7 +26,7 @@ extern "C" {
  * @param service_config_path Path to the service configuration JSON file.
  * @return 0 on success, -1 on failure.
  */
-extern int hako_asset_service_initialize(const char* service_config_path);
+HAKO_API int hako_asset_service_initialize(const char* service_config_path);
 
 /**
  * Creates a service server with the given asset and service names.
@@ -34,7 +35,7 @@ extern int hako_asset_service_initialize(const char* service_config_path);
  * @param serviceName Unique service identifier.
  * @return Service ID (>=0) on success, -1 on failure.
  */
-extern int hako_asset_service_server_create(const char* assetName, const char* serviceName);
+HAKO_API int hako_asset_service_server_create(const char* assetName, const char* serviceName);
 
 /* Server poll event types */
 #define HAKO_SERVICE_SERVER_API_EVENT_NONE         0  // No event
@@ -47,7 +48,7 @@ extern int hako_asset_service_server_create(const char* assetName, const char* s
  * @param service_id Service ID returned by creation.
  * @return Event code (see defines above), -1 on error.
  */
-extern int hako_asset_service_server_poll(int service_id);
+HAKO_API int hako_asset_service_server_poll(int service_id);
 
 /* Server status flags */
 #define HAKO_SERVICE_SERVER_API_STATUS_IDLE        0
@@ -61,7 +62,7 @@ extern int hako_asset_service_server_poll(int service_id);
  * @param status Output pointer to store status.
  * @return 0 on success, -1 on failure.
  */
-extern int hako_asset_service_server_status(int service_id, int* status);
+HAKO_API int hako_asset_service_server_status(int service_id, int* status);
 
 /**
  * Retrieves the incoming request packet.
@@ -71,7 +72,7 @@ extern int hako_asset_service_server_status(int service_id, int* status);
  * @param packet_len Output pointer to buffer size.
  * @return 0 on success, -1 on failure.
  */
-extern int hako_asset_service_server_get_request(int service_id, char** packet, size_t* packet_len);
+HAKO_API int hako_asset_service_server_get_request(int service_id, char** packet, size_t* packet_len);
 
 /* Common API status/result codes (used in responses: same as HakoServiceStatusType) */
 #define HAKO_SERVICE_API_STATUS_NONE         0
@@ -96,7 +97,7 @@ extern int hako_asset_service_server_get_request(int service_id, char** packet, 
  * @param result_code Operation result.
  * @return 0 on success, -1 on failure.
  */
-extern int hako_asset_service_server_get_response_buffer(int service_id, char** packet, size_t* packet_len, int status, int result_code);
+HAKO_API int hako_asset_service_server_get_response_buffer(int service_id, char** packet, size_t* packet_len, int status, int result_code);
 
 /**
  * Sends a response to the client.
@@ -106,7 +107,7 @@ extern int hako_asset_service_server_get_response_buffer(int service_id, char** 
  * @param packet_len Length of the data.
  * @return 0 on success, -1 on failure.
  */
-extern int hako_asset_service_server_put_response(int service_id, char* packet, size_t packet_len);
+HAKO_API int hako_asset_service_server_put_response(int service_id, char* packet, size_t packet_len);
 
 /**
  * Checks if the server has been canceled.
@@ -114,7 +115,7 @@ extern int hako_asset_service_server_put_response(int service_id, char* packet, 
  * @param service_id Service ID.
  * @return 1 if canceled, 0 if not, -1 on error.
  */
-extern int hako_asset_service_server_is_canceled(int service_id);
+HAKO_API int hako_asset_service_server_is_canceled(int service_id);
 
 /**
  * Sets the service progress.
@@ -123,7 +124,7 @@ extern int hako_asset_service_server_is_canceled(int service_id);
  * @param percentage Completion percentage (0-100).
  * @return 0 on success, -1 on failure.
  */
-extern int hako_asset_service_server_set_progress(int service_id, int percentage);
+HAKO_API int hako_asset_service_server_set_progress(int service_id, int percentage);
 
 
 /* ========== [ Client API ] ========== */
@@ -142,7 +143,7 @@ typedef struct {
  * @param handle Output handle to the client instance.
  * @return 0 on success, -1 on failure.
  */
-extern int hako_asset_service_client_create(const char* assetName, const char* serviceName, const char* clientName, HakoServiceHandleType* handle);
+HAKO_API int hako_asset_service_client_create(const char* assetName, const char* serviceName, const char* clientName, HakoServiceHandleType* handle);
 
 /* Client poll event types */
 #define HAKO_SERVICE_CLIENT_API_EVENT_NONE             0  // No response
@@ -156,7 +157,7 @@ extern int hako_asset_service_client_create(const char* assetName, const char* s
  * @param handle Client handle.
  * @return Event code, -1 on failure.
  */
-extern int hako_asset_service_client_poll(const HakoServiceHandleType* handle);
+HAKO_API int hako_asset_service_client_poll(const HakoServiceHandleType* handle);
 
 /* Client opcode values (used in request header) */
 #define HAKO_SERVICE_CLIENT_API_OPCODE_REQUEST     0
@@ -172,7 +173,7 @@ extern int hako_asset_service_client_poll(const HakoServiceHandleType* handle);
  * @param poll_interval_msec Polling interval for progress reports.
  * @return 0 on success, -1 on failure.
  */
-extern int hako_asset_service_client_get_request_buffer(const HakoServiceHandleType* handle, char** packet, size_t* packet_len, int opcode, int poll_interval_msec);
+HAKO_API int hako_asset_service_client_get_request_buffer(const HakoServiceHandleType* handle, char** packet, size_t* packet_len, int opcode, int poll_interval_msec);
 
 /**
  * Sends a request to the server.
@@ -183,7 +184,7 @@ extern int hako_asset_service_client_get_request_buffer(const HakoServiceHandleT
  * @param timeout_msec Timeout for the operation.
  * @return 0 on success, -1 on failure.
  */
-extern int hako_asset_service_client_call_request(const HakoServiceHandleType* handle, char* packet, size_t packet_len, int timeout_msec);
+HAKO_API int hako_asset_service_client_call_request(const HakoServiceHandleType* handle, char* packet, size_t packet_len, int timeout_msec);
 
 /**
  * Retrieves the response packet from the server.
@@ -194,7 +195,7 @@ extern int hako_asset_service_client_call_request(const HakoServiceHandleType* h
  * @param timeout Timeout in milliseconds.
  * @return 0 on success, -1 on failure.
  */
-extern int hako_asset_service_client_get_response(const HakoServiceHandleType* handle, char** packet, size_t* packet_len, int timeout);
+HAKO_API int hako_asset_service_client_get_response(const HakoServiceHandleType* handle, char** packet, size_t* packet_len, int timeout);
 
 /**
  * Requests cancellation of the current operation.
@@ -202,7 +203,7 @@ extern int hako_asset_service_client_get_response(const HakoServiceHandleType* h
  * @param handle Client handle.
  * @return 0 on success, -1 on failure.
  */
-extern int hako_asset_service_client_cancel_request(const HakoServiceHandleType* handle);
+HAKO_API int hako_asset_service_client_cancel_request(const HakoServiceHandleType* handle);
 
 /**
  * Retrieves current progress of the operation.
@@ -210,7 +211,7 @@ extern int hako_asset_service_client_cancel_request(const HakoServiceHandleType*
  * @param handle Client handle.
  * @return Progress value (0-100), or -1 on error.
  */
-extern int hako_asset_service_client_get_progress(const HakoServiceHandleType* handle);
+HAKO_API int hako_asset_service_client_get_progress(const HakoServiceHandleType* handle);
 
 /* Client internal state flags */
 #define HAKO_SERVICE_CLIENT_API_STATE_IDLE         0
@@ -224,7 +225,7 @@ extern int hako_asset_service_client_get_progress(const HakoServiceHandleType* h
  * @param status Output pointer to store status.
  * @return 0 on success, -1 on failure.
  */
-extern int hako_asset_service_client_status(const HakoServiceHandleType* handle, int* status);
+HAKO_API int hako_asset_service_client_status(const HakoServiceHandleType* handle, int* status);
 
 #ifdef __cplusplus
 }

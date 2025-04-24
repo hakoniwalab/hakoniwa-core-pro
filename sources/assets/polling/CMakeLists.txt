@@ -35,7 +35,15 @@ set(SHARED_SRC
     ${HAKO_CORE_PRO_SOURCE_DIR}/core/src/hako_pro_data.cpp
     ${HAKO_CORE_PRO_SOURCE_DIR}/core/src/hako_pro_data_recv_event.cpp
     ${HAKO_CORE_PRO_SOURCE_DIR}/core/src/service/hako_pro_data_service.cpp
-    ${HAKO_CORE_PRO_SOURCE_DIR}/core/src/hako_pro.cpp
+    ${HAKO_CORE_PRO_SOURCE_DIR}/core/src/service/hako_service_impl_client.cpp
+    ${HAKO_CORE_PRO_SOURCE_DIR}/core/src/service/hako_service_impl_server.cpp
+    ${HAKO_CORE_PRO_SOURCE_DIR}/core/src/service/hako_service_impl.cpp
+    ${HAKO_CORE_PRO_SOURCE_DIR}/core/src/service/hako_service_protocol_client.cpp
+    ${HAKO_CORE_PRO_SOURCE_DIR}/core/src/service/hako_service_protocol_server.cpp
+    ${HAKO_CORE_PRO_SOURCE_DIR}/assets/polling/src/hako_asset_service.cpp
+    ${HAKO_CORE_PRO_SOURCE_DIR}/assets/polling/src/hako_asset_service_server.cpp
+    ${HAKO_CORE_PRO_SOURCE_DIR}/assets/polling/src/hako_asset_service_client.cpp
+${HAKO_CORE_PRO_SOURCE_DIR}/core/src/hako_pro.cpp
 )
 
 
@@ -77,5 +85,6 @@ target_include_directories(
     PRIVATE ${nlohmann_json_SOURCE_DIR}/single_include
     PRIVATE ${HAKO_INC_DIR}
     PRIVATE ${HAKO_CORE_PRO_SOURCE_DIR}/core/include
+    PRIVATE ${HAKO_CORE_PRO_SOURCE_DIR}/core/src/service
 )
 

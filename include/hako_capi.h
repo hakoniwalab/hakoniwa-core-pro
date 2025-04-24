@@ -7,17 +7,8 @@ extern "C" {
 #endif
 
 #include "hako_capi_types.h"
+#include "hako_asset_service.h"
 
-#define HAKO_EXPORTS
-#ifdef _WIN32
-#ifdef HAKO_EXPORTS
-#define HAKO_API __declspec(dllexport)
-#else
-#define HAKO_API __declspec(dllimport)
-#endif
-#else
-#define HAKO_API extern
-#endif
 /*
  * for master
  */

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "hako_primitive_types.h"
+#include "hako_asset_service.h"
 
 #ifdef __cplusplus
 extern "C" {
