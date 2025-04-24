@@ -84,7 +84,7 @@ namespace hako::service
             }
             bool cancel_reply(CppResBodyType& res_body)
             {
-                return reply(res_body, HAKO_SERVICE_API_RESULT_CODE_CANCEL);
+                return reply(res_body, HAKO_SERVICE_API_RESULT_CODE_CANCELED);
             }
         private:
             bool reply(CppResBodyType& res_body, int result_code = HAKO_SERVICE_API_RESULT_CODE_OK)
