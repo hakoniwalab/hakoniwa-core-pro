@@ -1,5 +1,4 @@
 import hakopy
-import sources.assets.bindings.python.hako_asset_service_constants as constants
 from hako_pdu import HakoPduManager
 
 class HakoAssetServiceServer:
@@ -24,27 +23,27 @@ class HakoAssetServiceServer:
 
     def _setup_client_info(self):
         # Get the current client ID
-        self.current_client_id = hakopy.hako_asset_service_server_get_current_client_id(self.service_id)
+        self.current_client_id = hakopy.asset_service_server_get_current_client_id(self.service_id)
         if self.current_client_id < 0:
             raise Exception(f"Failed to get current client ID: {self.current_client_id}")
 
         # Get the request and response channel IDs (Python 側でタプルを受け取れる)
-        ids = hakopy.hako_asset_service_server_get_current_channel_id(self.service_id)
+        ids = hakopy.asset_service_server_get_current_channel_id(self.service_id)
         if ids is None:
             raise Exception("Failed to get channel IDs")
         self.request_channel_id, self.response_channel_id = ids
 
     def poll(self):
-        result = hakopy.hako_asset_service_server_poll(self.service_id)
+        result = hakopy.asset_service_server_poll(self.service_id)
         if result < 0:
             raise Exception(f"Failed to poll asset service: {result}")
         print(f"Poll result: {result}")
-        if result == constants.HAKO_SERVICE_SERVER_API_EVENT_REQUEST_IN:
+        if result == hakopy.HAKO_SERVICE_SERVER_API_EVENT_REQUEST_IN:
             print("Request in event")
             self._setup_client_info()
             print(f"Current client ID: {self.current_client_id}")
             # Get the request buffer
-            byte_array = hakopy.hako_asset_service_server_get_request(self.service_id)
+            byte_array = hakopy.asset_service_server_get_request(self.service_id)
             if byte_array is None:
                 raise Exception("Failed to get request byte array")
 
@@ -54,19 +53,19 @@ class HakoAssetServiceServer:
             if self.req_packet is None:
                 raise Exception("Failed to read request packet")
 
-            return constants.HAKO_SERVICE_SERVER_API_EVENT_REQUEST_IN
+            return hakopy.HAKO_SERVICE_SERVER_API_EVENT_REQUEST_IN
         else:
             return result
 
     
     def is_no_event(self, event:int):
-        return event == constants.HAKO_SERVICE_SERVER_API_EVENT_NONE
+        return event == hakopy.HAKO_SERVICE_SERVER_API_EVENT_NONE
     
     def is_request_in(self, event:int):
-        return event == constants.HAKO_SERVICE_SERVER_API_REQUEST_IN
+        return event == hakopy.HAKO_SERVICE_SERVER_API_EVENT_REQUEST_IN
     
     def is_request_cancel(self, event:int):
-        return event == constants.HAKO_SERVICE_SERVER_API_REQUEST_CANCEL
+        return event == hakopy.HAKO_SERVICE_SERVER_API_EVENT_REQUEST_CANCEL
     
     def get_request(self):
         # Get the request packet

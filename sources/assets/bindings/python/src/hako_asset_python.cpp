@@ -708,41 +708,41 @@ static PyMethodDef hako_asset_python_methods[] = {
     //#HAKO_API int hako_asset_service_server_create(const char* assetName, const char* serviceName);
     {"asset_service_create", py_hako_asset_service_server_create, METH_VARARGS, "Initialize asset service."},
     //#HAKO_API int hako_asset_service_server_poll(int service_id);
-    {"hako_asset_service_server_poll", py_hako_asset_service_server_poll, METH_VARARGS, "Poll asset service."},
+    {"asset_service_server_poll", py_hako_asset_service_server_poll, METH_VARARGS, "Poll asset service."},
     //#HAKO_API int hako_asset_service_server_get_current_client_id(int service_id);
-    {"hako_asset_service_server_get_current_client_id", py_hako_asset_service_server_get_current_client_id, METH_VARARGS, "Get current client ID."},
+    {"asset_service_server_get_current_client_id", py_hako_asset_service_server_get_current_client_id, METH_VARARGS, "Get current client ID."},
     //#HAKO_API int hako_asset_service_server_get_current_channel_id(int service_id, int* request_channel_id, int* response_channel_id);
-    {"hako_asset_service_server_get_current_channel_id", py_hako_asset_service_server_get_current_channel_id, METH_VARARGS, "Get current channel ID."},
+    {"asset_service_server_get_current_channel_id", py_hako_asset_service_server_get_current_channel_id, METH_VARARGS, "Get current channel ID."},
     //#HAKO_API int hako_asset_service_server_status(int service_id, int* status);
-    {"hako_asset_service_server_status", py_hako_asset_service_server_status, METH_VARARGS, "Get server status."},
+    {"asset_service_server_status", py_hako_asset_service_server_status, METH_VARARGS, "Get server status."},
     //#HAKO_API int hako_asset_service_server_get_request(int service_id, char** packet, size_t* packet_len);
-    {"hako_asset_service_server_get_request", py_hako_asset_service_server_get_request, METH_VARARGS, "Get request data."},
+    {"asset_service_server_get_request", py_hako_asset_service_server_get_request, METH_VARARGS, "Get request data."},
     //#HAKO_API int hako_asset_service_server_get_response_buffer(int service_id, char** packet, size_t* packet_len, int status, int result_code);
-    {"hako_asset_service_server_get_response_buffer", py_hako_asset_service_server_get_response_buffer, METH_VARARGS, "Get response buffer."},
+    {"asset_service_server_get_response_buffer", py_hako_asset_service_server_get_response_buffer, METH_VARARGS, "Get response buffer."},
     //#HAKO_API int hako_asset_service_server_put_response(int service_id, char* packet, size_t packet_len);
-    {"hako_asset_service_server_put_response", py_hako_asset_service_server_put_response, METH_VARARGS, "Put response data."},
+    {"asset_service_server_put_response", py_hako_asset_service_server_put_response, METH_VARARGS, "Put response data."},
     //#HAKO_API int hako_asset_service_server_is_canceled(int service_id);
-    {"hako_asset_service_server_is_canceled", py_hako_asset_service_server_is_canceled, METH_VARARGS, "Check if service is canceled."},
+    {"asset_service_server_is_canceled", py_hako_asset_service_server_is_canceled, METH_VARARGS, "Check if service is canceled."},
     //#HAKO_API int hako_asset_service_server_set_progress(int service_id, int percentage);
-    {"hako_asset_service_server_set_progress", py_hako_asset_service_server_set_progress, METH_VARARGS, "Set progress."},
+    {"asset_service_server_set_progress", py_hako_asset_service_server_set_progress, METH_VARARGS, "Set progress."},
     //#HAKO_API int hako_asset_service_client_create(const char* assetName, const char* serviceName, const char* clientName, HakoServiceHandleType* handle);
-    {"hako_asset_service_client_create", py_hako_asset_service_client_create, METH_VARARGS, "Create asset service client."},
+    {"asset_service_client_create", py_hako_asset_service_client_create, METH_VARARGS, "Create asset service client."},
     //#HAKO_API int hako_asset_service_client_poll(const HakoServiceHandleType* handle);
-    {"hako_asset_service_client_poll", py_hako_asset_service_client_poll, METH_VARARGS, "Poll asset service client."},
+    {"asset_service_client_poll", py_hako_asset_service_client_poll, METH_VARARGS, "Poll asset service client."},
     //#HAKO_API int hako_asset_service_client_get_current_channel_id(int service_id, int* request_channel_id, int* response_channel_id);
-    {"hako_asset_service_client_get_current_channel_id", py_hako_asset_service_client_get_current_channel_id, METH_VARARGS, "Get current channel ID."},
+    {"asset_service_client_get_current_channel_id", py_hako_asset_service_client_get_current_channel_id, METH_VARARGS, "Get current channel ID."},
     //#HAKO_API int hako_asset_service_client_get_request_buffer(const HakoServiceHandleType* handle, char** packet, size_t* packet_len, int opcode, int poll_interval_msec);
-    {"hako_asset_service_client_get_request_buffer", py_hako_asset_service_client_get_request_buffer, METH_VARARGS, "Get request buffer."},
+    {"asset_service_client_get_request_buffer", py_hako_asset_service_client_get_request_buffer, METH_VARARGS, "Get request buffer."},
     //#HAKO_API int hako_asset_service_client_call_request(const HakoServiceHandleType* handle, char* packet, size_t packet_len, int timeout_msec);
-    {"hako_asset_service_client_call_request", py_hako_asset_service_client_call_request, METH_VARARGS, "Call request."},
+    {"asset_service_client_call_request", py_hako_asset_service_client_call_request, METH_VARARGS, "Call request."},
     //#HAKO_API int hako_asset_service_client_get_response(const HakoServiceHandleType* handle, char** packet, size_t* packet_len, int timeout);
-    {"hako_asset_service_client_get_response", py_hako_asset_service_client_get_response, METH_VARARGS, "Get response."},
+    {"asset_service_client_get_response", py_hako_asset_service_client_get_response, METH_VARARGS, "Get response."},
     //#HAKO_API int hako_asset_service_client_cancel_request(const HakoServiceHandleType* handle);
-    {"hako_asset_service_client_cancel_request", py_hako_asset_service_client_cancel_request, METH_VARARGS, "Cancel request."},
+    {"asset_service_client_cancel_request", py_hako_asset_service_client_cancel_request, METH_VARARGS, "Cancel request."},
     //#HAKO_API int hako_asset_service_client_get_progress(const HakoServiceHandleType* handle);
-    {"hako_asset_service_client_get_progress", py_hako_asset_service_client_get_progress, METH_VARARGS, "Get progress."},
+    {"asset_service_client_get_progress", py_hako_asset_service_client_get_progress, METH_VARARGS, "Get progress."},
     //#HAKO_API int hako_asset_service_client_status(const HakoServiceHandleType* handle, int* status);
-    {"hako_asset_service_client_status", py_hako_asset_service_client_status, METH_VARARGS, "Get client status."},
+    {"asset_service_client_status", py_hako_asset_service_client_status, METH_VARARGS, "Get client status."},
     { NULL,  NULL,  0, NULL},
 };
 //module creator
@@ -760,6 +760,30 @@ PyMODINIT_FUNC PyInit_hakopy(void)
 
     PyModule_AddIntConstant(m, "HAKO_ASSET_MODEL_PLANT", HAKO_ASSET_MODEL_PLANT);
     PyModule_AddIntConstant(m, "HAKO_ASSET_MODEL_CONTROLLER", HAKO_ASSET_MODEL_CONTROLLER);
+
+    PyModule_AddIntConstant(m, "HAKO_SERVICE_SERVER_API_EVENT_NONE", HAKO_SERVICE_SERVER_API_EVENT_NONE);
+    PyModule_AddIntConstant(m, "HAKO_SERVICE_SERVER_API_EVENT_REQUEST_IN", HAKO_SERVICE_SERVER_API_REQUEST_IN);
+    PyModule_AddIntConstant(m, "HAKO_SERVICE_SERVER_API_EVENT_CANCEL", HAKO_SERVICE_SERVER_API_REQUEST_CANCEL);
+    PyModule_AddIntConstant(m, "HAKO_SERVICE_SERVER_API_STATUS_IDLE", HAKO_SERVICE_SERVER_API_STATUS_IDLE);
+    PyModule_AddIntConstant(m, "HAKO_SERVICE_SERVER_API_STATUS_DOING", HAKO_SERVICE_SERVER_API_STATUS_DOING);
+    PyModule_AddIntConstant(m, "HAKO_SERVICE_SERVER_API_STATUS_CANCELING", HAKO_SERVICE_SERVER_API_STATUS_CANCELING);
+    PyModule_AddIntConstant(m, "HAKO_SERVICE_CLIENT_API_EVENT_NONE", HAKO_SERVICE_CLIENT_API_EVENT_NONE);
+    PyModule_AddIntConstant(m, "HAKO_SERVICE_CLIENT_API_EVENT_RESPONSE_IN", HAKO_SERVICE_CLIENT_API_RESPONSE_IN);
+    PyModule_AddIntConstant(m, "HAKO_SERVICE_CLIENT_API_EVENT_REQUEST_TIMEOUT", HAKO_SERVICE_CLIENT_API_REQUEST_TIMEOUT);
+    PyModule_AddIntConstant(m, "HAKO_SERVICE_CLIENT_API_EVENT_REQUEST_CANCEL_DONE", HAKO_SERVICE_CLIENT_API_REQUEST_CANCEL_DONE);
+    PyModule_AddIntConstant(m, "HAKO_SERVICE_CLIENT_API_STATE_IDLE", HAKO_SERVICE_CLIENT_API_STATE_IDLE);
+    PyModule_AddIntConstant(m, "HAKO_SERVICE_CLIENT_API_STATE_DOING", HAKO_SERVICE_CLIENT_API_STATE_DOING);
+    PyModule_AddIntConstant(m, "HAKO_SERVICE_CLIENT_API_STATE_CANCELING", HAKO_SERVICE_CLIENT_API_STATE_CANCELING);
+    PyModule_AddIntConstant(m, "HAKO_SERVICE_API_RESULT_CODE_OK", HAKO_SERVICE_API_RESULT_CODE_OK);
+    PyModule_AddIntConstant(m, "HAKO_SERVICE_API_RESULT_CODE_ERROR", HAKO_SERVICE_API_RESULT_CODE_ERROR);
+    PyModule_AddIntConstant(m, "HAKO_SERVICE_API_RESULT_CODE_CANCELED", HAKO_SERVICE_API_RESULT_CODE_CANCELED);
+    PyModule_AddIntConstant(m, "HAKO_SERVICE_API_RESULT_CODE_INVALID", HAKO_SERVICE_API_RESULT_CODE_INVALID);
+    PyModule_AddIntConstant(m, "HAKO_SERVICE_API_RESULT_CODE_BUSY", HAKO_SERVICE_API_RESULT_CODE_BUSY);
+    PyModule_AddIntConstant(m, "HAKO_SERVICE_API_STATUS_NONE", HAKO_SERVICE_API_STATUS_NONE);
+    PyModule_AddIntConstant(m, "HAKO_SERVICE_API_STATUS_DOING", HAKO_SERVICE_API_STATUS_DOING);
+    PyModule_AddIntConstant(m, "HAKO_SERVICE_API_STATUS_CANCELING", HAKO_SERVICE_API_STATUS_CANCELING);
+    PyModule_AddIntConstant(m, "HAKO_SERVICE_API_STATUS_DONE", HAKO_SERVICE_API_STATUS_DONE);
+    PyModule_AddIntConstant(m, "HAKO_SERVICE_API_STATUS_ERROR", HAKO_SERVICE_API_STATUS_ERROR);
 
     return m;
 }

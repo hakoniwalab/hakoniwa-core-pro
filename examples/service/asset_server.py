@@ -32,7 +32,7 @@ def my_on_manual_timing_control(context):
     global delta_time_usec
     while True:
         ret = service_server.poll()
-        if ret == constants.HAKO_SERVICE_SERVER_API_EVENT_REQUEST_IN:
+        if ret == hakopy.HAKO_SERVICE_SERVER_API_EVENT_REQUEST_IN:
             # Process the request
             print("Request received")
             # Here you would typically process the request and prepare a response
