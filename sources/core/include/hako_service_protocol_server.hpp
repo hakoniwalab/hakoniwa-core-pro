@@ -34,6 +34,9 @@ namespace hako::service {
             void  put_progress(int percentage) { percentage_ = percentage; }
             int   get_service_id() { return server_->get_service_id(); }
             std::string get_service_name() { return server_->get_service_name(); }
+            int get_current_client_id() { return server_->get_current_client_id(); }
+            int get_current_request_channel_id() { return server_->get_current_request_channel_id(get_current_client_id()); }
+            int get_current_response_channel_id() { return server_->get_current_response_channel_id(get_current_client_id()); }
 
         private:
             std::shared_ptr<IHakoServiceServer> server_;

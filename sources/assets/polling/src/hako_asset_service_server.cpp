@@ -64,6 +64,32 @@ int hako_asset_service_server_poll(int service_id)
     }
     return HAKO_SERVICE_SERVER_API_EVENT_NONE;
 }
+
+int hako_asset_service_server_get_current_client_id(int service_id)
+{
+    auto service_server_protocol = service_servers[service_id];
+    if (!service_server_protocol) {
+        std::cerr << "ERROR: hako_asset_service_server_get_current_client_id(): service_server_protocol is null" << std::endl;
+        return -1;
+    }
+    return service_server_protocol->get_current_client_id();
+}
+int hako_asset_service_server_get_current_channel_id(int service_id, int* request_channel_id, int* response_channel_id)
+{
+    auto service_server_protocol = service_servers[service_id];
+    if (!service_server_protocol) {
+        std::cerr << "ERROR: hako_asset_service_server_get_current_channel_id(): service_server_protocol is null" << std::endl;
+        return -1;
+    }
+    if (request_channel_id == nullptr || response_channel_id == nullptr) {
+        std::cerr << "ERROR: hako_asset_service_server_get_current_channel_id(): request_channel_id or response_channel_id is null" << std::endl;
+        return -1;
+    }
+    *request_channel_id = service_server_protocol->get_current_request_channel_id();
+    *response_channel_id = service_server_protocol->get_current_response_channel_id();
+    return 0;
+}
+
 int hako_asset_service_server_status(int service_id, int* status)
 {
     auto service_server_protocol = service_servers[service_id];

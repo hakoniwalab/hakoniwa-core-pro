@@ -40,5 +40,7 @@ namespace hako::service {
 
             virtual std::string get_service_name() = 0;
             virtual std::string get_client_name() = 0;
+            virtual int get_request_channel_id() = 0;
+            virtual int get_response_channel_id() = 0;
     };
 }

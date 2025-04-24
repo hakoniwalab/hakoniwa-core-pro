@@ -38,6 +38,8 @@ namespace hako::service {
             std::string get_client_name() { return client_->get_client_name(); }
             void* get_response_buffer() { return response_user_buffer_.get(); }
             int get_response_pdu_size() { return client_->get_response_pdu_size(); }
+            int get_request_channel_id() { return client_->get_request_channel_id(); }
+            int get_response_channel_id() { return client_->get_response_channel_id(); }
 
         private:
             std::shared_ptr<IHakoServiceClient> client_;

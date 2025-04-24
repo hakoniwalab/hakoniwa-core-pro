@@ -2,6 +2,7 @@
 
 #include "nlohmann/json.hpp"
 #include "hako_pro_data.hpp"
+#include "hako_pro.hpp"
 #include "pdu_convertor.hpp"
 #include "ihako_service_client.hpp"
 #include <vector>
@@ -39,6 +40,30 @@ namespace hako::service::impl {
 
             int get_request_pdu_size() override { return request_pdu_size_; }
             int get_response_pdu_size() override { return response_pdu_size_; }
+            int get_request_channel_id() override
+            {
+                auto pro_data = hako::data::pro::hako_pro_get_data();
+                if (pro_data == nullptr) {
+                    return -1;
+                }
+                auto& service_entry = pro_data->get_service_entry(service_name_);
+                if (service_entry.clientChannelMap[client_id_].requestChannelId < 0) {
+                    return -1;
+                }
+                return service_entry.clientChannelMap[client_id_].requestChannelId;
+            }
+            int get_response_channel_id() override
+            {
+                auto pro_data = hako::data::pro::hako_pro_get_data();
+                if (pro_data == nullptr) {
+                    return -1;
+                }
+                auto& service_entry = pro_data->get_service_entry(service_name_);
+                if (service_entry.clientChannelMap[client_id_].responseChannelId < 0) {
+                    return -1;
+                }
+                return service_entry.clientChannelMap[client_id_].responseChannelId;
+            }
         private:
             int service_id_ = -1;
             int asset_id_ = -1;

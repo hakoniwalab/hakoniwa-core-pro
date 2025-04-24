@@ -50,6 +50,24 @@ HAKO_API int hako_asset_service_server_create(const char* assetName, const char*
  */
 HAKO_API int hako_asset_service_server_poll(int service_id);
 
+/**
+ * Cancels the current client id
+ *
+ * @param service_id Service ID.
+ * @return 0 on success, -1 on failure.
+ */
+HAKO_API int hako_asset_service_server_get_current_client_id(int service_id);
+/**
+ * Retrieves the current request and response channel IDs.
+ *
+ * @param service_id Service ID.
+ * @param request_channel_id Output pointer to store request channel ID.
+ * @param response_channel_id Output pointer to store response channel ID.
+ * @return 0 on success, -1 on failure.
+ */
+HAKO_API int hako_asset_service_server_get_current_channel_id(int service_id, int* request_channel_id, int* response_channel_id);
+
+
 /* Server status flags */
 #define HAKO_SERVICE_SERVER_API_STATUS_IDLE        0
 #define HAKO_SERVICE_SERVER_API_STATUS_DOING       1
@@ -158,6 +176,16 @@ HAKO_API int hako_asset_service_client_create(const char* assetName, const char*
  * @return Event code, -1 on failure.
  */
 HAKO_API int hako_asset_service_client_poll(const HakoServiceHandleType* handle);
+
+/**
+ * Retrieves the current request and response channel IDs.
+ *
+ * @param service_id Service ID.
+ * @param request_channel_id Output pointer to store request channel ID.
+ * @param response_channel_id Output pointer to store response channel ID.
+ * @return 0 on success, -1 on failure.
+ */
+HAKO_API int hako_asset_service_client_get_current_channel_id(int service_id, int* request_channel_id, int* response_channel_id);
 
 /* Client opcode values (used in request header) */
 #define HAKO_SERVICE_CLIENT_API_OPCODE_REQUEST     0

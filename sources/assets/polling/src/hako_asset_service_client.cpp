@@ -69,6 +69,27 @@ int hako_asset_service_client_poll(const HakoServiceHandleType* handle)
     }
     return HAKO_SERVICE_CLIENT_API_EVENT_NONE;
 }
+int hako_asset_service_client_get_current_channel_id(int service_id, int* request_channel_id, int* response_channel_id)
+{
+    if (request_channel_id == nullptr || response_channel_id == nullptr) {
+        std::cerr << "ERROR: hako_asset_service_client_get_current_channel_id(): request_channel_id or response_channel_id is null" << std::endl;
+        return -1;
+    }
+    auto it = service_clients.find(service_id);
+    if (it == service_clients.end()) {
+        std::cerr << "ERROR: hako_asset_service_client_get_current_channel_id(): client not found" << std::endl;
+        return -1;
+    }
+    auto client_protocol = it->second.second;
+    if (!client_protocol) {
+        std::cerr << "ERROR: hako_asset_service_client_get_current_channel_id(): client_protocol is null" << std::endl;
+        return -1;
+    }
+    *request_channel_id = client_protocol->get_request_channel_id();
+    *response_channel_id = client_protocol->get_response_channel_id();
+    return 0;
+}
+
 int hako_asset_service_client_get_request_buffer(const HakoServiceHandleType* handle, char** packet, size_t *packet_len, int opcode, int poll_interval_msec)
 {
     if (handle == nullptr) {

@@ -2,6 +2,7 @@
 
 #include "nlohmann/json.hpp"
 #include "hako_pro_data.hpp"
+#include "hako_pro.hpp"
 #include "pdu_convertor.hpp"
 #include "ihako_service_server.hpp"
 #include <vector>
@@ -48,6 +49,36 @@ namespace hako::service::impl {
             std::string get_service_name() override { return service_name_; }
             std::string get_client_name(int client_id) override;
             bool is_exist_client(std::string client_name) override;
+            int get_current_request_channel_id(int client_id) override
+            {
+                if (client_id < 0 || client_id >= max_clients_) {
+                    return -1;
+                }
+                auto pro_data = hako::data::pro::hako_pro_get_data();
+                if (pro_data == nullptr) {
+                    return -1;
+                }
+                auto& service_entry = pro_data->get_service_entry(service_name_);
+                if (service_entry.clientChannelMap[client_id].requestChannelId < 0) {
+                    return -1;
+                }
+                return service_entry.clientChannelMap[client_id].requestChannelId;
+            }
+            int get_current_response_channel_id(int client_id) override
+            {
+                if (client_id < 0 || client_id >= max_clients_) {
+                    return -1;
+                }
+                auto pro_data = hako::data::pro::hako_pro_get_data();
+                if (pro_data == nullptr) {
+                    return -1;
+                }
+                auto& service_entry = pro_data->get_service_entry(service_name_);
+                if (service_entry.clientChannelMap[client_id].responseChannelId < 0) {
+                    return -1;
+                }
+                return service_entry.clientChannelMap[client_id].responseChannelId;
+            }
             
         private:
             int service_id_ = -1;
