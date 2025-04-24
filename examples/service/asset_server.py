@@ -12,6 +12,12 @@ service_name = 'Service/Add'
 service_config_path = './examples/service/service.json'
 service_server = None
 delta_time_usec = 1000 * 1000
+
+def hako_sleep(sec: int):
+    hakopy.usleep(int(sec * 1000 * 1000))
+    time.sleep(sec)
+    return 0
+
 def my_on_initialize(context):
     global asset_name
     global service_name
@@ -33,17 +39,20 @@ def my_on_manual_timing_control(context):
     global service_server
     global delta_time_usec
     while True:
-        ret = service_server.poll()
-        if ret == hakopy.HAKO_SERVICE_SERVER_API_EVENT_REQUEST_IN:
+        event = service_server.poll()
+        if service_server.is_request_in(event):
             # Process the request
             print("Request received")
-            # Here you would typically process the request and prepare a response
-            # For example, you might modify the req_packet and send it back
-            # service_server.res_packet = service_server.req_packet
-            # hakopy.hako_asset_service_server_send_response(service_server.service_id, service_server.res_packet)
+            request_data = service_server.get_request()
+            print(f"Request data: {request_data}")
+            res = {
+                'sum': request_data['a'] + request_data['b']
+            }
+            while service_server.normal_reply(res) == False:
+                print("INFO: APL normal_reply() is not done")
+                hako_sleep(1)
         else:
-            hakopy.usleep(delta_time_usec)
-            time.sleep(1)
+            hako_sleep(1)
 
     return 0
 

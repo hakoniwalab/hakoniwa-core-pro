@@ -50,7 +50,7 @@ class HakoAssetServiceServer:
 
             # parse the request buffer
             self.pdu_request_packet = self.pdu_manager.get_pdu(self.service_name, self.request_channel_id)
-            self.req_packet = self.pdu_request_packet.read()
+            self.req_packet = self.pdu_request_packet.read_binary(byte_array)
             if self.req_packet is None:
                 raise Exception("Failed to read request packet")
 
@@ -74,3 +74,33 @@ class HakoAssetServiceServer:
             raise Exception("Request packet is not set")
         return self.req_packet['body']
     
+    def normal_reply(self, response: dict):
+        return self._reply(response, hakopy.HAKO_SERVICE_API_RESULT_CODE_OK)
+    
+    def cancel_reply(self, response: dict):
+        return self._reply(response, hakopy.HAKO_SERVICE_API_RESULT_CODE_CANCELED)
+
+    def _reply(self, response: dict, result_code: int):
+        # Get response buffer
+        byte_array = hakopy.response_bytes = hakopy.asset_service_server_get_response_buffer(
+            self.service_id, hakopy.HAKO_SERVICE_API_STATUS_DONE, result_code)
+        if byte_array is None:
+            raise Exception("Failed to get response byte array")
+        # Set the response packet
+        self.pdu_response_packet = self.pdu_manager.get_pdu(self.service_name, self.response_channel_id)
+        if self.pdu_response_packet is None:
+            raise Exception("Failed to get response packet")
+        self.res_packet = self.pdu_response_packet.read_binary(byte_array)
+        if self.res_packet is None:
+            raise Exception("Failed to read response packet")
+        self.res_packet['body'] = response
+        response_bytes = self.pdu_response_packet.get_binary(self.res_packet)
+        if response_bytes is None:
+            raise Exception("Failed to get response bytes")
+        # Send the response
+        success = hakopy.asset_service_server_put_response(self.service_id, response_bytes)
+        if success:
+            print("Response sent successfully!")
+        else:
+            print("Failed to send response.")
+        return success

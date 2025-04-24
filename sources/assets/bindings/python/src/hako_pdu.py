@@ -204,6 +204,13 @@ class HakoPdu:
         self.obj = self.conv.bin2json(self.robot_name, self.channel_id, data)
         return self.obj
 
+    def read_binary(self, binary_data):
+        self.obj = self.conv.bin2json(self.robot_name, self.channel_id, binary_data)
+        return self.obj
+
+    def get_binary(self, json_data):
+        return self.conv.json2bin(self.robot_name, self.channel_id, self.obj)
+
 class HakoPduManager:
     def __init__(self, offset_path, pdudef_path):
         self.conv = PduBinaryConvertor(offset_path, pdudef_path)
