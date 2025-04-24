@@ -18,6 +18,12 @@ class HakoAssetService:
         #HAKO_API int hako_asset_service_server_poll(int service_id);
         self.lib.hako_asset_service_server_poll.argtypes = [ctypes.c_int]
         self.lib.hako_asset_service_server_poll.restype = ctypes.c_int
+        #HAKO_API int hako_asset_service_server_get_current_client_id(int service_id);
+        self.lib.hako_asset_service_server_get_current_client_id.argtypes = [ctypes.c_int]
+        self.lib.hako_asset_service_server_get_current_client_id.restype = ctypes.c_int
+        #HAKO_API int hako_asset_service_server_get_current_channel_id(int service_id, int* request_channel_id, int* response_channel_id);
+        self.lib.hako_asset_service_server_get_current_channel_id.argtypes = [ctypes.c_int, ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_int)]
+        self.lib.hako_asset_service_server_get_current_channel_id.restype = ctypes.c_int
         #HAKO_API int hako_asset_service_server_status(int service_id, int* status);
         self.lib.hako_asset_service_server_status.argtypes = [ctypes.c_int, ctypes.POINTER(ctypes.c_int)]
         self.lib.hako_asset_service_server_status.restype = ctypes.c_int
@@ -44,6 +50,9 @@ class HakoAssetService:
         #HAKO_API int hako_asset_service_client_poll(const HakoServiceHandleType* handle);
         self.lib.hako_asset_service_client_poll.argtypes = [ctypes.POINTER(HakoServiceHandle)]
         self.lib.hako_asset_service_client_poll.restype = ctypes.c_int
+        #HAKO_API int hako_asset_service_client_get_current_channel_id(int service_id, int* request_channel_id, int* response_channel_id);
+        self.lib.hako_asset_service_client_get_current_channel_id.argtypes = [ctypes.POINTER(HakoServiceHandle), ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_int)]
+        self.lib.hako_asset_service_client_get_current_channel_id.restype = ctypes.c_int
         #HAKO_API int hako_asset_service_client_get_request_buffer(const HakoServiceHandleType* handle, char** packet, size_t* packet_len, int opcode, int poll_interval_msec);
         self.lib.hako_asset_service_client_get_request_buffer.argtypes = [ctypes.POINTER(HakoServiceHandle), ctypes.POINTER(ctypes.c_char_p), ctypes.POINTER(ctypes.c_size_t), ctypes.c_int, ctypes.c_int]
         self.lib.hako_asset_service_client_get_request_buffer.restype = ctypes.c_int
