@@ -40,9 +40,20 @@ def binTofloat32(binary):
 def binTofloat64(binary):
     return struct.unpack('d', binary)[0]
 
-def binTostring(binary):
-    return binary.decode().replace('\0', '')
-    #return "Not Supported.."
+def binTostring(binary, max_len=128):
+    try:
+        sub = binary[:max_len]
+        end = sub.find(b'\0')
+        if end == -1:
+            end = max_len
+        return sub[:end].decode('utf-8')
+    except UnicodeDecodeError as e:
+        print("UnicodeDecodeError:")
+        print(f"  ERROR: {e}")
+        print(f"  RAW DATA: {binary}")
+        print(f"  HEXDUMP: {' '.join(f'{b:02x}' for b in binary)}")
+        raise e
+
 
 
 def int8Tobin(arg):

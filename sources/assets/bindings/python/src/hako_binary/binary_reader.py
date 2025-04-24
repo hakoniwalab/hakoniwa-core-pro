@@ -31,6 +31,7 @@ def binary_read_recursive(meta: binary_io.PduMetaData, offmap, binary_data, json
         type = offset_parser.member_type(line)
         name = offset_parser.member_name(line)
         size = offset_parser.member_size(line)
+        #print(f"binary_read_recursive: {name} off={off} size={size} type={type}")
         if (offset_parser.is_primitive(line)):
             if (offset_parser.is_single(line)):
                 bin = binary_io.readBinary(binary_data, off, size)

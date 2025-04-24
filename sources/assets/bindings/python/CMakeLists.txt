@@ -73,6 +73,10 @@ target_include_directories(
     hako_asset_python PRIVATE
     ${Python_INCLUDE_DIRS}
     ${HAKO_INC_DIR}
+    ${nlohmann_json_SOURCE_DIR}/single_include
+    ${HAKO_CORE_SOURCE_DIR}/src/hako
+    ${HAKO_CORE_SOURCE_DIR}/src/include
+    ${HAKO_CORE_PRO_SOURCE_DIR}/core/include
 )
 
 # リンクライブラリの設定

@@ -8,10 +8,88 @@ from hako_binary import binary_writer
 from hako_binary import binary_reader
 from hako_binary import binary_io
 
+class HakoServiceDef:
+    def __init__(self, service_config_path:str):
+        self.service_config_path = service_config_path
+        self.service_config = self._load_json(service_config_path)
+        if self.service_config is None:
+            raise ValueError(f"Failed to load service config from {service_config_path}")
+
+    def get_pdu_definition(self):
+        pdu_meta_size = self.service_config['pduMetaDataSize']
+        robots = []
+        service_id = 0
+        for entry in self.service_config['services']:
+            name = entry['name']
+            type = entry['type']
+            maxClients = entry['maxClients']
+            pduSize = entry['pduSize']
+
+            robot = {
+                'name': name,
+                'rpc_pdu_readers': [],
+                'rpc_pdu_writers': [],
+                'shm_pdu_readers': [],
+                'shm_pdu_writers': [],
+            }
+            for client_id in range(maxClients):
+                result = hakopy.asset_service_get_channel_id(service_id, client_id)
+                if result is None:
+                    raise ValueError(f"Failed to get channel ID for service_id={service_id} client_id={client_id}")
+                req_id, res_id = result
+                req_pdu = {
+                    'type': type + "RequestPacket",
+                    'org_name': "req_" + str(client_id),
+                    'name': name + "_req_" + str(client_id),
+                    'channel_id': req_id,
+                    'pdu_size': pdu_meta_size + pduSize['server']['baseSize'] + pduSize['server']['heapSize'],
+                    'write_cycle': 1,
+                    'method_type': 'SHM'
+                }
+                res_pdu = {
+                    'type': type + "ResponsePacket",
+                    'org_name': "res_" + str(client_id),
+                    'name': name + "_res_" + str(client_id),
+                    'channel_id': res_id,
+                    'pdu_size': pdu_meta_size + pduSize['client']['baseSize'] + pduSize['client']['heapSize'],
+                    'write_cycle': 1,
+                    'method_type': 'SHM'
+                }
+                robot['shm_pdu_readers'].append(req_pdu)
+                robot['shm_pdu_writers'].append(res_pdu)
+            robots.append(robot)
+            service_id += 1
+
+        pdudef = {
+            'robots': robots
+        }
+        return pdudef
+
+    def _load_json(self, path):
+        try:
+            with open(path, 'r') as file:
+                return json.load(file)
+        except FileNotFoundError:
+            print(f"ERROR: File not found '{path}'")
+        except json.JSONDecodeError:
+            print(f"ERROR: Invalid Json fromat '{path}'")
+        except PermissionError:
+            print(f"ERROR: Permission denied '{path}'")
+        except Exception as e:
+            print(f"ERROR: {e}")
+        return None
 class PduBinaryConvertor:
     def __init__(self, offset_path, pdudef_path):
         self.offmap = offset_map.create_offmap(offset_path)
         self.pdudef = self._load_json(pdudef_path)
+
+    def append_pdu_def(self, service_config_path):
+        service_def = HakoServiceDef(service_config_path)
+        pdu_def = service_def.get_pdu_definition()
+        if self.pdudef is None:
+            self.pdudef = pdu_def
+        else:
+            self.pdudef['robots'].extend(pdu_def['robots'])
 
     def _load_json(self, path):
         try:
@@ -119,12 +197,21 @@ class HakoPdu:
         if data == None:
             print('ERROR: hako_asset_pdu_read')
             return None
+        #print(f"read data: {data.hex()}")
+        #print(f"read data size: {len(data)}")
+        #print(f"robot_name: {self.robot_name}")
+        #print(f"channel_id: {self.channel_id}")
         self.obj = self.conv.bin2json(self.robot_name, self.channel_id, data)
         return self.obj
 
 class HakoPduManager:
     def __init__(self, offset_path, pdudef_path):
         self.conv = PduBinaryConvertor(offset_path, pdudef_path)
+    
+    def append_pdu_def(self, service_config_path):
+        self.conv.append_pdu_def(service_config_path)
+        #dump for debug
+        #print(json.dumps(self.conv.pdudef, indent=4))
 
     def get_pdu(self, robot_name, channel_id):
         return HakoPdu(self.conv, robot_name, channel_id)

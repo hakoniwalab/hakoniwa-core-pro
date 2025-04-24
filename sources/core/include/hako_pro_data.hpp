@@ -143,6 +143,13 @@ class HakoProData : public std::enable_shared_from_this<HakoProData>, public hak
         bool is_exist_service(const std::string& service_name);
         bool is_exist_client_on_service(const std::string& service_name, const std::string& client_name);
         HakoServiceEntryTye& get_service_entry(const std::string& service_name);
+        HakoServiceEntryTye& get_service_entry(int service_id)
+        {
+            if (service_table_ == nullptr) {
+                throw std::runtime_error("Service table is not initialized");
+            }
+            return service_table_->entries[service_id];
+        }
         std::string get_client_name(int service_id, int client_id)
         {
             return std::string(service_table_->entries[service_id].clientChannelMap[client_id].clientName);

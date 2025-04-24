@@ -69,7 +69,7 @@ int hako_asset_service_client_poll(const HakoServiceHandleType* handle)
     }
     return HAKO_SERVICE_CLIENT_API_EVENT_NONE;
 }
-int hako_asset_service_client_get_current_channel_id(int service_id, int* request_channel_id, int* response_channel_id)
+int hako_asset_service_client_get_channel_id(int service_id, int* request_channel_id, int* response_channel_id)
 {
     if (request_channel_id == nullptr || response_channel_id == nullptr) {
         std::cerr << "ERROR: hako_asset_service_client_get_current_channel_id(): request_channel_id or response_channel_id is null" << std::endl;

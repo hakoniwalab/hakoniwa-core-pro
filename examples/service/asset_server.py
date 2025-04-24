@@ -19,6 +19,8 @@ def my_on_initialize(context):
     service_server = HakoAssetServiceServer(pdu_manager, asset_name, service_name)
     if service_server.initialize() == False:
         raise RuntimeError("Failed to create asset service")
+    pdu_manager.append_pdu_def(service_config_path)
+
     return 0
 
 def my_on_reset(context):

@@ -26,11 +26,12 @@ class HakoAssetServiceServer:
         self.current_client_id = hakopy.asset_service_server_get_current_client_id(self.service_id)
         if self.current_client_id < 0:
             raise Exception(f"Failed to get current client ID: {self.current_client_id}")
-
+        print(f"Current client ID: {self.current_client_id}")
         # Get the request and response channel IDs (Python 側でタプルを受け取れる)
         ids = hakopy.asset_service_server_get_current_channel_id(self.service_id)
         if ids is None:
             raise Exception("Failed to get channel IDs")
+        print(f"Request channel ID: {ids[0]}, Response channel ID: {ids[1]}")
         self.request_channel_id, self.response_channel_id = ids
 
     def poll(self):
@@ -39,7 +40,7 @@ class HakoAssetServiceServer:
             raise Exception(f"Failed to poll asset service: {result}")
         print(f"Poll result: {result}")
         if result == hakopy.HAKO_SERVICE_SERVER_API_EVENT_REQUEST_IN:
-            print("Request in event")
+            print("RequestIN event")
             self._setup_client_info()
             print(f"Current client ID: {self.current_client_id}")
             # Get the request buffer
