@@ -52,21 +52,21 @@ class HakoAssetServiceClient:
         event = hakopy.asset_service_client_poll(self.handle)
         if event < 0:
             raise RuntimeError(f"Failed to poll asset service client: {event}")
-        print(f"Poll result: {event}")
+        #print(f"Poll result: {event}")
         if (event == hakopy.HAKO_SERVICE_CLIENT_API_EVENT_RESPONSE_IN) or (event == hakopy.HAKO_SERVICE_CLIENT_API_EVENT_REQUEST_CANCEL_DONE):
-            print("ResponseIN event")
+            #print("ResponseIN event")
             # Get the response buffer
             byte_array = hakopy.asset_service_client_get_response(self.handle, -1)
             if byte_array is None:
                 raise RuntimeError("Failed to get response byte array")
-            print(f"Response byte array: {byte_array}")
+            #print(f"Response byte array: {byte_array}")
             # parse the response buffer
             self.pdu_response_packet = self.pdu_manager.get_pdu(self.service_name, self.response_channel_id)
             if self.pdu_response_packet is None:
                 raise RuntimeError("Failed to get response packet")
-            print(f"Response packet: {self.pdu_response_packet}")
+            #print(f"Response packet: {self.pdu_response_packet}")
             self.res_packet = self.pdu_response_packet.read_binary(byte_array)
-            print(f"Response packet: {self.res_packet}")
+            #print(f"Response packet: {self.res_packet}")
             if self.res_packet is None:
                 raise RuntimeError("Failed to read response packet")
             return hakopy.HAKO_SERVICE_CLIENT_API_EVENT_RESPONSE_IN

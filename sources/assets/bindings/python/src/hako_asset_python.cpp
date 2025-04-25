@@ -563,11 +563,9 @@ static PyObject* py_hako_asset_service_client_poll(PyObject*, PyObject* args) {
     handle.client_id = (int)PyLong_AsLong(py_client_id);
 
     int result = hako_asset_service_client_poll(&handle);
-    if (result == 0) {
-        Py_RETURN_TRUE;
-    } else {
-        Py_RETURN_FALSE;
-    }
+
+    // poll() の戻り値をそのまま Python の int に変換して返す
+    return PyLong_FromLong(result);
 }
 
 static PyObject* py_hako_asset_service_client_get_channel_id(PyObject*, PyObject* args) {
