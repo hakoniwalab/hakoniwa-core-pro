@@ -137,6 +137,7 @@ static volatile int interrupt_flag = 0;
 static void set_interrupt_flag(int signum) {
     (void)signum;  // unused parameter
     interrupt_flag = 1;
+    PyErr_SetInterrupt();
 }
 
 #ifdef _WIN32
