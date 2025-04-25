@@ -132,13 +132,19 @@ static PyObject* asset_register(PyObject*, PyObject* args) {
         Py_RETURN_FALSE;
     }
 }
+static int is_force_stop(void) {
+    if (PyErr_CheckSignals() != 0) {
+        return -1;
+    }
+    return 0;
+}
 
 static PyObject* py_hako_asset_start(PyObject*, PyObject* args) {
     if (!PyArg_ParseTuple(args, "")) {
         return NULL;
     }
 
-    int result = hako_asset_start();
+    int result = hako_asset_start_no_wait(is_force_stop);
     if (result == 0) {
         Py_RETURN_TRUE;
     } else {
@@ -157,7 +163,7 @@ static PyObject* py_hako_asset_usleep(PyObject*, PyObject* args) {
         return NULL;
     }
 
-    int result = hako_asset_usleep(sleep_time_usec);
+    int result = hako_asset_usleep_no_wait(sleep_time_usec, is_force_stop);
 
     if (result == 0) {
         Py_RETURN_TRUE;

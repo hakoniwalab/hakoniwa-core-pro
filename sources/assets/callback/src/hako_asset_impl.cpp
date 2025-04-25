@@ -237,9 +237,15 @@ HakoSimulationStateType hako_asset_impl_state()
 {
     return hako_asset_instance.hako_sim->state();
 }
-static bool hako_asset_impl_wait_state(HakoSimulationStateType target)
+static bool hako_asset_impl_wait_state(HakoSimulationStateType target, int (*is_force_stop)(void))
 {
     do {
+        if (is_force_stop != nullptr) {
+            if (is_force_stop() != 0) {
+                std::cout << "INFO: force stop" << std::endl;
+                return false;
+            }
+        }
         HakoSimulationStateType curr = hako_asset_instance.hako_sim->state();
         if (curr == target) {
             break;
@@ -249,10 +255,16 @@ static bool hako_asset_impl_wait_state(HakoSimulationStateType target)
     return true;
 }
 
-static bool hako_asset_impl_wait_event(HakoSimulationAssetEventType target)
+static bool hako_asset_impl_wait_event(HakoSimulationAssetEventType target, int (*is_force_stop)() = nullptr)
 {
     bool target_event_is_occureed = false;
     while (target_event_is_occureed == false) {
+        if (is_force_stop != nullptr) {
+            if (is_force_stop() != 0) {
+                std::cout << "INFO: force stop" << std::endl;
+                return false;
+            }
+        }
         auto event = hako_asset_instance.hako_asset->asset_get_event(hako_asset_instance.asset_name_str);
         target_event_is_occureed = (target == event);
         switch (event) {
@@ -305,14 +317,14 @@ static bool hako_asset_impl_wait_pdu_created()
     return true;
 }
 
-bool hako_asset_impl_wait_running(void)
+bool hako_asset_impl_wait_running(int (*is_force_stop)(void))
 {
     std::cout << "WAIT START" << std::endl;
-    if (hako_asset_impl_wait_event(HakoSimAssetEvent_Start) == false) {
+    if (hako_asset_impl_wait_event(HakoSimAssetEvent_Start, is_force_stop) == false) {
         return false;
     }
     std::cout << "WAIT RUNNING" << std::endl;
-    if (hako_asset_impl_wait_state(HakoSim_Running) == false) {
+    if (hako_asset_impl_wait_state(HakoSim_Running, is_force_stop) == false) {
         return false;
     }
     std::cout << "PDU CREATED" << std::endl;
@@ -390,9 +402,13 @@ static void hako_asset_impl_pdus_write_done(void)
     }
 
 }
-static bool hako_asset_impl_proc(void)
+static bool hako_asset_impl_proc(int (*is_force_stop)(void) = nullptr)
 {
     while (hako_asset_impl_execute() == false) {
+        if (is_force_stop != nullptr && is_force_stop() != 0) {
+            std::cout << "INFO: force stop" << std::endl;
+            return false;
+        }
         HakoSimulationStateType curr = hako_asset_instance.hako_sim->state();
         if (curr != HakoSim_Running) {
 #ifdef ENABLE_HAKO_TIME_MEASURE
@@ -400,14 +416,16 @@ static bool hako_asset_impl_proc(void)
             hako_asset_impl_measure_flush_csv(hako_asset_instance.measure_vp);
 #endif /* ENABLE_HAKO_TIME_MEASURE */
             std::cout << "WAIT STOP" << std::endl;
-            auto ret = hako_asset_impl_wait_event(HakoSimAssetEvent_Stop);
-            HAKO_ASSET_ASSERT(ret == true);
+            auto ret = hako_asset_impl_wait_event(HakoSimAssetEvent_Stop, is_force_stop);
+            if (ret == false) {
+                return false;
+            }
             std::cout << "WAIT RESET" << std::endl;
-            ret = hako_asset_impl_wait_event(HakoSimAssetEvent_Reset);
+            ret = hako_asset_impl_wait_event(HakoSimAssetEvent_Reset, is_force_stop);
+            if (ret == false) {
+                return false;
+            }
             HAKO_ASSET_ASSERT(ret == true);
-            // WAINT FOR RUNNING STATE
-            //ret = hako_asset_impl_wait_running();
-            //HAKO_ASSET_ASSERT(ret == true);
             return false;
         }
         else if (hako_asset_instance.hako_asset->is_pdu_sync_mode(hako_asset_instance.asset_name_str) == true) {
@@ -417,7 +435,7 @@ static bool hako_asset_impl_proc(void)
     return true;
 }
 
-bool hako_asset_impl_step(hako_time_t increment_step)
+bool hako_asset_impl_step(hako_time_t increment_step, int (*is_force_stop)(void))
 {
     hako_time_t target_time_usec = hako_asset_instance.current_usec + (increment_step * hako_asset_instance.delta_usec);
 
@@ -425,12 +443,13 @@ bool hako_asset_impl_step(hako_time_t increment_step)
     //std::cout << "current_usec = " << hako_asset_instance.current_usec << std::endl;
     //std::cout << "target_time_usec = " << target_time_usec << std::endl;
     while (hako_asset_instance.current_usec < target_time_usec) {
-        if (hako_asset_impl_proc() == false) {
+        if (hako_asset_impl_proc(is_force_stop) == false) {
             return false;
         }
     }
     return true;
 }
+
 /***********************
  * pdu io
  ***********************/

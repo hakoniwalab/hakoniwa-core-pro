@@ -50,7 +50,7 @@ int hako_asset_pdu_create(const char *robo_name, HakoPduChannelIdType lchannel, 
 {
     return hako_asset_impl_pdu_create(robo_name, lchannel, pdu_size);
 }
-int hako_asset_start(void) {
+int hako_asset_start_no_wait(int (*is_force_stop)(void) = nullptr) {
     if (hako_asset_instance.is_initialized == false) {
         std::cerr << "Error: not initialized." << std::endl;
         return EINVAL;
@@ -59,7 +59,7 @@ int hako_asset_start(void) {
         std::cerr << "Error: simulation state(" << hako_asset_impl_state() << ") is invalid, expeting HakoSim_Stopeed." << std::endl;
         return EINVAL;
     }
-    bool ret = hako_asset_impl_wait_running();
+    bool ret = hako_asset_impl_wait_running(is_force_stop);
     if (ret == false) {
         std::cerr << "Error: can not wait running for start." << std::endl;
         return EIO;
@@ -70,7 +70,7 @@ int hako_asset_start(void) {
     }
     //on_simulation_step
     while (true) {
-        if (hako_asset_impl_step(1) == false) {
+        if (hako_asset_impl_step(1, is_force_stop) == false) {
             std::cout << "INFO: stopped simulation" << std::endl;
             return EINTR;
         }
@@ -126,7 +126,8 @@ hako_time_t hako_asset_simulation_time(void) {
     return hako_asset_impl_get_world_time();
 }
 
-int hako_asset_usleep(hako_time_t sleep_time_usec) {
+int hako_asset_usleep_no_wait(hako_time_t sleep_time_usec, int (*is_force_stop)() = nullptr)
+{
     hako_time_t step;
     if (sleep_time_usec == 0) {
         step = 1;
@@ -134,12 +135,11 @@ int hako_asset_usleep(hako_time_t sleep_time_usec) {
     else {
         step = (sleep_time_usec + (hako_asset_instance.delta_usec - 1)) / hako_asset_instance.delta_usec;
     }
-    if (hako_asset_impl_step(step)) {
+    if (hako_asset_impl_step(step, is_force_stop)) {
         return 0;
     }
     return EINTR;
 }
-
 int hako_asset_register_data_recv_event(const char *robo_name, HakoPduChannelIdType lchannel, void (*on_recv)(int), int* recv_event_id)
 {
     if (hako_asset_instance.is_initialized == false) {

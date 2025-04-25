@@ -17,8 +17,10 @@ TEST_CASE_CANCEL1 = 1
 TEST_CASE_CANCEL2 = 2
 test_case = TEST_CASE_NORMAL
 def hako_sleep(sec: int):
+    #print(f"INFO: hako_sleep({sec})")
     hakopy.usleep(int(sec * 1000 * 1000))
     time.sleep(sec)
+    #print(f"INFO: hako_sleep({sec}) done")
     return 0
 
 def my_on_initialize(context):

@@ -22,11 +22,17 @@ typedef enum {
     HAKO_ASSET_MODEL_CONTROLLER
 } HakoAssetModelType;
 extern int hako_asset_register(const char *asset_name, const char *config_path, hako_asset_callbacks_t *callbacks, hako_time_t delta_usec, HakoAssetModelType model);
-extern int hako_asset_start(void);
+extern int hako_asset_start_no_wait(int (*is_force_stop)(void));
+static inline int hako_asset_start(void) {
+    return hako_asset_start_no_wait(NULL);
+}
 extern int hako_asset_pdu_read(const char *robo_name, HakoPduChannelIdType lchannel, char *buffer, size_t buffer_len);
 extern int hako_asset_pdu_write(const char *robo_name, HakoPduChannelIdType lchannel, const char *buffer, size_t buffer_len);
 extern hako_time_t hako_asset_simulation_time(void);
-extern int hako_asset_usleep(hako_time_t sleep_time_usec);
+extern int hako_asset_usleep_no_wait(hako_time_t sleep_time_usec, int (*is_force_stop)(void));
+static inline int hako_asset_usleep(hako_time_t sleep_time_usec) {
+    return hako_asset_usleep_no_wait(sleep_time_usec, NULL);
+}
 
 extern int hako_initialize_for_external(void);
 extern int hako_asset_pdu_create(const char *robo_name, HakoPduChannelIdType lchannel, size_t pdu_size);

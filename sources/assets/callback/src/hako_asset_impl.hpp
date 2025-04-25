@@ -45,9 +45,9 @@ extern HakoAssetType hako_asset_instance;
 
 extern bool hako_asset_impl_register_callback(const hako_asset_callbacks_t* callback);
 extern bool hako_asset_impl_init(const char* asset_name, const char* config_path, hako_time_t delta_usec, bool is_plant);
-extern bool hako_asset_impl_wait_running(void);
+extern bool hako_asset_impl_wait_running(int (*is_force_stop)(void));
 extern HakoSimulationStateType hako_asset_impl_state();
-extern bool hako_asset_impl_step(hako_time_t increment_step);
+extern bool hako_asset_impl_step(hako_time_t increment_step, int (*is_force_stop)(void));
 extern hako_time_t hako_asset_impl_get_world_time();
 extern bool hako_asset_impl_pdu_read(const char* robo_name, HakoPduChannelIdType lchannel, char* buffer, size_t buffer_len);
 extern bool hako_asset_impl_pdu_write(const char* robo_name, HakoPduChannelIdType lchannel, const char* buffer, size_t buffer_len);
