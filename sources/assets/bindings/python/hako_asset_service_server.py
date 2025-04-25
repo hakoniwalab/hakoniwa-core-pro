@@ -82,7 +82,7 @@ class HakoAssetServiceServer:
 
     def _reply(self, response: dict, result_code: int):
         # Get response buffer
-        byte_array = hakopy.response_bytes = hakopy.asset_service_server_get_response_buffer(
+        byte_array = hakopy.asset_service_server_get_response_buffer(
             self.service_id, hakopy.HAKO_SERVICE_API_STATUS_DONE, result_code)
         if byte_array is None:
             raise Exception("Failed to get response byte array")
