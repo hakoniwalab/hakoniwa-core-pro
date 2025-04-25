@@ -12,7 +12,10 @@ service_name = 'Service/Add'
 service_config_path = './examples/service/service.json'
 service_server = None
 delta_time_usec = 1000 * 1000
-
+TEST_CASE_NORMAL = 0
+TEST_CASE_CANCEL1 = 1
+TEST_CASE_CANCEL2 = 2
+test_case = TEST_CASE_NORMAL
 def hako_sleep(sec: int):
     hakopy.usleep(int(sec * 1000 * 1000))
     time.sleep(sec)
@@ -32,9 +35,7 @@ def my_on_initialize(context):
 def my_on_reset(context):
     return 0
 
-
-pdu_manager = None
-def my_on_manual_timing_control(context):
+def normal_test_case():
     global pdu_manager
     global service_server
     global delta_time_usec
@@ -54,6 +55,17 @@ def my_on_manual_timing_control(context):
         else:
             hako_sleep(1)
 
+
+pdu_manager = None
+def my_on_manual_timing_control(context):
+    global test_case
+    if test_case == TEST_CASE_NORMAL:
+        normal_test_case()
+    elif test_case == TEST_CASE_CANCEL1:
+        pass
+    elif test_case == TEST_CASE_CANCEL2:
+        pass
+
     return 0
 
 my_callback = {
@@ -64,12 +76,13 @@ my_callback = {
 }
 def main():
     global pdu_manager
-    if len(sys.argv) != 2:
-        print(f"Usage: {sys.argv[0]} <config_path>")
+    if len(sys.argv) != 3:
+        print(f"Usage: {sys.argv[0]} <config_path>  <test_case: normal | cancel1 | cancel2>")
         return 1
 
     asset_name = 'Server'
     config_path = sys.argv[1]
+    case_name = sys.argv[2]
     delta_time_usec = 1000 * 1000
 
     pdu_manager = hako_pdu.HakoPduManager('./hakoniwa-ros2pdu/pdu/offset', config_path)
