@@ -6,6 +6,7 @@ import sys
 import time
 import sources.assets.bindings.python.hako_asset_service_constants as constants
 from sources.assets.bindings.python.hako_asset_service_client import HakoAssetServiceClient
+import asyncio
 
 
 asset_name = 'Client'
@@ -16,10 +17,16 @@ delta_time_usec = 1000 * 1000
 
 def hako_sleep(sec: int):
     #print(f"INFO: hako_sleep({sec})")
-    hakopy.usleep(int(sec * 1000 * 1000))
+    ret = hakopy.usleep(int(sec * 1000 * 1000))
+    if ret == False:
+        sys.exit(1)
     time.sleep(sec)
     #print(f"INFO: hako_sleep({sec}) done")
-    return 0
+    
+
+
+async def hako_sleep_async(sec: int):
+    await asyncio.to_thread(hako_sleep, sec)
 
 def my_on_initialize(context):
     global asset_name
@@ -38,6 +45,14 @@ def my_on_reset(context):
 
 pdu_manager = None
 def my_on_manual_timing_control(context):
+    loop = asyncio.get_event_loop()
+    try:
+        loop.run_until_complete(run_client_task())
+    except KeyboardInterrupt:
+        print("Interrupted by user.")
+    return 0
+
+async def run_client_task():
     global pdu_manager
     global service_client
     global delta_time_usec
@@ -56,7 +71,7 @@ def my_on_manual_timing_control(context):
     print("INFO: APL wait for response ")
 
     while True:
-        hako_sleep(1)
+        await hako_sleep_async(1)
         event = service_client.poll()
         if event < 0:
             print(f"ERROR: Failed to poll asset service client: {event}")
@@ -73,7 +88,7 @@ def my_on_manual_timing_control(context):
         print("WARNING: APL cancel request is happened.")
         while service_client.cancel_request() == False:
             print("INFO: APL cancel_request() is not done")
-            hako_sleep(1)
+            await hako_sleep_async(1)
         print("INFO: APL cancel_request() is done")
         while True:
             event = service_client.poll()
@@ -89,11 +104,11 @@ def my_on_manual_timing_control(context):
                 break
             else:
                 print("INFO: Request cancel is not done")
-            hako_sleep(1)
+            await hako_sleep_async(1)
 
     print("*************** FINISH SERVICE CLIENT ***************")
     while True:
-        hako_sleep(1)
+        await hako_sleep_async(1)
 
     return 0
 

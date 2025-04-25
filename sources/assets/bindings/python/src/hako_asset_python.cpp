@@ -132,8 +132,31 @@ static PyObject* asset_register(PyObject*, PyObject* args) {
         Py_RETURN_FALSE;
     }
 }
+static volatile int interrupt_flag = 0;
+
+static void set_interrupt_flag(int signum) {
+    (void)signum;  // unused parameter
+    interrupt_flag = 1;
+}
+
+#ifdef _WIN32
+#include <signal.h>
+void setup_signal_handler(void) {
+    signal(SIGINT, set_interrupt_flag);
+}
+#else
+#include <signal.h>
+void setup_signal_handler(void) {
+    struct sigaction sa;
+    sa.sa_handler = set_interrupt_flag;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = 0;
+    sigaction(SIGINT, &sa, NULL);
+}
+#endif
+
 static int is_force_stop(void) {
-    if (PyErr_CheckSignals() != 0) {
+    if (interrupt_flag || PyErr_CheckSignals() != 0) {
         return -1;
     }
     return 0;
@@ -875,6 +898,7 @@ static PyMethodDef hako_asset_python_methods[] = {
 //module creator
 PyMODINIT_FUNC PyInit_hakopy(void)
 {
+    setup_signal_handler();
     static struct PyModuleDef hako_obj;
     hako_obj.m_base = PyModuleDef_HEAD_INIT;
     hako_obj.m_name = "hako_asset_python";

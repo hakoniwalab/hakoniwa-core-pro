@@ -6,6 +6,7 @@ import sys
 import time
 import sources.assets.bindings.python.hako_asset_service_constants as constants
 from sources.assets.bindings.python.hako_asset_service_server import HakoAssetServiceServer
+import asyncio
 
 asset_name = 'Server'
 service_name = 'Service/Add'
@@ -18,10 +19,15 @@ TEST_CASE_CANCEL2 = 2
 test_case = TEST_CASE_NORMAL
 def hako_sleep(sec: int):
     #print(f"INFO: hako_sleep({sec})")
-    hakopy.usleep(int(sec * 1000 * 1000))
+    ret = hakopy.usleep(int(sec * 1000 * 1000))
+    if ret == False:
+        sys.exit(1)
     time.sleep(sec)
     #print(f"INFO: hako_sleep({sec}) done")
     return 0
+
+async def hako_sleep_async(sec: int):
+    await asyncio.to_thread(hako_sleep, sec)
 
 def my_on_initialize(context):
     global asset_name
@@ -37,7 +43,7 @@ def my_on_initialize(context):
 def my_on_reset(context):
     return 0
 
-def normal_test_case():
+async def normal_test_case():
     global pdu_manager
     global service_server
     global delta_time_usec
@@ -53,16 +59,16 @@ def normal_test_case():
             }
             while service_server.normal_reply(res) == False:
                 print("INFO: APL normal_reply() is not done")
-                hako_sleep(1)
+                await hako_sleep_async(1)
         else:
-            hako_sleep(1)
+            await hako_sleep_async(1)
 
-def cancel_1_test_case():
+async def cancel_1_test_case():
     global pdu_manager
     global service_server
     global delta_time_usec
     print("INFO: normal_test_case waiting...")
-    hako_sleep(5)
+    await hako_sleep_async(5)
     print("INFO: normal_test_case start")
     event = service_server.poll()
     if event < 0:
@@ -74,7 +80,7 @@ def cancel_1_test_case():
         res = {
             'sum': req['a'] + req['b']
         }
-        hako_sleep(5)
+        await hako_sleep_async(5)
         event = service_server.poll()
         print(f"event: {event}")
         if service_server.is_request_cancel(event):
@@ -86,12 +92,12 @@ def cancel_1_test_case():
 
     return 0
 
-def cancel_2_test_case():
+async def cancel_2_test_case():
     global pdu_manager
     global service_server
     global delta_time_usec
     print("INFO: normal_test_case waiting...")
-    hako_sleep(5)
+    await hako_sleep_async(5)
     print("INFO: normal_test_case start")
     event = service_server.poll()
     if event < 0:
@@ -103,7 +109,7 @@ def cancel_2_test_case():
         res = {
             'sum': req['a'] + req['b']
         }
-        hako_sleep(5)
+        await hako_sleep_async(5)
         print(f"INFO: OUT: {res}")
         service_server.normal_reply(res)
         event = service_server.poll()
@@ -113,16 +119,24 @@ def cancel_2_test_case():
 
 pdu_manager = None
 def my_on_manual_timing_control(context):
+    loop = asyncio.get_event_loop()
+    try:
+        loop.run_until_complete(run_client_task())
+    except KeyboardInterrupt:
+        print("Interrupted by user.")
+    return 0
+
+async def run_client_task():
     global test_case
     if test_case == TEST_CASE_NORMAL:
-        normal_test_case()
+        await normal_test_case()
     elif test_case == TEST_CASE_CANCEL1:
-        cancel_1_test_case()
+        await cancel_1_test_case()
     elif test_case == TEST_CASE_CANCEL2:
-        cancel_2_test_case()
+        await cancel_2_test_case()
 
     while True:
-        hako_sleep(1)
+        await hako_sleep_async(1)
 
     return 0
 
