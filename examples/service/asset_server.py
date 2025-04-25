@@ -55,6 +55,59 @@ def normal_test_case():
         else:
             hako_sleep(1)
 
+def cancel_1_test_case():
+    global pdu_manager
+    global service_server
+    global delta_time_usec
+    print("INFO: normal_test_case waiting...")
+    hako_sleep(5)
+    print("INFO: normal_test_case start")
+    event = service_server.poll()
+    if event < 0:
+        print(f"ERROR: hako_asset_service_server_poll() returns {event}")
+        return 1
+    if service_server.is_request_in(event):
+        req = service_server.get_request()
+        print(f"Request data: {req}")
+        res = {
+            'sum': req['a'] + req['b']
+        }
+        hako_sleep(5)
+        event = service_server.poll()
+        print(f"event: {event}")
+        if service_server.is_request_cancel(event):
+            print("Request cancelled")
+            service_server.cancel_reply(res)
+        else:
+            print("Request not cancelled")
+            service_server.normal_reply(res)
+
+    return 0
+
+def cancel_2_test_case():
+    global pdu_manager
+    global service_server
+    global delta_time_usec
+    print("INFO: normal_test_case waiting...")
+    hako_sleep(5)
+    print("INFO: normal_test_case start")
+    event = service_server.poll()
+    if event < 0:
+        print(f"ERROR: hako_asset_service_server_poll() returns {event}")
+        return 1
+    if service_server.is_request_in(event):
+        req = service_server.get_request()
+        print(f"Request data: {req}")
+        res = {
+            'sum': req['a'] + req['b']
+        }
+        hako_sleep(5)
+        print("INFO: OUT: {res}")
+        service_server.normal_reply(res)
+        event = service_server.poll()
+        print(f"event: {event}")
+
+    return 0
 
 pdu_manager = None
 def my_on_manual_timing_control(context):
@@ -62,9 +115,12 @@ def my_on_manual_timing_control(context):
     if test_case == TEST_CASE_NORMAL:
         normal_test_case()
     elif test_case == TEST_CASE_CANCEL1:
-        pass
+        cancel_1_test_case()
     elif test_case == TEST_CASE_CANCEL2:
-        pass
+        cancel_2_test_case()
+
+    while True:
+        hako_sleep(1)
 
     return 0
 
@@ -75,6 +131,7 @@ my_callback = {
     'on_reset': my_on_reset
 }
 def main():
+    global test_case
     global pdu_manager
     if len(sys.argv) != 3:
         print(f"Usage: {sys.argv[0]} <config_path>  <test_case: normal | cancel1 | cancel2>")
@@ -82,7 +139,15 @@ def main():
 
     asset_name = 'Server'
     config_path = sys.argv[1]
-    case_name = sys.argv[2]
+    if sys.argv[2] == 'normal':
+        test_case = TEST_CASE_NORMAL
+    elif sys.argv[2] == 'cancel1':
+        test_case = TEST_CASE_CANCEL1
+    elif sys.argv[2] == 'cancel2':
+        test_case = TEST_CASE_CANCEL2
+    else:
+        print(f"ERROR: invalid test case {sys.argv[2]}")
+        return 1
     delta_time_usec = 1000 * 1000
 
     pdu_manager = hako_pdu.HakoPduManager('./hakoniwa-ros2pdu/pdu/offset', config_path)

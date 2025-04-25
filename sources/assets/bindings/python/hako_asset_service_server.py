@@ -66,7 +66,7 @@ class HakoAssetServiceServer:
         return event == hakopy.HAKO_SERVICE_SERVER_API_EVENT_REQUEST_IN
     
     def is_request_cancel(self, event:int):
-        return event == hakopy.HAKO_SERVICE_SERVER_API_EVENT_REQUEST_CANCEL
+        return event == hakopy.HAKO_SERVICE_SERVER_API_EVENT_CANCEL
     
     def get_request(self):
         # Get the request packet
