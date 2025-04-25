@@ -527,67 +527,69 @@ static PyObject* py_hako_asset_service_client_create(PyObject*, PyObject* args) 
     const char* asset_name;
     const char* service_name;
     const char* client_name;
-    HakoServiceHandleType* handle = (HakoServiceHandleType*)malloc(sizeof(HakoServiceHandleType));
-    if (handle == NULL) {
-        PyErr_NoMemory();
-        return NULL;
-    }
+    HakoServiceHandleType handle;
 
     if (!PyArg_ParseTuple(args, "sss", &asset_name, &service_name, &client_name)) {
-        free(handle);
-        return NULL;
+        return NULL;;
     }
 
-    int result = hako_asset_service_client_create(asset_name, service_name, client_name, handle);
-    if (result == 0) {
-        // Python Capsule に包んで Python に渡す
-        PyObject* capsule = PyCapsule_New((void*)handle, "HakoServiceHandleType", NULL);
-        if (!capsule) {
-            free(handle);
-            return NULL;
-        }
-        return capsule;
-    } else {
-        free(handle);
+    int result = hako_asset_service_client_create(asset_name, service_name, client_name, &handle);
+    if (result != 0) {
         Py_RETURN_NONE;
     }
+
+    PyObject* py_dict = Py_BuildValue("{s:i, s:i}",
+                                      "service_id", handle.service_id,
+                                      "client_id", handle.client_id);
+    return py_dict;
 }
 
 //#HAKO_API int hako_asset_service_client_poll(const HakoServiceHandleType* handle);
 static PyObject* py_hako_asset_service_client_poll(PyObject*, PyObject* args) {
-    PyObject* capsule;
-    if (!PyArg_ParseTuple(args, "O", &capsule)) {
+    PyObject* dict;
+    if (!PyArg_ParseTuple(args, "O!", &PyDict_Type, &dict)) {
         return NULL;
     }
-    HakoServiceHandleType* handle = (HakoServiceHandleType*)PyCapsule_GetPointer(capsule, "HakoServiceHandleType");
-    if (handle == NULL) {
-        PyErr_SetString(PyExc_RuntimeError, "Invalid capsule");
+
+    PyObject* py_service_id = PyDict_GetItemString(dict, "service_id");
+    PyObject* py_client_id = PyDict_GetItemString(dict, "client_id");
+    if (!py_service_id || !py_client_id) {
+        PyErr_SetString(PyExc_KeyError, "handle dict missing keys");
         return NULL;
     }
-    int result = hako_asset_service_client_poll(handle);
+
+    HakoServiceHandleType handle;
+    handle.service_id = (int)PyLong_AsLong(py_service_id);
+    handle.client_id = (int)PyLong_AsLong(py_client_id);
+
+    int result = hako_asset_service_client_poll(&handle);
     if (result == 0) {
         Py_RETURN_TRUE;
     } else {
         Py_RETURN_FALSE;
     }
 }
+
 static PyObject* py_hako_asset_service_client_get_channel_id(PyObject*, PyObject* args) {
-    PyObject* capsule;
+    PyObject* dict;
 
-    if (!PyArg_ParseTuple(args, "O", &capsule)) {
+    if (!PyArg_ParseTuple(args, "O!", &PyDict_Type, &dict)) {
         return NULL;
     }
 
-    HakoServiceHandleType* handle = (HakoServiceHandleType*)PyCapsule_GetPointer(capsule, "HakoServiceHandleType");
-    if (handle == NULL) {
-        PyErr_SetString(PyExc_RuntimeError, "Invalid capsule for HakoServiceHandleType");
+    PyObject* py_service_id = PyDict_GetItemString(dict, "service_id");
+    PyObject* py_client_id = PyDict_GetItemString(dict, "client_id");
+
+    if (!py_service_id || !py_client_id) {
+        PyErr_SetString(PyExc_KeyError, "handle dict missing keys 'service_id' or 'client_id'");
         return NULL;
     }
 
+    int service_id = (int)PyLong_AsLong(py_service_id);
     int request_channel_id = 0;
     int response_channel_id = 0;
 
-    int result = hako_asset_service_client_get_channel_id(handle->service_id, &request_channel_id, &response_channel_id);
+    int result = hako_asset_service_client_get_channel_id(service_id, &request_channel_id, &response_channel_id);
     if (result == 0) {
         return Py_BuildValue("(ii)", request_channel_id, response_channel_id);
     } else {
@@ -595,103 +597,194 @@ static PyObject* py_hako_asset_service_client_get_channel_id(PyObject*, PyObject
     }
 }
 
+
+
 //#HAKO_API int hako_asset_service_client_get_request_buffer(const HakoServiceHandleType* handle, char** packet, size_t* packet_len, int opcode, int poll_interval_msec);
 static PyObject* py_hako_asset_service_client_get_request_buffer(PyObject*, PyObject* args) {
-    PyObject* capsule;
+    PyObject* dict;
     int opcode, poll_interval_msec;
-    if (!PyArg_ParseTuple(args, "Oii", &capsule, &opcode, &poll_interval_msec)) {
+
+    if (!PyArg_ParseTuple(args, "O!ii", &PyDict_Type, &dict, &opcode, &poll_interval_msec)) {
         return NULL;
     }
-    HakoServiceHandleType* handle = (HakoServiceHandleType*)PyCapsule_GetPointer(capsule, "HakoServiceHandleType");
-    if (!handle) return NULL;
-    
+
+    PyObject* py_service_id = PyDict_GetItemString(dict, "service_id");
+    PyObject* py_client_id = PyDict_GetItemString(dict, "client_id");
+    if (!py_service_id || !py_client_id) {
+        PyErr_SetString(PyExc_KeyError, "Missing 'service_id' or 'client_id' in handle dict");
+        return NULL;
+    }
+
+    HakoServiceHandleType handle;
+    handle.service_id = (int)PyLong_AsLong(py_service_id);
+    handle.client_id = (int)PyLong_AsLong(py_client_id);
+
     char* packet = NULL;
     size_t packet_len = 0;
-    
-    int result = hako_asset_service_client_get_request_buffer(handle, &packet, &packet_len, opcode, poll_interval_msec);
+
+    int result = hako_asset_service_client_get_request_buffer(
+        &handle,
+        &packet,
+        &packet_len,
+        opcode,
+        poll_interval_msec
+    );
+
     if (result == 0 && packet != NULL) {
         return PyByteArray_FromStringAndSize(packet, packet_len);
     }
+
     Py_RETURN_NONE;
 }
+
+
 //#HAKO_API int hako_asset_service_client_call_request(const HakoServiceHandleType* handle, char* packet, size_t packet_len, int timeout_msec);
 static PyObject* py_hako_asset_service_client_call_request(PyObject*, PyObject* args) {
-    PyObject* capsule;
+    PyObject* dict;
     PyObject* py_packet;
     int timeout_msec;
-    if (!PyArg_ParseTuple(args, "OOi", &capsule, &py_packet, &timeout_msec)) {
+
+    if (!PyArg_ParseTuple(args, "O!Oi", &PyDict_Type, &dict, &py_packet, &timeout_msec)) {
         return NULL;
     }
-    HakoServiceHandleType* handle = (HakoServiceHandleType*)PyCapsule_GetPointer(capsule, "HakoServiceHandleType");
-    if (!handle) return NULL;
-    
+
+    // handleの構築
+    PyObject* py_service_id = PyDict_GetItemString(dict, "service_id");
+    PyObject* py_client_id = PyDict_GetItemString(dict, "client_id");
+    if (!py_service_id || !py_client_id) {
+        PyErr_SetString(PyExc_KeyError, "Missing 'service_id' or 'client_id' in handle dict");
+        return NULL;
+    }
+
+    HakoServiceHandleType handle;
+    handle.service_id = (int)PyLong_AsLong(py_service_id);
+    handle.client_id = (int)PyLong_AsLong(py_client_id);
+
+    // パケット取得
     char* packet = PyByteArray_AsString(py_packet);
     Py_ssize_t packet_len = PyByteArray_Size(py_packet);
-    
-    int result = hako_asset_service_client_call_request(handle, packet, packet_len, timeout_msec);
-    if (result == 0) Py_RETURN_TRUE;
-    Py_RETURN_FALSE;    
-}
-//#HAKO_API int hako_asset_service_client_get_response(const HakoServiceHandleType* handle, char** packet, size_t* packet_len, int timeout);
-static PyObject* py_hako_asset_service_client_get_response(PyObject*, PyObject* args) {
-    PyObject* capsule;
-    int timeout;
-    if (!PyArg_ParseTuple(args, "Oi", &capsule, &timeout)) {
+    if (packet == NULL || packet_len <= 0) {
+        PyErr_SetString(PyExc_ValueError, "Invalid packet data");
         return NULL;
     }
-    HakoServiceHandleType* handle = (HakoServiceHandleType*)PyCapsule_GetPointer(capsule, "HakoServiceHandleType");
-    if (!handle) return NULL;
-    
+
+    int result = hako_asset_service_client_call_request(&handle, packet, (size_t)packet_len, timeout_msec);
+    if (result == 0) {
+        Py_RETURN_TRUE;
+    }
+    Py_RETURN_FALSE;
+}
+
+
+//#HAKO_API int hako_asset_service_client_get_response(const HakoServiceHandleType* handle, char** packet, size_t* packet_len, int timeout);
+static PyObject* py_hako_asset_service_client_get_response(PyObject*, PyObject* args) {
+    PyObject* dict;
+    int timeout;
+
+    if (!PyArg_ParseTuple(args, "O!i", &PyDict_Type, &dict, &timeout)) {
+        return NULL;
+    }
+
+    PyObject* py_service_id = PyDict_GetItemString(dict, "service_id");
+    PyObject* py_client_id = PyDict_GetItemString(dict, "client_id");
+    if (!py_service_id || !py_client_id) {
+        PyErr_SetString(PyExc_KeyError, "Missing 'service_id' or 'client_id' in handle dict");
+        return NULL;
+    }
+
+    HakoServiceHandleType handle;
+    handle.service_id = (int)PyLong_AsLong(py_service_id);
+    handle.client_id = (int)PyLong_AsLong(py_client_id);
+    std::cout << "service_id: " << handle.service_id << ", client_id: " << handle.client_id << std::endl;
     char* packet = NULL;
     size_t packet_len = 0;
-    
-    int result = hako_asset_service_client_get_response(handle, &packet, &packet_len, timeout);
+
+    int result = hako_asset_service_client_get_response(&handle, &packet, &packet_len, timeout);
+    std::cout << "result: " << result << std::endl;
     if (result == 0 && packet != NULL) {
         return PyByteArray_FromStringAndSize(packet, packet_len);
     }
+
     Py_RETURN_NONE;
 }
+
 //#HAKO_API int hako_asset_service_client_cancel_request(const HakoServiceHandleType* handle);
 static PyObject* py_hako_asset_service_client_cancel_request(PyObject*, PyObject* args) {
-    PyObject* capsule;
-    if (!PyArg_ParseTuple(args, "O", &capsule)) {
+    PyObject* dict;
+
+    if (!PyArg_ParseTuple(args, "O!", &PyDict_Type, &dict)) {
         return NULL;
     }
-    HakoServiceHandleType* handle = (HakoServiceHandleType*)PyCapsule_GetPointer(capsule, "HakoServiceHandleType");
-    if (!handle) return NULL;
-    
-    int result = hako_asset_service_client_cancel_request(handle);
-    if (result == 0) Py_RETURN_TRUE;
-    Py_RETURN_FALSE;    
+
+    PyObject* py_service_id = PyDict_GetItemString(dict, "service_id");
+    PyObject* py_client_id = PyDict_GetItemString(dict, "client_id");
+    if (!py_service_id || !py_client_id) {
+        PyErr_SetString(PyExc_KeyError, "Missing 'service_id' or 'client_id' in handle dict");
+        return NULL;
+    }
+
+    HakoServiceHandleType handle;
+    handle.service_id = (int)PyLong_AsLong(py_service_id);
+    handle.client_id = (int)PyLong_AsLong(py_client_id);
+
+    int result = hako_asset_service_client_cancel_request(&handle);
+    if (result == 0) {
+        Py_RETURN_TRUE;
+    } else {
+        Py_RETURN_FALSE;
+    }
 }
+
 //#HAKO_API int hako_asset_service_client_get_progress(const HakoServiceHandleType* handle);
 static PyObject* py_hako_asset_service_client_get_progress(PyObject*, PyObject* args) {
-    PyObject* capsule;
-    if (!PyArg_ParseTuple(args, "O", &capsule)) {
+    PyObject* dict;
+
+    if (!PyArg_ParseTuple(args, "O!", &PyDict_Type, &dict)) {
         return NULL;
     }
-    HakoServiceHandleType* handle = (HakoServiceHandleType*)PyCapsule_GetPointer(capsule, "HakoServiceHandleType");
-    if (!handle) return NULL;
-    
-    int progress = hako_asset_service_client_get_progress(handle);
-    return PyLong_FromLong(progress);    
+
+    PyObject* py_service_id = PyDict_GetItemString(dict, "service_id");
+    PyObject* py_client_id = PyDict_GetItemString(dict, "client_id");
+    if (!py_service_id || !py_client_id) {
+        PyErr_SetString(PyExc_KeyError, "Missing 'service_id' or 'client_id' in handle dict");
+        return NULL;
+    }
+
+    HakoServiceHandleType handle;
+    handle.service_id = (int)PyLong_AsLong(py_service_id);
+    handle.client_id = (int)PyLong_AsLong(py_client_id);
+
+    int progress = hako_asset_service_client_get_progress(&handle);
+    return PyLong_FromLong(progress);
 }
+
 //#HAKO_API int hako_asset_service_client_status(const HakoServiceHandleType* handle, int* status);
 static PyObject* py_hako_asset_service_client_status(PyObject*, PyObject* args) {
-    PyObject* capsule;
-    if (!PyArg_ParseTuple(args, "O", &capsule)) {
+    PyObject* dict;
+
+    if (!PyArg_ParseTuple(args, "O!", &PyDict_Type, &dict)) {
         return NULL;
     }
-    HakoServiceHandleType* handle = (HakoServiceHandleType*)PyCapsule_GetPointer(capsule, "HakoServiceHandleType");
-    if (!handle) return NULL;
-    
+
+    PyObject* py_service_id = PyDict_GetItemString(dict, "service_id");
+    PyObject* py_client_id = PyDict_GetItemString(dict, "client_id");
+    if (!py_service_id || !py_client_id) {
+        PyErr_SetString(PyExc_KeyError, "Missing 'service_id' or 'client_id' in handle dict");
+        return NULL;
+    }
+
+    HakoServiceHandleType handle;
+    handle.service_id = (int)PyLong_AsLong(py_service_id);
+    handle.client_id = (int)PyLong_AsLong(py_client_id);
+
     int status = 0;
-    int result = hako_asset_service_client_status(handle, &status);
+    int result = hako_asset_service_client_status(&handle, &status);
     if (result == 0) {
         return PyLong_FromLong(status);
     }
-    Py_RETURN_NONE;    
+    Py_RETURN_NONE;
 }
+
 static PyObject* py_hako_asset_service_get_channel_id(PyObject*, PyObject* args) 
 {
     int service_id;
@@ -814,6 +907,8 @@ PyMODINIT_FUNC PyInit_hakopy(void)
     PyModule_AddIntConstant(m, "HAKO_SERVICE_API_STATUS_CANCELING", HAKO_SERVICE_API_STATUS_CANCELING);
     PyModule_AddIntConstant(m, "HAKO_SERVICE_API_STATUS_DONE", HAKO_SERVICE_API_STATUS_DONE);
     PyModule_AddIntConstant(m, "HAKO_SERVICE_API_STATUS_ERROR", HAKO_SERVICE_API_STATUS_ERROR);
+    PyModule_AddIntConstant(m, "HAKO_SERVICE_CLIENT_API_OPCODE_REQUEST", HAKO_SERVICE_CLIENT_API_OPCODE_REQUEST);
+    PyModule_AddIntConstant(m, "HAKO_SERVICE_CLIENT_API_OPCODE_CANCEL", HAKO_SERVICE_CLIENT_API_OPCODE_CANCEL);
 
     return m;
 }
