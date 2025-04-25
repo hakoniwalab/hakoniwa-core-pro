@@ -96,11 +96,8 @@ class HakoAssetServiceClient:
             raise RuntimeError("No response packet")
         return self.res_packet['body']
     
-    def cance_request(self):
+    def cancel_request(self):
         if self.handle is None:
             raise RuntimeError("No handle")
-        success = hakopy.asset_service_client_cancel_request(self.handle)
-        if not success:
-            raise RuntimeError("Failed to cancel request")
-        return True
+        return hakopy.asset_service_client_cancel_request(self.handle)
 

@@ -104,7 +104,7 @@ def cancel_2_test_case():
             'sum': req['a'] + req['b']
         }
         hako_sleep(5)
-        print("INFO: OUT: {res}")
+        print(f"INFO: OUT: {res}")
         service_server.normal_reply(res)
         event = service_server.poll()
         print(f"event: {event}")

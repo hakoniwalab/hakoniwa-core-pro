@@ -74,6 +74,7 @@ def my_on_manual_timing_control(context):
         while service_client.cancel_request() == False:
             print("INFO: APL cancel_request() is not done")
             hako_sleep(1)
+        print("INFO: APL cancel_request() is done")
         while True:
             event = service_client.poll()
             if event < 0:
