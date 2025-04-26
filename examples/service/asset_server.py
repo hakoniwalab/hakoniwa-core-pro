@@ -57,6 +57,7 @@ async def normal_test_case():
             res = {
                 'sum': request_data['a'] + request_data['b']
             }
+            print(f"INFO: OUT: {res}")
             while service_server.normal_reply(res) == False:
                 print("INFO: APL normal_reply() is not done")
                 await hako_sleep_async(1)

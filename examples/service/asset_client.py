@@ -53,6 +53,36 @@ def my_on_manual_timing_control(context):
     return 0
 
 async def run_client_task():
+    await run_client_task_for_test()
+    #await run_client_task_for_normal()
+
+async def run_client_task_for_normal():
+    global pdu_manager, service_client, delta_time_usec
+
+    print("*************** START SERVICE CLIENT ***************")
+    req = {'a': 1, 'b': 2}
+
+    while True:
+        # 送信成功までリトライ
+        while not service_client.request(req):
+            print("INFO: Can not send request")
+            await hako_sleep_async(1)
+
+        # レスポンス到着まで待機
+        while not service_client.is_response_in(service_client.poll()):
+            print("INFO: APL wait for response")
+            await hako_sleep_async(1)
+
+        res = service_client.get_response()
+        print(f"Response data: {res}")
+
+        # 次のリクエストを作成
+        req = {
+            'a': res['sum'],
+            'b': res['sum'] + 1
+        }
+
+async def run_client_task_for_test():
     global pdu_manager
     global service_client
     global delta_time_usec
