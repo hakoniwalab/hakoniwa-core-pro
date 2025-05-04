@@ -146,6 +146,12 @@ class HakoProData : public std::enable_shared_from_this<HakoProData>, public hak
         HakoServiceEntryTye& get_service_entry(int service_id)
         {
             if (service_table_ == nullptr) {
+                //load pdu data
+                std::cout << "INFO: HakoProData::get_service_entry() service_table_ is nullptr" << std::endl;
+                this->master_data_->get_pdu_data()->load();
+            }
+            if (service_table_ == nullptr) {
+                std::cout << "ERROR: HakoProData::get_service_entry() service_table_ is still nullptr" << std::endl;
                 throw std::runtime_error("Service table is not initialized");
             }
             return service_table_->entries[service_id];

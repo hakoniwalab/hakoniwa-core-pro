@@ -120,12 +120,17 @@ async def cancel_2_test_case():
 
 pdu_manager = None
 def my_on_manual_timing_control(context):
-    loop = asyncio.get_event_loop()
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
     try:
         loop.run_until_complete(run_client_task())
     except KeyboardInterrupt:
         print("Interrupted by user.")
     return 0
+
 
 async def run_client_task():
     global test_case

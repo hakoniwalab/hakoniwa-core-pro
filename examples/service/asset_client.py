@@ -33,9 +33,10 @@ def my_on_initialize(context):
     global service_name
     global service_client
     service_client = HakoAssetServiceClient(pdu_manager, asset_name, service_name, "Client01")
+    print(f"INFO: service_client: {service_client}")
+    pdu_manager.append_pdu_def(service_config_path)
     if service_client.initialize() == False:
         raise RuntimeError("Failed to create asset service")
-    pdu_manager.append_pdu_def(service_config_path)
 
     return 0
 
@@ -45,7 +46,11 @@ def my_on_reset(context):
 
 pdu_manager = None
 def my_on_manual_timing_control(context):
-    loop = asyncio.get_event_loop()
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
     try:
         loop.run_until_complete(run_client_task())
     except KeyboardInterrupt:
@@ -151,16 +156,23 @@ my_callback = {
 def main():
     global test_case
     global pdu_manager
-    if len(sys.argv) != 2:
-        print(f"Usage: {sys.argv[0]} <config_path>")
+    if len(sys.argv) != 2 and len(sys.argv) != 3:
+        print(f"Usage: {sys.argv[0]} <config_path> [external]")
         return 1
 
     config_path = sys.argv[1]
     delta_time_usec = 1000 * 1000
+    isExternal = False
+    if len(sys.argv) == 3 and sys.argv[2] == 'external':
+        isExternal = True
+        print("INFO: external mode")
 
     pdu_manager = hako_pdu.HakoPduManager('./hakoniwa-ros2pdu/pdu/offset', config_path)
 
-    ret = hakopy.asset_register(asset_name, config_path, my_callback, delta_time_usec, hakopy.HAKO_ASSET_MODEL_CONTROLLER)
+    if isExternal:
+        ret = hakopy.init_for_external()
+    else:
+        ret = hakopy.asset_register(asset_name, config_path, my_callback, delta_time_usec, hakopy.HAKO_ASSET_MODEL_CONTROLLER)
     if ret == False:
         print(f"ERROR: hako_asset_register() returns {ret}.")
         return 1
@@ -168,8 +180,13 @@ def main():
     if ret < 0:
         print(f"ERROR: hako_asset_service_initialize() returns {ret}.")
         return 1
-    ret = hakopy.start()
-    print(f"INFO: hako_asset_start() returns {ret}")
+    
+    if isExternal:
+        my_on_initialize(None)
+        my_on_manual_timing_control(None)
+    else:
+        ret = hakopy.start()
+        print(f"INFO: hako_asset_start() returns {ret}")
 
     return 0
 
