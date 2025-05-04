@@ -128,6 +128,10 @@ hako_time_t hako_asset_simulation_time(void) {
 
 int hako_asset_usleep_no_wait(hako_time_t sleep_time_usec, int (*is_force_stop)() = nullptr)
 {
+    if (hako_asset_instance.external_use) {
+        //nothing to do
+        return 0;
+    }
     hako_time_t step;
     if (sleep_time_usec == 0) {
         step = 1;
