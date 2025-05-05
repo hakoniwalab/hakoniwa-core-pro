@@ -15,9 +15,7 @@ class HakoServiceDef:
         if self.service_config is None:
             raise ValueError(f"Failed to load service config from {service_config_path}")
 
-    def get_pdu_definition(self):
-        pdu_meta_size = self.service_config['pduMetaDataSize']
-        robots = []
+    def get_service_config(self, robots, pdu_meta_size):
         service_id = 0
         for entry in self.service_config['services']:
             name = entry['name']
@@ -60,6 +58,42 @@ class HakoServiceDef:
             robots.append(robot)
             service_id += 1
 
+    def get_node_config(self, robots, pdu_meta_size):
+        for node in self.service_config.get("nodes", []):
+            robot = {
+                'name': node['name'],
+                'rpc_pdu_readers': [],
+                'rpc_pdu_writers': [],
+                'shm_pdu_readers': [],
+                'shm_pdu_writers': [],
+            }
+            for topic in node.get("topics", []):
+                full_name = f"{node['name']}_{topic['topic_name']}"
+
+                topic_pdu = {
+                    'type': topic['type'],
+                    'org_name': topic['topic_name'],
+                    'name': full_name,
+                    'channel_id': topic['channel_id'],
+                    'pdu_size': pdu_meta_size + topic['pduSize']['baseSize'] + topic['pduSize']['heapSize'],
+                    'write_cycle': 1,
+                    'method_type': 'SHM'
+                }
+                ret = hakopy.pdu_create(robot['name'], topic['channel_id'], topic_pdu['pdu_size'])
+                if ret == False:
+                    print(f"ERROR: pdu_create() failed for {robot['name']} {topic['channel_id']} {topic['type']}")
+                    continue
+                else:
+                    print(f"INFO: pdu_create() success for {robot['name']} {topic['channel_id']} {topic['type']}")
+                robot['shm_pdu_readers'].append(topic_pdu)
+                robot['shm_pdu_writers'].append(topic_pdu)
+            robots.append(robot)
+
+    def get_pdu_definition(self):
+        pdu_meta_size = self.service_config['pduMetaDataSize']
+        robots = []
+        self.get_service_config(robots, pdu_meta_size)
+        self.get_node_config(robots, pdu_meta_size)
         pdudef = {
             'robots': robots
         }

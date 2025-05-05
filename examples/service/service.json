@@ -16,5 +16,35 @@
                 }
             }
         }
+    ],
+    "nodes": [
+        {
+            "name": "drone1",
+            "topics": [
+                {
+                    "topic_name": "pos",
+                    "type": "std_msgs/Int32",
+                    "channel_id": 0,
+                    "pduSize": {
+                        "baseSize": 288,
+                        "heapSize": 0
+                    }
+                }
+            ]
+        },
+        {
+            "name": "drone2",
+            "topics": [
+                {
+                    "topic_name": "pos",
+                    "type": "std_msgs/Int32",
+                    "channel_id": 0,
+                    "pduSize": {
+                        "baseSize": 288,
+                        "heapSize": 0
+                    }
+                }
+            ]
+        }
     ]
 }
