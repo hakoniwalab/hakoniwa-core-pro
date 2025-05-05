@@ -138,11 +138,38 @@ class PduBinaryConvertor:
 
     def append_pdu_def(self, service_config_path):
         service_def = HakoServiceDef(service_config_path, self.offmap)
-        pdu_def = service_def.get_pdu_definition()
+        new_def = service_def.get_pdu_definition()
+
         if self.pdudef is None:
-            self.pdudef = pdu_def
+            self.pdudef = new_def
         else:
-            self.pdudef['robots'].extend(pdu_def['robots'])
+            def update_or_add_pdu(robot_entry, pdu_list_name, new_pdu):
+                pdu_list = robot_entry.setdefault(pdu_list_name, [])
+                for idx, existing_pdu in enumerate(pdu_list):
+                    if existing_pdu['channel_id'] == new_pdu['channel_id']:
+                        pdu_list[idx] = new_pdu
+                        return
+                pdu_list.append(new_pdu)
+
+            def find_robot_by_name(name):
+                for robot in self.pdudef['robots']:
+                    if robot['name'] == name:
+                        return robot
+                return None
+
+            for new_robot in new_def['robots']:
+                new_name = new_robot['name']
+                existing_robot = find_robot_by_name(new_name)
+
+                if not existing_robot:
+                    self.pdudef['robots'].append(new_robot)
+                    continue
+
+                for reader in new_robot.get('shm_pdu_readers', []):
+                    update_or_add_pdu(existing_robot, 'shm_pdu_readers', reader)
+                for writer in new_robot.get('shm_pdu_writers', []):
+                    update_or_add_pdu(existing_robot, 'shm_pdu_writers', writer)
+
         service_def.create_pdus()
 
     def _load_json(self, path):
