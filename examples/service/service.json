@@ -23,10 +23,9 @@
             "topics": [
                 {
                     "topic_name": "pos",
-                    "type": "std_msgs/Int32",
+                    "type": "geometry_msgs/Twist",
                     "channel_id": 0,
                     "pduSize": {
-                        "baseSize": 288,
                         "heapSize": 0
                     }
                 }
@@ -37,10 +36,9 @@
             "topics": [
                 {
                     "topic_name": "pos",
-                    "type": "std_msgs/Int32",
+                    "type": "geometry_msgs/Twist",
                     "channel_id": 0,
                     "pduSize": {
-                        "baseSize": 288,
                         "heapSize": 0
                     }
                 }

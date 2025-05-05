@@ -215,15 +215,15 @@ bool hako_asset_impl_initialize_for_external()
 int hako_asset_impl_pdu_create(const char *robo_name, HakoPduChannelIdType lchannel, size_t pdu_size)
 {
     if (!hako_asset_instance.is_initialized) {
-        return false;
+        return -1;
     }
     std::string robotName = robo_name;
     bool err = hako_asset_instance.hako_asset->create_pdu_lchannel(robotName, lchannel, pdu_size);
     if (err == false) {
         std::cerr << "ERROR: Can not create_pdu_channel()" << std::endl;
-        return false;
+        return -1;
     }    
-    return true;
+    return 0;
 }
 bool hako_asset_impl_register_callback(const hako_asset_callbacks_t* callback)
 {

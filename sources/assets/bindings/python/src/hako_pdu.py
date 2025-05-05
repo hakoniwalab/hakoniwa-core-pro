@@ -9,8 +9,9 @@ from hako_binary import binary_reader
 from hako_binary import binary_io
 
 class HakoServiceDef:
-    def __init__(self, service_config_path:str):
+    def __init__(self, service_config_path:str, offmap:offset_map.OffsetMap):
         self.service_config_path = service_config_path
+        self.offmap = offmap
         self.service_config = self._load_json(service_config_path)
         if self.service_config is None:
             raise ValueError(f"Failed to load service config from {service_config_path}")
@@ -35,21 +36,25 @@ class HakoServiceDef:
                 if result is None:
                     raise ValueError(f"Failed to get channel ID for service_id={service_id} client_id={client_id}")
                 req_id, res_id = result
+                req_type = type + "RequestPacket"
+                res_type = type + "ResponsePacket"
+                req_baseSize = self.offmap.get_pdu_size(req_type)
+                res_baseSize = self.offmap.get_pdu_size(res_type)
                 req_pdu = {
-                    'type': type + "RequestPacket",
+                    'type': req_type,
                     'org_name': "req_" + str(client_id),
                     'name': name + "_req_" + str(client_id),
                     'channel_id': req_id,
-                    'pdu_size': pdu_meta_size + pduSize['server']['baseSize'] + pduSize['server']['heapSize'],
+                    'pdu_size': pdu_meta_size + req_baseSize + pduSize['server']['heapSize'],
                     'write_cycle': 1,
                     'method_type': 'SHM'
                 }
                 res_pdu = {
-                    'type': type + "ResponsePacket",
+                    'type': res_type,
                     'org_name': "res_" + str(client_id),
                     'name': name + "_res_" + str(client_id),
                     'channel_id': res_id,
-                    'pdu_size': pdu_meta_size + pduSize['client']['baseSize'] + pduSize['client']['heapSize'],
+                    'pdu_size': pdu_meta_size + res_baseSize + pduSize['client']['heapSize'],
                     'write_cycle': 1,
                     'method_type': 'SHM'
                 }
@@ -69,22 +74,16 @@ class HakoServiceDef:
             }
             for topic in node.get("topics", []):
                 full_name = f"{node['name']}_{topic['topic_name']}"
-
+                baseSize = self.offmap.get_pdu_size(topic['type'])
                 topic_pdu = {
                     'type': topic['type'],
                     'org_name': topic['topic_name'],
                     'name': full_name,
                     'channel_id': topic['channel_id'],
-                    'pdu_size': pdu_meta_size + topic['pduSize']['baseSize'] + topic['pduSize']['heapSize'],
+                    'pdu_size': pdu_meta_size + baseSize + topic['pduSize']['heapSize'],
                     'write_cycle': 1,
                     'method_type': 'SHM'
                 }
-                ret = hakopy.pdu_create(robot['name'], topic['channel_id'], topic_pdu['pdu_size'])
-                if ret == False:
-                    print(f"ERROR: pdu_create() failed for {robot['name']} {topic['channel_id']} {topic['type']}")
-                    continue
-                else:
-                    print(f"INFO: pdu_create() success for {robot['name']} {topic['channel_id']} {topic['type']}")
                 robot['shm_pdu_readers'].append(topic_pdu)
                 robot['shm_pdu_writers'].append(topic_pdu)
             robots.append(robot)
@@ -99,6 +98,25 @@ class HakoServiceDef:
         }
         return pdudef
 
+    def create_pdus(self):
+        robots = self.get_pdu_definition()
+        for robot in robots['robots']:
+            for pdu in robot['shm_pdu_readers']:
+                ret = hakopy.pdu_create(robot['name'], pdu['channel_id'], pdu['pdu_size'])
+                if ret == False:
+                    print(f"ERROR: pdu_create() failed for {robot['name']} {pdu['channel_id']} {pdu['type']}")
+                    continue
+                else:
+                    print(f"INFO: pdu_create() success for {robot['name']} {pdu['channel_id']} {pdu['type']}")
+            for pdu in robot['shm_pdu_writers']:
+                ret = hakopy.pdu_create(robot['name'], pdu['channel_id'], pdu['pdu_size'])
+                if ret == False:
+                    print(f"ERROR: pdu_create() failed for {robot['name']} {pdu['channel_id']} {pdu['type']}")
+                    continue
+                else:
+                    print(f"INFO: pdu_create() success for {robot['name']} {pdu['channel_id']} {pdu['type']}")
+        return robots
+
     def _load_json(self, path):
         try:
             with open(path, 'r') as file:
@@ -112,18 +130,20 @@ class HakoServiceDef:
         except Exception as e:
             print(f"ERROR: {e}")
         return None
+
 class PduBinaryConvertor:
     def __init__(self, offset_path, pdudef_path):
         self.offmap = offset_map.create_offmap(offset_path)
         self.pdudef = self._load_json(pdudef_path)
 
     def append_pdu_def(self, service_config_path):
-        service_def = HakoServiceDef(service_config_path)
+        service_def = HakoServiceDef(service_config_path, self.offmap)
         pdu_def = service_def.get_pdu_definition()
         if self.pdudef is None:
             self.pdudef = pdu_def
         else:
             self.pdudef['robots'].extend(pdu_def['robots'])
+        service_def.create_pdus()
 
     def _load_json(self, path):
         try:
