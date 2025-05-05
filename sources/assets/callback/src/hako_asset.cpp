@@ -181,3 +181,40 @@ int hako_asset_check_data_recv_event(const char *robo_name, HakoPduChannelIdType
     }
     return 0;
 }
+
+int hako_trigger_event(int event)
+{
+    if (hako_asset_instance.is_initialized == false) {
+        std::cerr << "Error: not initialized." << std::endl;
+        return EINVAL;
+    }
+    if (hako_asset_impl_state() != HakoSim_Stopped) {
+        std::cerr << "Error: simulation state(" << hako_asset_impl_state() << ") is invalid, expeting HakoSim_Stopeed." << std::endl;
+        return EINVAL;
+    }
+    switch (event) {
+        case HAKO_TRIGGER_EVENT_ID_START:
+            if (hako_asset_instance.hako_sim->start() == false) {
+                std::cerr << "Error: Failed to start simulation." << std::endl;
+                return EIO;
+            }
+            break;
+        case HAKO_TRIGGER_EVENT_ID_STOP:
+            if (hako_asset_instance.hako_sim->stop() == false) {
+                std::cerr << "Error: Failed to stop simulation." << std::endl;
+                return EIO;
+            }
+            break;
+        case HAKO_TRIGGER_EVENT_ID_RESET:
+            if (hako_asset_instance.hako_sim->reset() == false) {
+                std::cerr << "Error: Failed to reset simulation." << std::endl;
+                return EIO;
+            }
+            break;
+        default:
+            std::cerr << "Error: Invalid event ID." << std::endl;
+            return EINVAL;
+    }
+    std::cout << "INFO: start simulation" << std::endl;
+    return 0;
+}

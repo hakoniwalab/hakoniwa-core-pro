@@ -838,7 +838,19 @@ static PyObject* py_hako_asset_service_get_channel_id(PyObject*, PyObject* args)
 
     return Py_BuildValue("(ii)", req_id, res_id);
 }
+static PyObject* py_hako_trigger_event(PyObject*, PyObject* args) {
+    int event_id;
+    if (!PyArg_ParseTuple(args, "i", &event_id)) {
+        return NULL;
+    }
 
+    int result = hako_trigger_event(event_id);
+    if (result == 0) {
+        Py_RETURN_TRUE;
+    } else {
+        Py_RETURN_FALSE;
+    }
+}
 
 
 static PyMethodDef hako_asset_python_methods[] = {
@@ -894,6 +906,7 @@ static PyMethodDef hako_asset_python_methods[] = {
     //#HAKO_API int hako_asset_service_client_status(const HakoServiceHandleType* handle, int* status);
     {"asset_service_client_status", py_hako_asset_service_client_status, METH_VARARGS, "Get client status."},
     {"asset_service_get_channel_id", py_hako_asset_service_get_channel_id, METH_VARARGS, "Get channel ID."},
+    {"trigger_event", py_hako_trigger_event, METH_VARARGS, "Trigger event."},
     { NULL,  NULL,  0, NULL},
 };
 //module creator
@@ -938,6 +951,9 @@ PyMODINIT_FUNC PyInit_hakopy(void)
     PyModule_AddIntConstant(m, "HAKO_SERVICE_API_STATUS_ERROR", HAKO_SERVICE_API_STATUS_ERROR);
     PyModule_AddIntConstant(m, "HAKO_SERVICE_CLIENT_API_OPCODE_REQUEST", HAKO_SERVICE_CLIENT_API_OPCODE_REQUEST);
     PyModule_AddIntConstant(m, "HAKO_SERVICE_CLIENT_API_OPCODE_CANCEL", HAKO_SERVICE_CLIENT_API_OPCODE_CANCEL);
+    PyModule_AddIntConstant(m, "HAKO_TRIGGER_EVENT_ID_START", HAKO_TRIGGER_EVENT_ID_START);
+    PyModule_AddIntConstant(m, "HAKO_TRIGGER_EVENT_ID_STOP", HAKO_TRIGGER_EVENT_ID_STOP);
+    PyModule_AddIntConstant(m, "HAKO_TRIGGER_EVENT_ID_RESET", HAKO_TRIGGER_EVENT_ID_RESET);
 
     return m;
 }

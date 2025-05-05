@@ -33,7 +33,6 @@ def my_on_initialize(context):
     global service_name
     global service_client
     service_client = HakoAssetServiceClient(pdu_manager, asset_name, service_name, "Client01")
-    print(f"INFO: service_client: {service_client}")
     pdu_manager.append_pdu_def(service_config_path)
     if service_client.initialize() == False:
         raise RuntimeError("Failed to create asset service")

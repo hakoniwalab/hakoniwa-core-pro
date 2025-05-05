@@ -34,9 +34,9 @@ def my_on_initialize(context):
     global service_name
     global service_server
     service_server = HakoAssetServiceServer(pdu_manager, asset_name, service_name)
+    pdu_manager.append_pdu_def(service_config_path)
     if service_server.initialize() == False:
         raise RuntimeError("Failed to create asset service")
-    pdu_manager.append_pdu_def(service_config_path)
 
     return 0
 
@@ -155,8 +155,8 @@ my_callback = {
 def main():
     global test_case
     global pdu_manager
-    if len(sys.argv) != 3:
-        print(f"Usage: {sys.argv[0]} <config_path>  <test_case: normal | cancel1 | cancel2>")
+    if len(sys.argv) != 3 and len(sys.argv) != 4:
+        print(f"Usage: {sys.argv[0]} <config_path>  <test_case: normal | cancel1 | cancel2> [external]")
         return 1
 
     asset_name = 'Server'
@@ -171,20 +171,39 @@ def main():
         print(f"ERROR: invalid test case {sys.argv[2]}")
         return 1
     delta_time_usec = 1000 * 1000
+    is_external = False
+    if len(sys.argv) == 4:
+        if sys.argv[3] == 'external':
+            is_external = True
+            print("INFO: external mode")
+        else:
+            print(f"ERROR: invalid argument {sys.argv[3]}")
+            return 1
 
     pdu_manager = hako_pdu.HakoPduManager('./hakoniwa-ros2pdu/pdu/offset', config_path)
 
     hakopy.conductor_start(delta_time_usec, delta_time_usec)
-    ret = hakopy.asset_register(asset_name, config_path, my_callback, delta_time_usec, hakopy.HAKO_ASSET_MODEL_PLANT)
-    if ret == False:
-        print(f"ERROR: hako_asset_register() returns {ret}.")
-        return 1
+    if is_external:
+        ret = hakopy.init_for_external()
+        if ret < 0:
+            print(f"ERROR: init_for_external() returns {ret}.")
+            return 1
+    else:
+        ret = hakopy.asset_register(asset_name, config_path, my_callback, delta_time_usec, hakopy.HAKO_ASSET_MODEL_PLANT)
+        if ret == False:
+            print(f"ERROR: hako_asset_register() returns {ret}.")
+            return 1
     ret = hakopy.service_initialize(service_config_path)
     if ret < 0:
         print(f"ERROR: hako_asset_service_initialize() returns {ret}.")
         return 1
-    ret = hakopy.start()
-    print(f"INFO: hako_asset_start() returns {ret}")
+    if is_external:
+        hakopy.trigger_event(hakopy.HAKO_TRIGGER_EVENT_ID_START)
+        my_on_initialize(None)
+        my_on_manual_timing_control(None)
+    else:
+        ret = hakopy.start()
+        print(f"INFO: hako_asset_start() returns {ret}")
 
     hakopy.conductor_stop()
     return 0

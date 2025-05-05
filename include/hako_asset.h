@@ -57,6 +57,11 @@ extern int hako_asset_register_data_recv_event(const char *robo_name, HakoPduCha
  */
 extern int hako_asset_check_data_recv_event(const char *robo_name, HakoPduChannelIdType lchannel);
 
+
+#define HAKO_TRIGGER_EVENT_ID_START 0
+#define HAKO_TRIGGER_EVENT_ID_STOP 1
+#define HAKO_TRIGGER_EVENT_ID_RESET 2
+extern int hako_trigger_event(int event_id);
 #ifdef __cplusplus
 }
 #endif
