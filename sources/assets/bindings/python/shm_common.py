@@ -45,3 +45,25 @@ class ShmCommon:
         except Exception as e:
             print(f"ERROR: {e}")
         return None
+
+    def start_conductor(self):
+        ret = hakopy.conductor_start(self.delta_time_usec, self.delta_time_usec)
+        if ret < 0:
+            raise RuntimeError(f"Failed to start conductor: {ret}")
+        return ret
+    def stop_conductor(self):
+        ret = hakopy.conductor_stop()
+        if ret < 0:
+            raise RuntimeError(f"Failed to stop conductor: {ret}")
+        return ret
+    def start_service(self):
+        hakopy.trigger_event(hakopy.HAKO_TRIGGER_EVENT_ID_START)
+        return True
+    
+    def stop_service(self):
+        hakopy.trigger_event(hakopy.HAKO_TRIGGER_EVENT_ID_STOP)
+        return True
+
+    def reset_service(self):
+        hakopy.trigger_event(hakopy.HAKO_TRIGGER_EVENT_ID_RESET)
+        return True
