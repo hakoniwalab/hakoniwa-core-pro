@@ -1,6 +1,6 @@
 {
     "pduMetaDataSize": 24,
-    "pdu_config_path": "examples/service/pdu_config.json",
+    "pdu_config_path": "examples/external/service/pdu_config.json",
     "services": [
         {
             "name": "Service/Add",
