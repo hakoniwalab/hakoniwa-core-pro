@@ -140,10 +140,10 @@ class PduBinaryConvertor:
         for entry in self.pdudef['robots']:
             if entry['name'] == robo_name:
                 for pdu in entry['shm_pdu_readers']:
-                    if pdu['name'] == pdu_name:
+                    if pdu['org_name'] == pdu_name:
                         return pdu['channel_id']
                 for pdu in entry['shm_pdu_writers']:
-                    if pdu['name'] == pdu_name:
+                    if pdu['org_name'] == pdu_name:
                         return pdu['channel_id']
         return None
 

@@ -116,10 +116,10 @@ class ShmCommon:
         channel_id = self.pdu_manager.conv.get_pdu_channel_id(node_name, topic_name)
         if channel_id is None:
             raise RuntimeError(f"PDU not found: {node_name}, {topic_name}")
-        ret = hakopy.register_data_recv_event(node_name, topic_name, None)
+        ret = hakopy.register_data_recv_event(node_name, channel_id, None)
         if ret != 0:
             raise RuntimeError(f"Failed to register data receive event: {node_name}, {topic_name}")
-        return ret
+        return True
     
     def advertise_topic(self, node_name: str, topic_name: str):
         #nothing to do

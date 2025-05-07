@@ -1,0 +1,49 @@
+{
+    "pduMetaDataSize": 24,
+    "pdu_config_path": "examples/external/topic/pdu_config.json",
+    "services": [
+        {
+            "name": "Service/Add",
+            "type": "hako_srv_msgs/AddTwoInts",
+            "maxClients": 1,
+            "pduSize": {
+                "server": {
+                    "heapSize": 0,
+                    "baseSize": 296
+                },
+                "client": {
+                    "heapSize": 0,
+                    "baseSize": 288
+                }
+            }
+        }
+    ],
+    "nodes": [
+        {
+            "name": "drone1",
+            "topics": [
+                {
+                    "topic_name": "pos",
+                    "type": "geometry_msgs/Twist",
+                    "channel_id": 0,
+                    "pduSize": {
+                        "heapSize": 0
+                    }
+                }
+            ]
+        },
+        {
+            "name": "drone2",
+            "topics": [
+                {
+                    "topic_name": "pos",
+                    "type": "geometry_msgs/Twist",
+                    "channel_id": 0,
+                    "pduSize": {
+                        "heapSize": 0
+                    }
+                }
+            ]
+        }
+    ]
+}
