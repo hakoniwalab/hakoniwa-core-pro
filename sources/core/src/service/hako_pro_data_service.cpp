@@ -345,36 +345,58 @@ int hako::data::pro::HakoProData::create_service_client(const std::string& servi
         std::cerr << "ERROR: service not found: " << serviceName << std::endl;
         return -1;
     }
-    if (this->is_exist_client_on_service(serviceName, clientName)) {
-        std::cerr << "ERROR: client already exists" << std::endl;
-        return -1;
-    }
     HakoServiceEntryTye& service_entry = this->get_service_entry(serviceName);
-    for (int i = 0; i < service_entry.maxClients; i++) {
-        if (service_entry.clientChannelMap[i].enabled == true) {
-            continue;
+    if (this->is_exist_client_on_service(serviceName, clientName)) {
+        for (int i = 0; i < service_entry.maxClients; i++) {
+            if (service_entry.clientChannelMap[i].enabled == false) {
+                continue;
+            }
+            if (strcmp(service_entry.clientChannelMap[i].clientName, clientName.c_str()) != 0) {
+                continue;
+            }
+            int recv_event_id = -1;
+            int client_channel_id = service_entry.clientChannelMap[i].responseChannelId;
+            bool ret = this->update_data_recv_event(serviceName, client_channel_id, nullptr, recv_event_id);
+            if (ret == false) {
+                std::cerr << "ERROR: Failed to register data receive event for service client" << std::endl;
+                return -1;
+            }
+            client_id = i;
+            std::cout << "INFO: client_id: " << client_id << " clientName: " << service_entry.clientChannelMap[i].clientName << std::endl;
+            break;
         }
-        int recv_event_id = -1;
-        int client_channel_id = service_entry.clientChannelMap[i].responseChannelId;
-        bool ret = this->register_data_recv_event(serviceName, client_channel_id, nullptr, recv_event_id);
-        if (ret == false) {
-            std::cerr << "ERROR: Failed to register data receive event for service client" << std::endl;
+        if (client_id < 0) {
+            std::cerr << "ERROR: client_id is invalid" << std::endl;
             return -1;
         }
-        service_entry.clientChannelMap[i].responseRecvEventId = recv_event_id;
-        service_entry.clientChannelMap[i].enabled = true;
-        memcpy(service_entry.clientChannelMap[i].clientName, clientName.c_str(), clientName.length());
-        service_entry.clientChannelMap[i].clientName[clientName.length()] = '\0';
-        std::cout << "INFO: register_data_recv_event() serviceName: "
-            << serviceName << " channel_id: " << client_channel_id
-            << " recv_event_id: " << recv_event_id << std::endl;
-        client_id = i;
-        std::cout << "INFO: client_id: " << client_id << " clientName: " << service_entry.clientChannelMap[i].clientName << std::endl;
-        break;
     }
-    if (client_id < 0) {
-        std::cerr << "ERROR: client_id is invalid" << std::endl;
-        return -1;
+    else {
+        for (int i = 0; i < service_entry.maxClients; i++) {
+            if (service_entry.clientChannelMap[i].enabled == true) {
+                continue;
+            }
+            int recv_event_id = -1;
+            int client_channel_id = service_entry.clientChannelMap[i].responseChannelId;
+            bool ret = this->register_data_recv_event(serviceName, client_channel_id, nullptr, recv_event_id);
+            if (ret == false) {
+                std::cerr << "ERROR: Failed to register data receive event for service client" << std::endl;
+                return -1;
+            }
+            service_entry.clientChannelMap[i].responseRecvEventId = recv_event_id;
+            service_entry.clientChannelMap[i].enabled = true;
+            memcpy(service_entry.clientChannelMap[i].clientName, clientName.c_str(), clientName.length());
+            service_entry.clientChannelMap[i].clientName[clientName.length()] = '\0';
+            std::cout << "INFO: register_data_recv_event() serviceName: "
+                << serviceName << " channel_id: " << client_channel_id
+                << " recv_event_id: " << recv_event_id << std::endl;
+            client_id = i;
+            std::cout << "INFO: client_id: " << client_id << " clientName: " << service_entry.clientChannelMap[i].clientName << std::endl;
+            break;
+        }
+        if (client_id < 0) {
+            std::cerr << "ERROR: client_id is invalid" << std::endl;
+            return -1;
+        }
     }
     return service_id;
 }

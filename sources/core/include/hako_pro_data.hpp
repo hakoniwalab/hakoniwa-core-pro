@@ -116,6 +116,7 @@ class HakoProData : public std::enable_shared_from_this<HakoProData>, public hak
         }
 
         bool register_data_recv_event(const std::string& robot_name, int channel_id, void (*on_recv)(int), int& recv_event_id);
+        bool update_data_recv_event(const std::string& robot_name, int channel_id, void (*on_recv)(int), int& recv_event_id);
         bool get_recv_event(const char* asset_name, const std::string& robot_name, int channel_id, int& recv_event_id);
         bool get_recv_event(int asset_id, const std::string& robot_name, int channel_id, int& recv_event_id);
         /*

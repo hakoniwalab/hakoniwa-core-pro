@@ -54,6 +54,47 @@ bool hako::data::pro::HakoProData::register_data_recv_event(const std::string& r
     //std::cout << "INFO: register_data_recv_event() robot_name: " << robot_name << " real_id: " << channel_id << " ret: " << ret << std::endl;
     return ret;
 }
+bool hako::data::pro::HakoProData::update_data_recv_event(const std::string& robot_name, int channel_id, void (*on_recv)(int), int& recv_event_id)
+{
+    hako::core::context::HakoContext context;
+    recv_event_id = -1;
+    if (recv_event_table_ == nullptr) {
+        std::cout << "ERROR: recv_event_table_ is null" << std::endl;
+        return false;
+    }
+    HakoPduChannelIdType real_id = this->master_data_->get_pdu_data()->get_pdu_channel(robot_name, channel_id);
+    if (real_id < 0) {
+        std::cout << "ERROR: real_id is invalid: robot_name: " << robot_name << " channel_id: " << channel_id << std::endl;
+        return false;
+    }
+    if (recv_event_table_->entry_num == 0) {
+        std::cout << "ERROR: recv_event_table_ is empty" << std::endl;
+        return false;
+    }
+    for (int i = 0; i < recv_event_table_->entry_num; i++) {
+        if (recv_event_table_->entries[i].enabled == false) {
+            continue;
+        }
+        if (recv_event_table_->entries[i].real_channel_id != real_id) {
+            continue;
+        }
+        this->lock_memory();
+        recv_event_table_->entries[i].recv_flag = false;
+        recv_event_table_->entries[i].proc_id = context.get_pid();
+        if (on_recv != nullptr) {
+            recv_event_table_->entries[i].type = HAKO_RECV_EVENT_TYPE_CALLBACK;
+            recv_event_table_->entries[i].on_recv = on_recv;
+        }
+        else {
+            recv_event_table_->entries[i].type = HAKO_RECV_EVENT_TYPE_FLAG;
+            recv_event_table_->entries[i].on_recv = nullptr;
+        }
+        this->unlock_memory();
+        recv_event_id = i;
+        return true;
+    }
+    return false;
+}
 bool hako::data::pro::HakoProData::get_recv_event(const char* asset_name, const std::string& robot_name, int channel_id, int& recv_event_id)
 {
     int asset_id = -1;
