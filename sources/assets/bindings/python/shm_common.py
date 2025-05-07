@@ -2,6 +2,8 @@ import json
 import os
 import hako_pdu
 import hakopy
+import asyncio
+
 class ShmCommon:
     def __init__(self, service_config_path: str, pdu_offset_path: str = '/usr/local/lib/hakoniwa/hako_binary/offset', delta_time_usec: int = 1000):
         self.pdu_offset_path = pdu_offset_path
@@ -31,6 +33,9 @@ class ShmCommon:
         if ret == False:
             raise RuntimeError("Failed to initialize service")
         return ret
+
+    async def sleep(self):
+        await asyncio.sleep(self.delta_time_usec / 1000000)
 
     def load_json(self, path):
         try:

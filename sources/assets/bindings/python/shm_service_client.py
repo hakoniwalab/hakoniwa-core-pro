@@ -21,6 +21,7 @@ class ShmServiceClient:
         # Initialize the asset service
         self.service_client = HakoAssetServiceClient(shm.pdu_manager, self.asset_name, self.service_name, self.client_name)
         shm.pdu_manager.append_pdu_def(shm.service_config_path)
+        self.shm = shm
         if self.service_client.initialize() == False:
             raise RuntimeError("Failed to create asset service")
         print(f"Service client handle: {self.service_client.handle}")
@@ -31,13 +32,10 @@ class ShmServiceClient:
             raise RuntimeError("Service client is not initialized")
         return self.service_client.get_empty_request()
 
-    async def sleep(self):
-        await asyncio.sleep(self.delta_time_usec / 1000000)
-
     async def call_async(self, req, timeout_msec = -1) -> dict:
         while not self.service_client.request(req, timeout_msec):
             print("INFO: Can not send request")
-            await self.sleep()
+            await self.shm.sleep()
         res = await self._wait_for_response()
         if res is None:
             print("WARNING: APL cancel request is happened.")
@@ -56,13 +54,13 @@ class ShmServiceClient:
             elif self.service_client.is_request_timeout(event):
                 print("INFO: Request timeout")
                 return None
-            await self.sleep()
+            await self.shm.sleep()
             print("INFO: APL wait for response")
 
     async def _do_cancel(self):
         while self.service_client.cancel_request() == False:
             print("INFO: APL cancel_request() is not done")
-            await self.sleep()
+            await self.shm.sleep()
 
         print("INFO: APL cancel_request() is done")
         while True:
@@ -77,5 +75,5 @@ class ShmServiceClient:
                 return res
             else:
                 print("INFO: Request cancel is not done")
-            await self.sleep()
+            await self.shm.sleep()
         return None

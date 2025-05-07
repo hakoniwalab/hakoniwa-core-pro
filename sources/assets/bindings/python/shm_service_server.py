@@ -12,13 +12,12 @@ class ShmServiceServer:
     def initialize(self, shm: ShmCommon):
         self.service_server = HakoAssetServiceServer(shm.pdu_manager, self.asset_name, self.service_name)
         shm.pdu_manager.append_pdu_def(shm.service_config_path)
+        self.shm = shm
         if not self.service_server.initialize():
             raise RuntimeError("Failed to create asset service server")
         print(f"Service server initialized for {self.service_name}")
         return True
 
-    async def sleep(self):
-        await asyncio.sleep(self.delta_time_usec / 1000000)
 
     async def serve(self, handler):
         while True:
@@ -32,6 +31,6 @@ class ShmServiceServer:
                 print(f"Response data: {res}")
                 while not self.service_server.normal_reply(res):
                     print("Waiting to send reply...")
-                    await self.sleep()
+                    await self.shm.sleep()
             else:
-                await self.sleep()
+                await self.shm.sleep()
