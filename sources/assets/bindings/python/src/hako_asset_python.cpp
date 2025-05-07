@@ -382,19 +382,32 @@ static PyObject* py_hako_asset_service_initialize(PyObject*, PyObject* args) {
 
 //#HAKO_API int hako_asset_service_server_create(const char* assetName, const char* serviceName);
 static PyObject* py_hako_asset_service_server_create(PyObject*, PyObject* args) {
-    const char* asset_name;
-    const char* service_name;
+    PyObject* py_asset_name = NULL;
+    const char* asset_name = NULL;
+    const char* service_name = NULL;
 
-    if (!PyArg_ParseTuple(args, "ss", &asset_name, &service_name)) {
+    if (!PyArg_ParseTuple(args, "Os", &py_asset_name, &service_name)) {
         return NULL;
+    }
+
+    if (py_asset_name != Py_None) {
+        if (!PyUnicode_Check(py_asset_name)) {
+            PyErr_SetString(PyExc_TypeError, "asset_name must be a string or None");
+            return NULL;
+        }
+        asset_name = PyUnicode_AsUTF8(py_asset_name);
+        if (asset_name == NULL) {
+            return NULL;
+        }
     }
 
     int service_id = hako_asset_service_server_create(asset_name, service_name);
     if (service_id < 0) {
-        Py_RETURN_NONE;  // または PyErr_SetString() してもOK
+        Py_RETURN_NONE;
     }
     return PyLong_FromLong(service_id);
 }
+
 
 //#HAKO_API int hako_asset_service_server_poll(int service_id);
 static PyObject* py_hako_asset_service_server_poll(PyObject*, PyObject* args) {
@@ -554,13 +567,26 @@ static PyObject* py_hako_asset_service_server_set_progress(PyObject*, PyObject* 
     }
 }
 static PyObject* py_hako_asset_service_client_create(PyObject*, PyObject* args) {
-    const char* asset_name;
-    const char* service_name;
-    const char* client_name;
+    PyObject* py_asset_name;
+    const char* asset_name = NULL;
+    const char* service_name = NULL;
+    const char* client_name = NULL;
     HakoServiceHandleType handle;
 
-    if (!PyArg_ParseTuple(args, "sss", &asset_name, &service_name, &client_name)) {
-        return NULL;;
+    if (!PyArg_ParseTuple(args, "Oss", &py_asset_name, &service_name, &client_name)) {
+        return NULL;
+    }
+
+    // asset_name が None でなければ文字列へ変換
+    if (py_asset_name != Py_None) {
+        if (!PyUnicode_Check(py_asset_name)) {
+            PyErr_SetString(PyExc_TypeError, "asset_name must be a string or None");
+            return NULL;
+        }
+        asset_name = PyUnicode_AsUTF8(py_asset_name);
+        if (asset_name == NULL) {
+            return NULL;
+        }
     }
 
     int result = hako_asset_service_client_create(asset_name, service_name, client_name, &handle);

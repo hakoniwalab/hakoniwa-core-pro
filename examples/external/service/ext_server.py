@@ -11,7 +11,7 @@ async def my_add_handler(req):
 
 async def main_async():
 
-    asset_name = 'Server'
+    asset_name = None
     service_name = 'Service/Add'
     service_config_path = './examples/external/service/service.json'
     pdu_offset_path = './hakoniwa-ros2pdu/pdu/offset'

@@ -7,7 +7,7 @@ from sources.assets.bindings.python.shm_service_client import ShmServiceClient
 
 async def main_async():
 
-    asset_name = 'Client'
+    asset_name = None
     service_name = 'Service/Add'
     service_config_path = './examples/external/service/service.json'
     pdu_offset_path = './hakoniwa-ros2pdu/pdu/offset'

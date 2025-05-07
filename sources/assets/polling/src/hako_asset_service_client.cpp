@@ -9,7 +9,7 @@ static std::unordered_map<int, std::pair<int, std::shared_ptr<hako::service::Hak
 
 int hako_asset_service_client_create(const char* assetName, const char* serviceName, const char* clientName, HakoServiceHandleType* handle)
 {
-    if (assetName == nullptr || serviceName == nullptr || clientName == nullptr || handle == nullptr) {
+    if (serviceName == nullptr || clientName == nullptr || handle == nullptr) {
         std::cerr << "ERROR: hako_asset_service_client_create(): serviceName or clientName or handle is null" << std::endl;
         return -1;
     }
