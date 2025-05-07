@@ -21,14 +21,28 @@ def patch_service_base_size(service_json_path, offset_dir, output_path=None):
             pdu_size["client"]["baseSize"] = offmap.get_pdu_size(res_type)
             updated = True
 
+    if assign_channel_ids(config):
+        updated = True
+
     if not updated:
-        print("No missing baseSize found. No changes made.")
+        print("No changes made.")
         return
 
     out_path = output_path if output_path else service_json_path
     with open(out_path, 'w') as f:
         json.dump(config, f, indent=4)
     print(f"Patched file written to: {out_path}")
+
+def assign_channel_ids(config):
+    updated = False
+
+    for node in config.get("nodes", []):
+        current_id = 0
+        for topic in node.get("topics", []):
+            topic["channel_id"] = current_id
+            current_id += 1
+            updated = True
+    return updated
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Patch service.json with baseSize")

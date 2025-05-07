@@ -25,10 +25,10 @@
                 {
                     "topic_name": "pos",
                     "type": "geometry_msgs/Twist",
-                    "channel_id": 0,
                     "pduSize": {
                         "heapSize": 0
-                    }
+                    },
+                    "channel_id": 0
                 }
             ]
         },
@@ -38,10 +38,10 @@
                 {
                     "topic_name": "pos",
                     "type": "geometry_msgs/Twist",
-                    "channel_id": 0,
                     "pduSize": {
                         "heapSize": 0
-                    }
+                    },
+                    "channel_id": 0
                 }
             ]
         }
