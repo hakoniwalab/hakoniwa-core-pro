@@ -136,6 +136,28 @@ class PduBinaryConvertor:
         self.offmap = offset_map.create_offmap(offset_path)
         self.pdudef = self._load_json(pdudef_path)
 
+    def get_pdu_channel_id(self, robo_name, pdu_name):
+        for entry in self.pdudef['robots']:
+            if entry['name'] == robo_name:
+                for pdu in entry['shm_pdu_readers']:
+                    if pdu['name'] == pdu_name:
+                        return pdu['channel_id']
+                for pdu in entry['shm_pdu_writers']:
+                    if pdu['name'] == pdu_name:
+                        return pdu['channel_id']
+        return None
+
+    def get_pdu_type(self, robo_name, pdu_name):
+        for entry in self.pdudef['robots']:
+            if entry['name'] == robo_name:
+                for pdu in entry['shm_pdu_readers']:
+                    if pdu['name'] == pdu_name:
+                        return pdu['type']
+                for pdu in entry['shm_pdu_writers']:
+                    if pdu['name'] == pdu_name:
+                        return pdu['type']
+        return None
+
     def append_pdu_def(self, service_config_path):
         service_def = HakoServiceDef(service_config_path, self.offmap)
         new_def = service_def.get_pdu_definition()
@@ -269,8 +291,14 @@ class HakoPdu:
     def get(self):
         return self.obj
 
-    def write(self):
-        data = self.conv.json2bin(self.robot_name, self.channel_id, self.obj)
+    def set(self, obj):
+        self.obj = obj
+
+    def write(self, obj=None):
+        if obj is None:
+            data = self.conv.json2bin(self.robot_name, self.channel_id, self.obj)
+        else:
+            data = self.conv.json2bin(self.robot_name, self.channel_id, obj)
         return hakopy.pdu_write(self.robot_name, self.channel_id, data, len(data))
 
     def read(self):
@@ -300,6 +328,13 @@ class HakoPduManager:
         self.conv.append_pdu_def(service_config_path)
         #dump for debug
         #print(json.dumps(self.conv.pdudef, indent=4))
+
+    def get_pdu_from_name(self, robot_name, pdu_name):
+        channel_id = self.conv.get_pdu_channel_id(robot_name, pdu_name)
+        if channel_id is None:
+            print(f"ERROR: can not find robo_name={robot_name} pdu_name={pdu_name}")
+            return None
+        return HakoPdu(self.conv, robot_name, channel_id)
 
     def get_pdu(self, robot_name, channel_id):
         return HakoPdu(self.conv, robot_name, channel_id)

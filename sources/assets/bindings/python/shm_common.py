@@ -67,3 +67,55 @@ class ShmCommon:
     def reset_service(self):
         hakopy.trigger_event(hakopy.HAKO_TRIGGER_EVENT_ID_RESET)
         return True
+
+    def get_empty_message(self, node_name: str, topic_name: str):
+        if self.pdu_manager is None:
+            raise RuntimeError("PDU manager is not initialized")
+        pdu = self.pdu_manager.get_pdu_from_name(node_name, topic_name)
+        if pdu is None:
+            raise RuntimeError(f"PDU not found: {node_name}, {topic_name}")
+        return pdu.get()
+
+    def write_topic(self, node_name: str, topic_name: str, data: dict):
+        if self.pdu_manager is None:
+            raise RuntimeError("PDU manager is not initialized")
+        pdu = self.pdu_manager.get_pdu_from_name(node_name, topic_name)
+        if pdu is None:
+            raise RuntimeError(f"PDU not found: {node_name}, {topic_name}")
+        ret = pdu.write(data)
+        if ret == False:
+            raise RuntimeError(f"Failed to write PDU: {node_name}, {topic_name}")
+        return ret
+
+    def read_topic(self, node_name: str, topic_name: str):
+        if self.pdu_manager is None:
+            raise RuntimeError("PDU manager is not initialized")
+        channel_id = self.pdu_manager.conv.get_pdu_channel_id(node_name, topic_name)
+        if channel_id is None:
+            raise RuntimeError(f"PDU not found: {node_name}, {topic_name}")
+        
+        ret = hakopy.check_data_recv_event(node_name, channel_id)
+        if ret == False:
+            return None
+        pdu = self.pdu_manager.get_pdu_from_name(node_name, topic_name)
+        if pdu is None:
+            raise RuntimeError(f"PDU not found: {node_name}, {topic_name}")
+        ret = pdu.read()
+        if ret == False:
+            raise RuntimeError(f"Failed to read PDU: {node_name}, {topic_name}")
+        return pdu.get()
+
+    def subscribe_topic(self, node_name: str, topic_name: str):
+        if self.pdu_manager is None:
+            raise RuntimeError("PDU manager is not initialized")
+        channel_id = self.pdu_manager.conv.get_pdu_channel_id(node_name, topic_name)
+        if channel_id is None:
+            raise RuntimeError(f"PDU not found: {node_name}, {topic_name}")
+        ret = hakopy.register_data_recv_event(node_name, topic_name, None)
+        if ret != 0:
+            raise RuntimeError(f"Failed to register data receive event: {node_name}, {topic_name}")
+        return ret
+    
+    def advertise_topic(self, node_name: str, topic_name: str):
+        #nothing to do
+        return True

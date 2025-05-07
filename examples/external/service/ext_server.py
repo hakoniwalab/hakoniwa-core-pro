@@ -15,7 +15,6 @@ async def main_async():
     service_name = 'Service/Add'
     service_config_path = './examples/external/service/service.json'
     pdu_offset_path = './hakoniwa-ros2pdu/pdu/offset'
-    service_client = None
     delta_time_usec = 1000 * 1000
 
     shm = ShmCommon(service_config_path, pdu_offset_path, delta_time_usec)
