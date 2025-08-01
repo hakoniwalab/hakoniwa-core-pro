@@ -5,11 +5,146 @@ hakoniwa-core-pro は、箱庭シミュレーションフレームワーク **ha
 記述されたアセットを組み合わせることで、ロボット制御やセンサシミュレーションなどの
 開発・検証を行うことができます。
 
-## 構成
+## アーキテクチャ
 
-- `sources/`    コアライブラリおよびアセット用モジュール
-- `examples/`   サンプルプログラム
-- `tests/`      Python 版バインディングのテストコード
+hakoniwa-core-pro は、以下のコンポーネントから構成されています。
+
+```mermaid
+graph TD
+    subgraph User Application
+        A[Asset: C/C++/Python]
+    end
+
+    subgraph hakoniwa-core-pro
+        B(hako-conductor)
+        C(hako-cmd)
+        D[libhako.a]
+    end
+
+    subgraph hakoniwa-core-cpp
+        E[hako-master]
+    end
+
+    A -- interacts with --> D
+    B -- controls --> E
+    C -- inspects/controls --> E
+    D -- communicates with --> E
+```
+
+- **hako-master**: `hakoniwa-core-cpp` のコアコンポーネント。シミュレーション全体の時間管理やアセット間のデータ同期を担います。
+- **libhako.a**: `hakoniwa-core-pro` のコアライブラリ。データ受信イベントやRPCサービスなどの機能を提供し、アセットからのAPI呼び出しを処理します。
+- **hako-conductor**: シミュレーションの実行を制御するプログラム。`hako-master` と連携し、シミュレーションの開始、停止、ステップ実行などを管理します。
+- **Asset**: ユーザが作成するシミュレーション参加要素。`libhako.a` が提供するAPIを利用して、他のアセットとのデータ送受信や、RPCサービスの利用が可能です。
+- **hako-cmd**: シミュレーションの状態を外部から確認したり、操作したりするためのコマンドラインツールです。
+
+## 主な機能
+
+### データ受信イベント
+
+hakoniwa-core-pro では、PDU チャンネルのデータ受信を検知する
+"データ受信イベント" 機能を提供しています。アセットは
+`hako_asset_register_data_recv_event()` を用いることで特定の論理
+チャンネルに対する受信イベントを登録でき、データが書き込まれた
+タイミングでコールバックが呼び出されます。コールバックを指定し
+ない場合はフラグ方式となり、`hako_asset_check_data_recv_event()` で
+受信の有無を確認できます。詳細な使い方は
+`examples/pdu_communication` 以下のサンプルを参考にしてください。
+
+#### ユースケース
+
+- **センサデータの非同期受信**: カメラやLiDARなどのセンサデータを、データが到着したタイミングで即座に処理したい場合に利用します。これにより、ポーリングによる無駄なCPU消費を抑えることができます。
+- **アセット間の状態同期**: あるアセットの状態が変化したことを、他のアセットに即座に通知し、連携した動作を実現します。
+- **外部システムとの連携**: シミュレーション外部のシステムからデータを受信し、それをトリガとしてシミュレーション内のアセットを動作させることができます。
+
+#### 主要API
+
+- `hako_asset_register_data_recv_event(channel_id, callback)`
+    - **説明:** 指定したPDUチャンネルにデータ受信時のコールバック関数を登録します。
+    - **引数:**
+        - `channel_id`: 監視対象のチャンネルID。
+        - `callback`: データ受信時に呼び出されるコールバック関数へのポインタ。
+    - **戻り値:** 成功すれば `HAKO_SUCCESS` 、失敗すればエラーコードを返します。
+
+- `hako_asset_check_data_recv_event(channel_id)`
+    - **説明:** (コールバックを登録しない場合) 指定したPDUチャンネルでデータ受信があったかどうかを確認します（フラグ方式）。
+    - **引数:**
+        - `channel_id`: 確認対象のチャンネルID。
+    - **戻り値:** データ受信があれば `true` 、なければ `false` を返します。
+
+### RPCサービス
+
+hakoniwa-core-pro では、PDU を介したリクエスト／レスポンス通信を実現する
+"RPC サービス" 機能を提供しています。サービス定義を
+`hako_asset_service_initialize()` で読み込み、サーバは
+`hako_asset_service_server_create()` によりサービスを登録します。
+クライアントは `hako_asset_service_client_create()` を呼び出して接続し、
+`hako_asset_service_client_get_request_buffer()` でリクエストを準備して
+`hako_asset_service_client_call_request()` で送信します。サーバ側では
+`hako_asset_service_server_poll()` でリクエスト到着を検知し、
+`hako_asset_service_server_get_request()` でデータを取得したのち、
+`hako_asset_service_server_get_response_buffer()` と
+`hako_asset_service_server_put_response()` を用いて応答を返します。
+クライアントは `hako_asset_service_client_poll()` で応答を確認し、
+`hako_asset_service_client_get_response()` から結果を取得できます。
+詳細な使い方は `examples/service` 以下のサンプルを参照してください。
+
+#### ユースケース
+
+- **ロボットへの動作指令**: 制御ノードからロボットアームや移動ロボットに対して、「アームをこの角度に動かせ」「この座標に移動しろ」といった具体的な動作を指令し、その完了を待ち合わせるような場合に利用します。
+- **シミュレーション環境からの情報取得**: アセットがシミュレーション環境（例：物理エンジン）に対して、「現在の自己位置を取得したい」「障害物との距離を知りたい」といった情報を要求し、結果を取得します。
+- **パラメータ設定**: シミュレーション実行中に、外部ツールからアセットのパラメータ（例：ゲイン、閾値など）を動的に変更する場合に利用します。
+
+#### 主要API (クライアント側)
+
+- `hako_asset_service_client_create(service_name)`
+    - **説明:** RPCサービスのクライアントを作成し、サーバに接続します。
+    - **引数:** `service_name`: 接続するサービス名。
+    - **戻り値:** 成功すればクライアントハンドル、失敗すれば `NULL` を返します。
+
+- `hako_asset_service_client_call_request(client, request, size)`
+    - **説明:** サーバにリクエストを送信します。
+    - **引数:**
+        - `client`: クライアントハンドル。
+        - `request`: 送信するリクエストデータへのポインタ。
+        - `size`: リクエストデータのサイズ。
+    - **戻り値:** 成功すれば `HAKO_SUCCESS` 、失敗すればエラーコードを返します。
+
+- `hako_asset_service_client_poll(client)`
+    - **説明:** サーバからのレスポンスが到着したかを確認します。
+    - **引数:** `client`: クライアントハンドル。
+    - **戻り値:** レスポンスがあれば `true` 、なければ `false` を返します。
+
+#### 主要API (サーバ側)
+
+- `hako_asset_service_server_create(service_name, pdu_size)`
+    - **説明:** RPCサービスを登録し、サーバとして待機します。
+    - **引数:**
+        - `service_name`: 公開するサービス名。
+        - `pdu_size`: このサービスで送受信するPDUの最大サイズ。
+    - **戻り値:** 成功すればサーバハンドル、失敗すれば `NULL` を返します。
+
+- `hako_asset_service_server_poll(server)`
+    - **説明:** クライアントからのリクエストが到着したかを確認します。
+    - **引数:** `server`: サーバハンドル。
+    - **戻り値:** リクエストがあれば `true` 、なければ `false` を返します。
+
+- `hako_asset_service_server_put_response(server, response, size)`
+    - **説明:** 処理結果をクライアントに返します。
+    - **引数:**
+        - `server`: サーバハンドル。
+        - `response`: 返信するレスポンスデータへのポインタ。
+        - `size`: レスポンスデータのサイズ。
+    - **戻り値:** 成功すれば `HAKO_SUCCESS` 、失敗すればエラーコードを返します。
+
+## ディレクトリ構成
+
+- `sources/`: コアライブラリおよびアセット用モジュール
+    - `core/`: 静的ライブラリ `libhako.a` のソースコード。データ受信イベントやRPCサービスなどのコア機能を提供します。
+    - `assets/`: アセットが利用する共有ライブラリ `libasset.so` のソースコード。
+    - `conductor/`: シミュレーション実行を制御する `hako-conductor` のソースコード。
+    - `command/`: コマンドラインツール `hako-cmd` のソースコード。
+- `examples/`: サンプルプログラム
+- `tests/`: Python 版バインディングのテストコード
 
 ## ビルド方法
 
@@ -29,34 +164,6 @@ hakoniwa-core-pro は、箱庭シミュレーションフレームワーク **ha
 ```
 
 詳細な手順は `examples/hello_world/README.md` など各サンプルの README を参照してください。
-
-## データ受信イベント
-
-hakoniwa-core-pro では、PDU チャンネルのデータ受信を検知する
-"データ受信イベント" 機能を提供しています。アセットは
-`hako_asset_register_data_recv_event()` を用いることで特定の論理
-チャンネルに対する受信イベントを登録でき、データが書き込まれた
-タイミングでコールバックが呼び出されます。コールバックを指定し
-ない場合はフラグ方式となり、`hako_asset_check_data_recv_event()` で
-受信の有無を確認できます。詳細な使い方は
-`examples/pdu_communication` 以下のサンプルを参考にしてください。
-
-## RPCサービス
-
-hakoniwa-core-pro では、PDU を介したリクエスト／レスポンス通信を実現する
-"RPC サービス" 機能を提供しています。サービス定義を
-`hako_asset_service_initialize()` で読み込み、サーバは
-`hako_asset_service_server_create()` によりサービスを登録します。
-クライアントは `hako_asset_service_client_create()` を呼び出して接続し、
-`hako_asset_service_client_get_request_buffer()` でリクエストを準備して
-`hako_asset_service_client_call_request()` で送信します。サーバ側では
-`hako_asset_service_server_poll()` でリクエスト到着を検知し、
-`hako_asset_service_server_get_request()` でデータを取得したのち、
-`hako_asset_service_server_get_response_buffer()` と
-`hako_asset_service_server_put_response()` を用いて応答を返します。
-クライアントは `hako_asset_service_client_poll()` で応答を確認し、
-`hako_asset_service_client_get_response()` から結果を取得できます。
-詳細な使い方は `examples/service` 以下のサンプルを参照してください。
 
 ## ライセンス
 
