@@ -85,7 +85,7 @@ bool pro::HakoProAssetExtension::on_pdu_data_write(int real_channel_id)
             return true;
         }
     }
-    std::cout << "ERROR: HakoProAssetExtension::on_pdu_data_write(): can not set rcv flag..." << std::endl;
+    //std::cout << "ERROR: HakoProAssetExtension::on_pdu_data_write(): can not set rcv flag..." << std::endl;
     return false;
 }
 
