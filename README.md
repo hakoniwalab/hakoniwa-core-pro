@@ -146,6 +146,31 @@ hakoniwa-core-pro では、PDU を介したリクエスト／レスポンス通�
 - `examples/`: サンプルプログラム
 - `tests/`: Python 版バインディングのテストコード
 
+## コアライブラリの設計 (`sources/core`)
+
+`sources/core` ディレクトリには、`libhako.a` 静的ライブラリを構成するコアなソースコードが含まれています。このライブラリは、`hakoniwa-core-cpp` の基本機能の上に、より高度なイベント駆動の仕組みとサービス指向の通信機能を提供します。
+
+### 主要コンポーネント
+
+*   **`HakoProData`**:
+    *   `hakoniwa-core-cpp` の `HakoMasterData` を拡張し、共有メモリを介してサービスやイベントに関する情報を管理する中心的なクラスです。
+    *   `IHakoMasterExtension` インターフェースを実装し、Hakoniwa のマスターライフサイクル（PDUの生成、読み込み、リセットなど）と連携して動作します。
+
+*   **サービス (RPC) フレームワーク**:
+    *   アセット間の非同期なリクエスト/レスポンス型通信を実現するためのフレームワークです。
+    *   **インターフェース**:
+        *   `IHakoServiceClient`: サービスを利用するクライアントが実装すべき純粋仮想ベースクラスです。
+        *   `IHakoServiceServer`: サービスを提供するサーバーが実装すべき純粋仮想ベースクラスです。
+    *   **プロトコル実装**:
+        *   `HakoServiceClientProtocol`: `IHakoServiceClient` をラップし、リクエスト送信、レスポンス受信、タイムアウト処理、状態管理（`IDLE`, `DOING`, `CANCELING`）などのクライアント側プロトコルを実装します。
+        *   `HakoServiceServerProtocol`: `IHakoServiceServer` をラップし、リクエスト受信、レスポンス返信、状態管理などのサーバー側プロトコルを実装します。
+    *   **通信プロトコル**:
+        *   `hako_service_protocol.hpp` にて、操作コード (`REQUEST`, `CANCEL`)、ステータス (`DOING`, `DONE`)、リザルトコード (`OK`, `ERROR`) が定義されており、これらを用いて通信を制御します。
+
+*   **データ受信イベント**:
+    *   `HakoProData` は、特定のPDUチャネルへのデータ書き込みを検知し、登録されたコールバック関数を呼び出すイベント機能を提供します。
+    *   イベント情報は `HakoRecvEventTableType` という共有メモリ上のテーブルで管理されます。
+
 ## ビルド方法
 
 ```sh
