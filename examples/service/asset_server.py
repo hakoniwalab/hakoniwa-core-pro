@@ -6,8 +6,8 @@ import sys
 import time
 from hakoniwa_pdu.pdu_manager import PduManager
 from hakoniwa_pdu.impl.shm_communication_service import ShmCommunicationService
-from sources.assets.bindings.python.service.hako_asset_service_config import HakoAssetServiceConfig
-from sources.assets.bindings.python.service.hako_asset_service_server import HakoAssetServiceServer
+from hakoniwa_pdu.service.hako_asset_service_config import HakoAssetServiceConfig
+from hakoniwa_pdu.service.hako_asset_service_server import HakoAssetServiceServer
 
 from hakoniwa_pdu.pdu_msgs.hako_srv_msgs.pdu_pytype_AddTwoIntsRequest import AddTwoIntsRequest
 from hakoniwa_pdu.pdu_msgs.hako_srv_msgs.pdu_pytype_AddTwoIntsResponse import AddTwoIntsResponse
