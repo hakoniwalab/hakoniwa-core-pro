@@ -1,10 +1,9 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 import hakopy
-import hako_pdu
+import sources.assets.bindings.python.src.hako_pdu as hako_pdu
 import sys
 import time
-import sources.assets.bindings.python.hako_asset_service_constants as constants
 from sources.assets.bindings.python.hako_asset_service_server import HakoAssetServiceServer
 import asyncio
 

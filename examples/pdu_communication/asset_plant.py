@@ -1,20 +1,28 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 import hakopy
-import hako_pdu
+from hakoniwa_pdu.pdu_manager import PduManager
+from hakoniwa_pdu.impl.shm_communication_service import ShmCommunicationService
+from hakoniwa_pdu.pdu_msgs.geometry_msgs.pdu_pytype_Twist import Twist
+from hakoniwa_pdu.pdu_msgs.geometry_msgs.pdu_conv_Twist import pdu_to_py_Twist, py_to_pdu_Twist
 import pdu_info
 import sys
 import time
 
+global pdu_manager
 def on_recv(recv_event_id):
     global pdu_manager
-    print("INFO: on_recv enter")
-    pdu_motor = pdu_manager.get_pdu('Robot', pdu_info.PDU_MOTOR_CHANNEL_ID)
-    motor = pdu_motor.read()
+    pdu_manager.run_nowait()
+    print(f"INFO: on_recv {recv_event_id} enter")
+    raw_data: bytes = pdu_manager.read_pdu_raw_data('Robot', 'motor')
+    if raw_data is None or len(raw_data) == 0:
+        print('ERROR: can not read motor data')
+        return 0
+    motor: Twist = pdu_to_py_Twist(raw_data)
     if motor == None:
         print('ERROR: hako_asset_pdu_read')
     else:
-        print(f'{hakopy.simulation_time()}: motor data({motor['linear']['x']}, {motor['linear']['y']}, {motor['linear']['z']})')
+        print(f'{hakopy.simulation_time()}: READ motor data({motor.linear.x}, {motor.linear.y}, {motor.linear.z})')
     print("INFO: on_recv exit")
     return 0
 
@@ -31,20 +39,22 @@ pdu_manager = None
 def my_on_manual_timing_control(context):
     global pdu_manager
     print("INFO: on_manual_timing_control enter")
-    pdu_pos = pdu_manager.get_pdu('Robot', pdu_info.PDU_POS_CHANNEL_ID)
-    pos = pdu_pos.get()
+
+    pos: Twist = Twist()
     result = True
     count = 0
     while result:
-        pos['linear']['x'] = count + 1
-        pos['linear']['y'] = count + 2
-        pos['linear']['z'] = count + 3
-        
-        ret = pdu_pos.write()
+        pos.linear.x = count + 1
+        pos.linear.y = count + 2
+        pos.linear.z = count + 3
+
+        raw_data: bytes = py_to_pdu_Twist(pos)
+
+        ret = pdu_manager.flush_pdu_raw_data_nowait('Robot', 'pos', raw_data)
         if ret == False:
             print('"ERROR: hako_asset_pdu_write')
             break
-        print(f'{hakopy.simulation_time()}: pos data({pos['linear']['x']}, {pos['linear']['y']}, {pos['linear']['z']})')
+        print(f'{hakopy.simulation_time()}: WRITE pos data({pos.linear.x}, {pos.linear.y}, {pos.linear.z})')
         result = hakopy.usleep(1000)
         time.sleep(1)
         if result == False:
@@ -70,7 +80,9 @@ def main():
     config_path = sys.argv[1]
     delta_time_usec = 1000
 
-    pdu_manager = hako_pdu.HakoPduManager('/usr/local/lib/hakoniwa/hako_binary/offset', config_path)
+    pdu_manager = PduManager()
+    pdu_manager.initialize(config_path=config_path, comm_service=ShmCommunicationService())
+    pdu_manager.start_service_nowait()
 
     hakopy.conductor_start(delta_time_usec, delta_time_usec)
     ret = hakopy.asset_register(asset_name, config_path, my_callback, delta_time_usec, hakopy.HAKO_ASSET_MODEL_PLANT)

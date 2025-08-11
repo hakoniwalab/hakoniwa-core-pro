@@ -3,10 +3,9 @@
 import json
 import sys
 import hakopy
-from hako_binary import offset_map
-from hako_binary import binary_writer
-from hako_binary import binary_reader
-from hako_binary import binary_io
+from hakoniwa_pdu.impl.hako_binary import offset_map
+from hakoniwa_pdu.impl.hako_binary import binary_writer
+from hakoniwa_pdu.impl.hako_binary import binary_reader
 
 class HakoServiceDef:
     def __init__(self, service_config_path:str, offmap:offset_map.OffsetMap):

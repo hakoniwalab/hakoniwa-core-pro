@@ -1,4 +1,0 @@
-single:primitive:object_name:string:0:128
-single:primitive:owner_id:uint32:128:4
-single:primitive:last_update:uint64:136:8
-single:struct:pos:geometry_msgs/Twist:144:48

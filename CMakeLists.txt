@@ -1,5 +1,6 @@
 set(HAKO_CMAKE_VERSION 3.20)
 cmake_minimum_required(VERSION ${HAKO_CMAKE_VERSION})
+cmake_policy(SET CMP0135 NEW)
 
 project(hakoniwa-core-pro
     VERSION 1.0.0

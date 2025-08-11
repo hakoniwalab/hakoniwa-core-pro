@@ -1,5 +1,5 @@
 import hakopy
-from hako_pdu import HakoPduManager
+from sources.assets.bindings.python.src.hako_pdu import HakoPduManager
 
 class HakoAssetServiceServer:
     def __init__(self, pdu_manager: HakoPduManager, asset_name: str, service_name: str):

@@ -1,6 +1,0 @@
-single:primitive:type:uint8:0:1
-single:primitive:autopilot:uint8:1:1
-single:primitive:base_mode:uint8:2:1
-single:primitive:custom_mode:uint32:4:4
-single:primitive:system_status:uint8:8:1
-single:primitive:mavlink_version:uint8:9:1

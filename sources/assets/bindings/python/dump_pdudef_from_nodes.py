@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import json
 import argparse
-from hako_binary.offset_map import create_offmap
+from hakoniwa_pdu.impl.hako_binary.offset_map import create_offmap
 
 def dump_nodes_to_pdudef(service_json_path, offset_dir, output_path=None):
     with open(service_json_path, 'r') as f:

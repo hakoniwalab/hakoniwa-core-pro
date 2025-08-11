@@ -1,10 +1,9 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 import hakopy
-import hako_pdu
+import sources.assets.bindings.python.src.hako_pdu as hako_pdu
 import sys
 import time
-import sources.assets.bindings.python.hako_asset_service_constants as constants
 from sources.assets.bindings.python.hako_asset_service_client import HakoAssetServiceClient
 import asyncio
 
@@ -32,6 +31,7 @@ def my_on_initialize(context):
     global asset_name
     global service_name
     global service_client
+    print(f"INFO: Initializing asset service client for {asset_name}/{service_name}")
     service_client = HakoAssetServiceClient(pdu_manager, asset_name, service_name, "Client01")
     pdu_manager.append_pdu_def(service_config_path)
     if service_client.initialize() == False:

@@ -1,3 +1,0 @@
-single:primitive:request_id:int32:0:4
-single:primitive:image_data_length:int32:4:4
-single:struct:image:sensor_msgs/CompressedImage:8:272

@@ -156,14 +156,14 @@ static int my_on_reset(hako_asset_context_t* context)
     return 0;
 }
 
-static hako_asset_callbacks_t my_callback = {
-    .on_initialize = my_on_initialize,
-    .on_manual_timing_control = my_on_manual_timing_control,
-    .on_simulation_step = NULL,
-    .on_reset = my_on_reset
-};
+static hako_asset_callbacks_t my_callback;
+
 int main(int argc, const char* argv[])
 {
+    my_callback.on_initialize = my_on_initialize;
+    my_callback.on_manual_timing_control = my_on_manual_timing_control;
+    my_callback.on_reset = my_on_reset;
+    my_callback.on_simulation_step = NULL;
     if (argc < 3) {
         printf("Usage: %s <config_path> <test_case: normal | cancel1 | cancel2>\n", argv[0]);
         return 1;

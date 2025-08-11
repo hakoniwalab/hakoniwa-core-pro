@@ -1,5 +1,5 @@
 import hakopy
-from hako_pdu import HakoPduManager
+from sources.assets.bindings.python.src.hako_pdu import HakoPduManager
 
 class HakoAssetServiceClient:
     def __init__(self, pdu_manager: HakoPduManager, asset_name:str, service_name: str, client_name:str):
@@ -33,6 +33,7 @@ class HakoAssetServiceClient:
         return req_packet['body']
 
     def request(self, request_data, timeout_msec = -1, poll_interval_msec = -1):
+        print(f"handle: {self.handle} Requesting {self.service_name} with data: {request_data}")
         byte_array = hakopy.asset_service_client_get_request_buffer(
             self.handle, hakopy.HAKO_SERVICE_CLIENT_API_OPCODE_REQUEST, poll_interval_msec)
         if byte_array is None:

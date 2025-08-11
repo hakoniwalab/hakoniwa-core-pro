@@ -1,4 +1,4 @@
-import pro.hakopy as hakopy
+import hakopy
 import sys
 import time
 

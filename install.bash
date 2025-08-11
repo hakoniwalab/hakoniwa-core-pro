@@ -53,6 +53,7 @@ echo "Installing Hakoniwa..."
 
 ${SUDO} mkdir -p ${INSTALL_DIR}/bin/hakoniwa
 ${SUDO} mkdir -p ${INSTALL_DIR}/lib/hakoniwa
+${SUDO} mkdir -p ${INSTALL_DIR}/lib/hakoniwa/py
 ${SUDO} mkdir -p ${INSTALL_DIR}/include/hakoniwa
 ${SUDO} mkdir -p ${HAKONIWA_DIR}
 
@@ -71,8 +72,6 @@ then
     ${SUDO} cp ./cmake-build/sources/assets/bindings/python/libhako_asset_python.* ${INSTALL_DIR}/lib/hakoniwa/py/hakopy.so
 	${SUDO} cp ./cmake-build/sources/assets/polling/libshakoc.dylib ${INSTALL_DIR}/lib/hakoniwa/hakoc.so
     ${SUDO} cp ./cmake-build/sources/command/hako-cmd ${INSTALL_DIR}/bin/hakoniwa/
-    ${SUDO} cp sources/assets/bindings/python/src/*.py ${INSTALL_DIR}/lib/hakoniwa/py/
-    ${SUDO} cp -rp sources/assets/bindings/python/src/hako_binary ${INSTALL_DIR}/lib/hakoniwa/py/
 elif [ "$OS" = "Linux"  ]
 then
     ${SUDO} cp ./cmake-build/sources/assets/callback/libassets.* ${INSTALL_DIR}/lib/hakoniwa/
@@ -81,8 +80,6 @@ then
     ${SUDO} cp ./cmake-build/sources/assets/bindings/python/libhako_asset_python.* ${INSTALL_DIR}/lib/hakoniwa/py/hakopy.so
 	${SUDO} cp ./cmake-build/sources/assets/polling/libshakoc.so ${INSTALL_DIR}/lib/hakoniwa/hakoc.so
     ${SUDO} cp ./cmake-build/sources/command/hako-cmd ${INSTALL_DIR}/bin/hakoniwa/
-    ${SUDO} cp sources/assets/bindings/python/src/*.py ${INSTALL_DIR}/lib/hakoniwa/py/
-    ${SUDO} cp -rp sources/assets/bindings/python/src/hako_binary ${INSTALL_DIR}/lib/hakoniwa/py/
 else
     ${SUDO} cp ./cmake-build/sources/assets/callback/assets.* ${INSTALL_DIR}/lib/hakoniwa/
     ${SUDO} cp ./cmake-build/sources/conductor/conductor.* ${INSTALL_DIR}/lib/hakoniwa/
@@ -90,8 +87,6 @@ else
     ${SUDO} cp ./cmake-build/sources/assets/bindings/python/hako_asset_python.* ${INSTALL_DIR}/lib/hakoniwa/py/hakopy.pyd
 	${SUDO} cp ./cmake-build/sources/assets/polling/shakoc.so ${INSTALL_DIR}/lib/hakoniwa/hakoc.so
     ${SUDO} cp ./cmake-build/sources/command/hako-cmd.exe ${INSTALL_DIR}/bin/hakoniwa/
-    ${SUDO} cp sources/assets/bindings/python/src/*.py ${INSTALL_DIR}/lib/hakoniwa/py/
-    ${SUDO} cp -rp sources/assets/bindings/python/src/hako_binary ${INSTALL_DIR}/lib/hakoniwa/py/
 fi
 
 ${SUDO} cp include/* ${INSTALL_DIR}/include/hakoniwa/

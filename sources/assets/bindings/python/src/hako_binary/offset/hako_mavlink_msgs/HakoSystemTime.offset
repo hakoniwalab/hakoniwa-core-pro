@@ -1,2 +1,0 @@
-single:primitive:time_unix_usec:uint64:0:8
-single:primitive:time_boot_ms:uint64:8:8
