@@ -226,6 +226,130 @@ pip install hakoniwa-pdu
 
 詳細な手順は `examples/hello_world/README.md` など各サンプルの README を参照してください。
 
+
+## 作成されるライブラリ/コマンド内訳
+
+|分類|名前| 説明| 利用者|
+|---|---|---|---|
+|ライブラリ|assets| 箱庭アセット用ライブラリ(callback)| C++ 開発者|
+|ライブラリ|conductor| 箱庭コンダクタ用ライブラリ| C++ 開発者|
+|ライブラリ|shakoc| 箱庭アセット用ライブラリ(polling)| Unity 開発者|
+|ライブラリ|hakopy| Python バインディング| Python 開発者|
+|コマンド|hako-cmd|箱庭コマンドラインツール| C/C++/Python 開発者|
+
+ファイル名は、OSによって異なります。
+
+- Windows: <ライブラリ名>.dll, <コマンド名>.exe
+- Linux: <ライブラリ名>.so, <コマンド名>
+- MacOs: <ライブラリ名>.dylib, <コマンド名>
+
+## Linux/MacOSの場合の内部開発向けファイル配置場所
+
+|分類|リポジトリ内|インストール先| 説明| 利用者|
+|---|---|---|---|---|
+|ヘッダファイル|include|/usr/include/hakoniwa|箱庭APIのヘッダファイル| C/C++ 開発者|
+|MMAPファイル|なし|/var/lib/hakoniwa/mmap|MMAPファイルを配置するディレクトリ| 箱庭ライブラリ利用者|
+|設定ファイル|hakoniwa-core-cpp/cpp_core_config.json|/etc/hakoniwa/cpp_core_config.json|箱庭コアの設定ファイル| 箱庭ライブラリ利用者|
+|ライブラリ|cmake-build/sources/assets/callback|/usr/local/lib/hakoniwa/|箱庭アセット用ライブラリ(callback)| C++ 開発者|
+|ライブラリ|cmake-build/sources/conductor|/usr/local/lib/hakoniwa/|箱庭コンダクタ用ライブラリ| C++ 開発者|
+|ライブラリ|cmake-build/sources/assets/bindings/python|/usr/local/lib/hakoniwa/|Python バインディング| Python 開発者|
+|コマンド|cmake-build/sources/command/hako-cmd|/usr/local/bin/|箱庭コマンドラインツール| C/C++/Python 開発者|
+
+
+
 ## ライセンス
 
 このプロジェクトは MIT License の下で公開されています。詳しくは `LICENSE` ファイルを参照してください。
+
+# 参考
+
+## apt公開を見据えたDebianパッケージ版hakoniwa-core-proのバージョン管理まとめ
+
+---
+
+### 1. バージョン番号の構成
+
+```
+[Upstreamバージョン] - [Debianリビジョン] ~ [PPAビルド番号]
+```
+
+例： `1.0.0-1~ppa1`
+
+* **Upstreamバージョン（1.0.0）**
+  → ソフトそのものの機能や仕様が変わった時に上げる（コード変更）
+* **Debianリビジョン（-1）**
+  → パッケージの作り方や構成を変えた時に上げる（配置・依存・ビルド方法など）
+* **PPAビルド番号（\~ppa1）**
+  → PPA内での世代番号。テスト配布や小修正時に上げる
+  `~` があることで、公式版が出ると自動でそちらに置き換わる
+
+---
+
+### 2. Debianリビジョンを上げる具体例
+
+* **インストール先の変更**
+
+  * `/usr/local/lib` → `/usr/lib/<multiarch>`
+  * 設定ファイルのパス変更
+* **依存関係の追加・削除**
+
+  * `Depends: libfoo1` → `Depends: libfoo2`
+  * 不要な依存を削除
+* **パッケージの分割・統合**
+
+  * `-dev` とランタイムパッケージの分離
+* **ビルドオプションの変更**
+
+  * 最適化レベル変更、特定アーキ用最適化
+* **パッチ適用**
+
+  * バグ修正、セキュリティパッチ
+* **メタデータ修正**
+
+  * 説明文、Maintainer、Homepageの更新
+
+---
+
+### 3. 運用方針例
+
+* **初期配布（PPAのみ）**
+
+  * `1.0.0-0~ppa1` から開始（公式化前はDebianリビジョン0）
+* **PPAでの小修正**
+
+  * `1.0.0-0~ppa2` → `1.0.0-0~ppa3`
+* **公式リリース時**
+
+  * `1.0.0-1` に昇格（PPAの数字は消える）
+* **公式版のDebianリビジョン更新**
+
+  * パッケージ構成を修正したら `1.0.0-2`
+
+---
+
+### 4. hakoniwa-core-pro のapt化で最初に決めること
+
+1. **パッケージ名**
+
+   * `hakoniwa-core`（統合） or `hakoniwa-core` + `hakoniwa-core-dev`（分割）
+2. **インストールするもの**
+
+   * `.so`（SONAMEリンク付き）
+   * ヘッダ
+   * 設定ファイル
+   * コマンド
+   * 必要なら`hakopy`
+3. **配置場所**
+
+   * `/usr/lib/<multiarch>`（ライブラリ）
+   * `/usr/include/hakoniwa`（ヘッダ）
+   * `/etc/hakoniwa`（設定）
+   * `/usr/bin`（コマンド）
+4. **初期バージョン**
+
+   * 公式化前：`X.Y.Z-0~ppa1`
+   * 公式化後：`X.Y.Z-1`
+
+---
+
+💡 このルールを最初に決めておくと、**apt公開・PPA配布・ローカルテスト**の全部に対応できる。
