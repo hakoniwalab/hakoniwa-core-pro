@@ -2,11 +2,16 @@
 # -*- coding: utf-8 -*-
 import sys
 import asyncio
-from sources.assets.bindings.python.shm_common import ShmCommon
-from sources.assets.bindings.python.shm_service_server import ShmServiceServer
+from hakoniwa_pdu.service.shm_common import ShmCommon
+from hakoniwa_pdu.service.shm_service_server import ShmServiceServer
+from hakoniwa_pdu.pdu_msgs.hako_srv_msgs.pdu_pytype_AddTwoIntsRequest import AddTwoIntsRequest
+from hakoniwa_pdu.pdu_msgs.hako_srv_msgs.pdu_pytype_AddTwoIntsResponse import AddTwoIntsResponse
+from hakoniwa_pdu.pdu_msgs.hako_srv_msgs.pdu_conv_AddTwoIntsRequestPacket import py_to_pdu_AddTwoIntsRequestPacket, pdu_to_py_AddTwoIntsRequestPacket
+from hakoniwa_pdu.pdu_msgs.hako_srv_msgs.pdu_conv_AddTwoIntsResponsePacket import py_to_pdu_AddTwoIntsResponsePacket, pdu_to_py_AddTwoIntsResponsePacket
 
-async def my_add_handler(req):
-    result = {'sum': req['a'] + req['b']}
+async def my_add_handler(req: AddTwoIntsRequest):
+    result = AddTwoIntsResponse()
+    result.sum = req.a + req.b
     return result
 
 async def main_async():
@@ -23,7 +28,11 @@ async def main_async():
         print("Failed to initialize shm")
         return 1
     shm.start_service()
-    service_server = ShmServiceServer(asset_name, service_name, delta_time_usec)
+    service_server = ShmServiceServer(asset_name, service_name, delta_time_usec, 
+                                            py_to_pdu_AddTwoIntsRequestPacket,
+                                            pdu_to_py_AddTwoIntsRequestPacket, 
+                                            py_to_pdu_AddTwoIntsResponsePacket,
+                                            pdu_to_py_AddTwoIntsResponsePacket)
     if service_server.initialize(shm) == False:
         print("Failed to initialize service client")
         return 1

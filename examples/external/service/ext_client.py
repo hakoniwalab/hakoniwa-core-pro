@@ -2,8 +2,12 @@
 # -*- coding: utf-8 -*-
 import sys
 import asyncio
-from sources.assets.bindings.python.shm_common import ShmCommon
-from sources.assets.bindings.python.shm_service_client import ShmServiceClient
+from hakoniwa_pdu.service.shm_common import ShmCommon
+from hakoniwa_pdu.service.shm_service_client import ShmServiceClient
+from hakoniwa_pdu.pdu_msgs.hako_srv_msgs.pdu_pytype_AddTwoIntsRequest import AddTwoIntsRequest
+from hakoniwa_pdu.pdu_msgs.hako_srv_msgs.pdu_pytype_AddTwoIntsResponse import AddTwoIntsResponse
+from hakoniwa_pdu.pdu_msgs.hako_srv_msgs.pdu_conv_AddTwoIntsRequestPacket import py_to_pdu_AddTwoIntsRequestPacket, pdu_to_py_AddTwoIntsRequestPacket
+from hakoniwa_pdu.pdu_msgs.hako_srv_msgs.pdu_conv_AddTwoIntsResponsePacket import py_to_pdu_AddTwoIntsResponsePacket, pdu_to_py_AddTwoIntsResponsePacket
 
 async def main_async():
 
@@ -18,14 +22,18 @@ async def main_async():
     if shm.initialize() == False:
         print("Failed to initialize shm")
         return 1
-    service_client = ShmServiceClient(asset_name, service_name, "Client01", delta_time_usec)
+    service_client = ShmServiceClient(asset_name, service_name, "Client01", delta_time_usec,
+                                      req_encoder=py_to_pdu_AddTwoIntsRequestPacket,
+                                      req_decoder=pdu_to_py_AddTwoIntsRequestPacket,
+                                      res_encoder=py_to_pdu_AddTwoIntsResponsePacket,
+                                      res_decoder=pdu_to_py_AddTwoIntsResponsePacket)
     if service_client.initialize(shm) == False:
         print("Failed to initialize service client")
         return 1
 
-    req = service_client.get_empty_request()
-    req['a'] = 1
-    req['b'] = 2
+    req = AddTwoIntsRequest()
+    req.a = 1
+    req.b = 2
 
     res = await service_client.call_async(req)
     if res is None:
