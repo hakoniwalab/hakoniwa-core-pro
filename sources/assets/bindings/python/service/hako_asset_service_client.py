@@ -1,9 +1,11 @@
 import hakopy
-from sources.assets.bindings.python.src.hako_pdu import HakoPduManager
+from hakoniwa_pdu.pdu_manager import PduManager
 
 class HakoAssetServiceClient:
-    def __init__(self, pdu_manager: HakoPduManager, asset_name:str, service_name: str, client_name:str):
+    def __init__(self, pdu_manager: PduManager, asset_name:str, service_name: str, client_name:str,
+                 req_encoder, req_decoder, res_encoder, res_decoder):
         self.pdu_manager = pdu_manager
+        self.service_config = None
         self.asset_name = asset_name
         self.service_name = service_name
         self.client_name = client_name
@@ -12,6 +14,10 @@ class HakoAssetServiceClient:
         self.req_packet = None
         self.res_packet = None
         self.handle = None
+        self.req_encoder = req_encoder
+        self.req_decoder = req_decoder
+        self.res_encoder = res_encoder
+        self.res_decoder = res_decoder
 
     def initialize(self):
         # Initialize the asset service
@@ -39,14 +45,11 @@ class HakoAssetServiceClient:
         if byte_array is None:
             raise RuntimeError("Failed to get request buffer")
         
-        self.pdu_request_packet = self.pdu_manager.get_pdu(self.service_name, self.request_channel_id)
-        if self.pdu_request_packet is None:
-            raise RuntimeError("Failed to get request packet")
-        self.req_packet = self.pdu_request_packet.read_binary(byte_array)
+        self.req_packet = self.req_decoder(byte_array)
         if self.req_packet is None:
             raise RuntimeError("Failed to read request packet")
-        self.req_packet['body'] = request_data
-        request_bytes = self.pdu_request_packet.get_binary(self.req_packet)
+        self.req_packet.body = request_data
+        request_bytes = self.req_encoder(self.req_packet)
         if request_bytes is None:
             raise RuntimeError("Failed to get request bytes")
         success = hakopy.asset_service_client_call_request(self.handle, request_bytes, timeout_msec)
@@ -69,12 +72,12 @@ class HakoAssetServiceClient:
                 raise RuntimeError("Failed to get response byte array")
             #print(f"Response byte array: {byte_array}")
             # parse the response buffer
-            self.pdu_response_packet = self.pdu_manager.get_pdu(self.service_name, self.response_channel_id)
-            if self.pdu_response_packet is None:
-                raise RuntimeError("Failed to get response packet")
-            #print(f"Response packet: {self.pdu_response_packet}")
-            self.res_packet = self.pdu_response_packet.read_binary(byte_array)
-            #print(f"Response packet: {self.res_packet}")
+            pdu_name = self.service_config.get_pdu_name(self.service_name, self.response_channel_id)
+            self.pdu_manager.run_nowait()
+            raw_data = self.pdu_manager.read_pdu_raw_data(self.service_name, pdu_name)
+            if raw_data is None or len(raw_data) == 0:
+                raise Exception("Failed to read response packet")
+            self.res_packet = self.res_decoder(raw_data)
             if self.res_packet is None:
                 raise RuntimeError("Failed to read response packet")
             return hakopy.HAKO_SERVICE_CLIENT_API_EVENT_RESPONSE_IN
@@ -102,7 +105,7 @@ class HakoAssetServiceClient:
     def get_response(self):
         if self.res_packet is None:
             raise RuntimeError("No response packet")
-        return self.res_packet['body']
+        return self.res_packet.body
     
     def cancel_request(self):
         if self.handle is None:

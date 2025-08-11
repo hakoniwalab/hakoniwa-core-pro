@@ -1,10 +1,17 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 import hakopy
-import sources.assets.bindings.python.src.hako_pdu as hako_pdu
 import sys
 import time
+from hakoniwa_pdu.pdu_manager import PduManager
+from hakoniwa_pdu.impl.shm_communication_service import ShmCommunicationService
+from sources.assets.bindings.python.service.hako_asset_service_config import HakoAssetServiceConfig
 from sources.assets.bindings.python.service.hako_asset_service_client import HakoAssetServiceClient
+
+from hakoniwa_pdu.pdu_msgs.hako_srv_msgs.pdu_pytype_AddTwoIntsRequest import AddTwoIntsRequest
+from hakoniwa_pdu.pdu_msgs.hako_srv_msgs.pdu_pytype_AddTwoIntsResponse import AddTwoIntsResponse
+from hakoniwa_pdu.pdu_msgs.hako_srv_msgs.pdu_conv_AddTwoIntsRequestPacket import py_to_pdu_AddTwoIntsRequestPacket, pdu_to_py_AddTwoIntsRequestPacket
+from hakoniwa_pdu.pdu_msgs.hako_srv_msgs.pdu_conv_AddTwoIntsResponsePacket import py_to_pdu_AddTwoIntsResponsePacket, pdu_to_py_AddTwoIntsResponsePacket
 import asyncio
 
 
@@ -32,8 +39,15 @@ def my_on_initialize(context):
     global service_name
     global service_client
     print(f"INFO: Initializing asset service client for {asset_name}/{service_name}")
-    service_client = HakoAssetServiceClient(pdu_manager, asset_name, service_name, "Client01")
-    pdu_manager.append_pdu_def(service_config_path)
+    service_client = HakoAssetServiceClient(pdu_manager, asset_name, service_name, "Client01",
+                                            py_to_pdu_AddTwoIntsRequestPacket,
+                                            pdu_to_py_AddTwoIntsRequestPacket, 
+                                            py_to_pdu_AddTwoIntsResponsePacket,
+                                            pdu_to_py_AddTwoIntsResponsePacket)
+    service_config = HakoAssetServiceConfig(service_config_path, pdu_manager.pdu_convertor.offmap)
+    service_config.append_pdu_def(pdu_manager.pdu_config.get_pdudef())
+    service_config.create_pdus()
+    service_client.service_config = service_config
     if service_client.initialize() == False:
         raise RuntimeError("Failed to create asset service")
 
@@ -64,7 +78,9 @@ async def run_client_task_for_normal():
     global pdu_manager, service_client, delta_time_usec
 
     print("*************** START SERVICE CLIENT ***************")
-    req = {'a': 1, 'b': 2}
+    req = AddTwoIntsRequest()
+    req.a = 1
+    req.b = 2
 
     while True:
         # 送信成功までリトライ
@@ -77,14 +93,13 @@ async def run_client_task_for_normal():
             print("INFO: APL wait for response")
             await hako_sleep_async(1)
 
-        res = service_client.get_response()
+        res: AddTwoIntsResponse = service_client.get_response()
         print(f"Response data: {res}")
 
         # 次のリクエストを作成
-        req = {
-            'a': res['sum'],
-            'b': res['sum'] + 1
-        }
+        req = AddTwoIntsRequest()
+        req.a = res.sum
+        req.b = res.sum + 1
 
 async def run_client_task_for_test():
     global pdu_manager
@@ -92,11 +107,10 @@ async def run_client_task_for_test():
     global delta_time_usec
     is_timeout_heppend = False
     print("*************** START SERVICE CLIENT ***************")
-    req = {
-        'a': 1,
-        'b': 2
-    }
-    res = {}
+    req = AddTwoIntsRequest()
+    req.a = 1
+    req.b = 2
+    res = AddTwoIntsResponse()
     print(f"Request data: {req}")
     result = service_client.request(req, 2000, -1)
     if result == False:
@@ -166,7 +180,9 @@ def main():
         isExternal = True
         print("INFO: external mode")
 
-    pdu_manager = hako_pdu.HakoPduManager('./hakoniwa-ros2pdu/pdu/offset', config_path)
+    pdu_manager = PduManager()
+    pdu_manager.initialize(config_path=config_path, comm_service=ShmCommunicationService())
+    pdu_manager.start_service_nowait()
 
     if isExternal:
         ret = hakopy.init_for_external()
