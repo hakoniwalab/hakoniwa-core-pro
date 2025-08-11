@@ -109,22 +109,60 @@ Debianでは用途別にファイルをパッケージ化し、不要な依存�
 Pythonモジュールは`python3-*`パッケージとして提供し、OSのPython環境に統合する。
 
 ---
+いいね、まずは **「依存関係」節の差し替え版** を用意しました。
+これをそのまま `debian-package.md` に貼り替えてください。（ldd結果ベース）
+
+---
 
 # 依存関係
 
 ## 現在の仕様
 
-* ランタイムパッケージは`libc6`や必要なシステムライブラリに依存
-* 開発用パッケージは対応するランタイムパッケージに依存
-* CLIは必要に応じてランタイムやPythonパッケージに依存
+**ランタイム依存（パッケージごと）**
+
+* `libhakoniwa-conductor1`
+
+  * Depends: `${shlibs:Depends}, ${misc:Depends}`
+
+* `libhakoniwa-assets1`
+
+  * Depends: `${shlibs:Depends}, ${misc:Depends}, libhakoniwa-conductor1 (= ${binary:Version})`
+
+* `libhakoniwa-shakoc1`
+
+  * Depends: `${shlibs:Depends}, ${misc:Depends}`
+
+* `python3-hakopy`
+
+  * Depends: `${python3:Depends}, ${shlibs:Depends}, ${misc:Depends}, libhakoniwa-assets1 (= ${binary:Version}), libhakoniwa-conductor1 (= ${binary:Version})`
+
+* `hakoniwa-core`（CLI）
+
+  * Depends: `${shlibs:Depends}, ${misc:Depends}`
+  * Recommends: `libhakoniwa-assets1 | libhakoniwa-shakoc1`
+
+**ビルド依存**
+
+* Build-Depends: `debhelper-compat (= 13), cmake, dh-sequence-python3, python3-dev`
 
 ## 仕様定義の理由
 
-* 実行時に不足ライブラリがないようにするため。
-* 開発用がランタイムに依存することで、インストール後すぐビルド可能にする。
+* **`${shlibs:Depends}` に任せる方針**
+  glibc系（`libc6`, `libstdc++6`, `libgcc-s1`, `libm` など）は `dh_shlibdeps` が自動付与するため、明示列挙しない。
+* **自前ライブラリの“連鎖”は明示**
+  `libassets.so` は `libconductor.so` にリンクしている → `libhakoniwa-assets1` は **`libhakoniwa-conductor1` に明示依存**。
+  `libhako_asset_python.so` は `libassets.so` と `libconductor.so` の両方に依存 → **両方に明示依存**。
+* **CLIは最小依存＋推奨**
+  `hako-cmd` は標準C/C++のみ（ldd上）。実行時に assets/shakoc を使うプロジェクトが多い想定なので、**Recommends** で案内するに留める。
 
 ## 説明
 
-依存関係の設計はインストール体験に直結する。
-Debianでは`Depends`で必須、`Recommends`で推奨、`Suggests`で任意依存を定義できる。
+* 依存関係は **lddの結果**を起点に設計し、**標準ライブラリは自動解決**、**自前ライブラリは明示**が原則。
+* `python3-hakopy` は **`dh_python3`** を使うことで、Python ABI に適合した `Depends`（例：`python3 (>= 3.12~)` 等）が自動的に付与される。
+* 将来的にリンク構成が変わったら（例：`libassets.so` が `libconductor.so` へリンクしなくなる等）、**この依存を削る/追加する**だけでよい。
+* 実行時に `dlopen` で読ませる内部 .so は、公開ランタイムに含めず **私有ディレクトリ**（`/usr/lib/$(DEB_HOST_MULTIARCH)/hakoniwa-core/`）へ置くと、**不要な依存を増やさず**に済む。
 
+> 補足（品質チェック）
+>
+> * ビルド成果物に **RPATH（ビルドツリーの絶対パス）が残らない**ようにする（`readelf -d` / `chrpath -l` で確認）。
+> * これにより、`ldd` にローカルパス（`/home/.../cmake-build/...`）が出る事象を防止。
