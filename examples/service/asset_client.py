@@ -46,7 +46,6 @@ def my_on_initialize(context):
                                             pdu_to_py_AddTwoIntsResponsePacket)
     service_config = HakoAssetServiceConfig(service_config_path, pdu_manager.pdu_convertor.offmap)
     service_config.append_pdu_def(pdu_manager.pdu_config.get_pdudef())
-    service_config.create_pdus()
     service_client.service_config = service_config
     if service_client.initialize() == False:
         raise RuntimeError("Failed to create asset service")
