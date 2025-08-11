@@ -1,9 +1,11 @@
 import hakopy
-from sources.assets.bindings.python.src.hako_pdu import HakoPduManager
+#from sources.assets.bindings.python.src.hako_pdu import HakoPduManager
+from hakoniwa_pdu.pdu_manager import PduManager
 
 class HakoAssetServiceServer:
-    def __init__(self, pdu_manager: HakoPduManager, asset_name: str, service_name: str):
+    def __init__(self, pdu_manager: PduManager, asset_name: str, service_name: str, req_encoder, req_decoder, res_encoder, res_decoder):
         self.pdu_manager = pdu_manager
+        self.service_config = None
         self.asset_name = asset_name
         self.service_name = service_name
         self.service_id = -1
@@ -12,6 +14,10 @@ class HakoAssetServiceServer:
         self.current_client_id = -1
         self.request_channel_id = -1
         self.response_channel_id = -1
+        self.req_encoder = req_encoder
+        self.req_decoder = req_decoder
+        self.res_encoder = res_encoder
+        self.res_decoder = res_decoder
 
     def initialize(self):
         # Initialize the asset service
@@ -49,11 +55,14 @@ class HakoAssetServiceServer:
                 raise Exception("Failed to get request byte array")
 
             # parse the request buffer
-            self.pdu_request_packet = self.pdu_manager.get_pdu(self.service_name, self.request_channel_id)
-            self.req_packet = self.pdu_request_packet.read_binary(byte_array)
-            if self.req_packet is None:
+            pdu_name = self.service_config.get_pdu_name(self.service_name, self.request_channel_id)
+            self.pdu_manager.run_nowait()
+            raw_data = self.pdu_manager.read_pdu_raw_data(self.service_name, pdu_name)
+            if raw_data is None or len(raw_data) == 0:
                 raise Exception("Failed to read request packet")
-
+            self.req_packet = self.req_decoder(raw_data)
+            if self.req_packet is None:
+                raise Exception("Failed to decode request packet")
             return hakopy.HAKO_SERVICE_SERVER_API_EVENT_REQUEST_IN
         else:
             return result
@@ -72,7 +81,7 @@ class HakoAssetServiceServer:
         # Get the request packet
         if self.req_packet is None:
             raise Exception("Request packet is not set")
-        return self.req_packet['body']
+        return self.req_packet.body
     
     def normal_reply(self, response: dict):
         return self._reply(response, hakopy.HAKO_SERVICE_API_RESULT_CODE_OK)
@@ -80,21 +89,16 @@ class HakoAssetServiceServer:
     def cancel_reply(self, response: dict):
         return self._reply(response, hakopy.HAKO_SERVICE_API_RESULT_CODE_CANCELED)
 
-    def _reply(self, response: dict, result_code: int):
+    def _reply(self, response, result_code: int):
         # Get response buffer
         byte_array = hakopy.asset_service_server_get_response_buffer(
             self.service_id, hakopy.HAKO_SERVICE_API_STATUS_DONE, result_code)
         if byte_array is None:
             raise Exception("Failed to get response byte array")
         # Set the response packet
-        self.pdu_response_packet = self.pdu_manager.get_pdu(self.service_name, self.response_channel_id)
-        if self.pdu_response_packet is None:
-            raise Exception("Failed to get response packet")
-        self.res_packet = self.pdu_response_packet.read_binary(byte_array)
-        if self.res_packet is None:
-            raise Exception("Failed to read response packet")
-        self.res_packet['body'] = response
-        response_bytes = self.pdu_response_packet.get_binary(self.res_packet)
+        r = self.res_decoder(byte_array)
+        r.body = response
+        response_bytes = self.res_encoder(r)
         if response_bytes is None:
             raise Exception("Failed to get response bytes")
         # Send the response

@@ -4,7 +4,7 @@ import hakopy
 import sources.assets.bindings.python.src.hako_pdu as hako_pdu
 import sys
 import time
-from sources.assets.bindings.python.hako_asset_service_client import HakoAssetServiceClient
+from sources.assets.bindings.python.service.hako_asset_service_client import HakoAssetServiceClient
 import asyncio
 
 

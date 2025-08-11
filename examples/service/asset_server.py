@@ -1,10 +1,18 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 import hakopy
-import sources.assets.bindings.python.src.hako_pdu as hako_pdu
+#import sources.assets.bindings.python.src.hako_pdu as hako_pdu
 import sys
 import time
-from sources.assets.bindings.python.hako_asset_service_server import HakoAssetServiceServer
+from hakoniwa_pdu.pdu_manager import PduManager
+from hakoniwa_pdu.impl.shm_communication_service import ShmCommunicationService
+from sources.assets.bindings.python.service.hako_asset_service_config import HakoAssetServiceConfig
+from sources.assets.bindings.python.service.hako_asset_service_server import HakoAssetServiceServer
+
+from hakoniwa_pdu.pdu_msgs.hako_srv_msgs.pdu_pytype_AddTwoIntsRequest import AddTwoIntsRequest
+from hakoniwa_pdu.pdu_msgs.hako_srv_msgs.pdu_pytype_AddTwoIntsResponse import AddTwoIntsResponse
+from hakoniwa_pdu.pdu_msgs.hako_srv_msgs.pdu_conv_AddTwoIntsRequestPacket import py_to_pdu_AddTwoIntsRequestPacket, pdu_to_py_AddTwoIntsRequestPacket
+from hakoniwa_pdu.pdu_msgs.hako_srv_msgs.pdu_conv_AddTwoIntsResponsePacket import py_to_pdu_AddTwoIntsResponsePacket, pdu_to_py_AddTwoIntsResponsePacket
 import asyncio
 
 asset_name = 'Server'
@@ -32,8 +40,15 @@ def my_on_initialize(context):
     global asset_name
     global service_name
     global service_server
-    service_server = HakoAssetServiceServer(pdu_manager, asset_name, service_name)
-    pdu_manager.append_pdu_def(service_config_path)
+    service_server = HakoAssetServiceServer(pdu_manager, asset_name, service_name, 
+                                            py_to_pdu_AddTwoIntsRequestPacket,
+                                            pdu_to_py_AddTwoIntsRequestPacket, 
+                                            py_to_pdu_AddTwoIntsResponsePacket,
+                                            pdu_to_py_AddTwoIntsResponsePacket)
+    service_config = HakoAssetServiceConfig(service_config_path, pdu_manager.pdu_convertor.offmap)
+    service_config.append_pdu_def(pdu_manager.pdu_config.get_pdudef())
+    service_config.create_pdus()
+    service_server.service_config = service_config
     if service_server.initialize() == False:
         raise RuntimeError("Failed to create asset service")
 
@@ -51,11 +66,10 @@ async def normal_test_case():
         if service_server.is_request_in(event):
             # Process the request
             print("Request received")
-            request_data = service_server.get_request()
+            request_data: AddTwoIntsRequest = service_server.get_request()
             print(f"Request data: {request_data}")
-            res = {
-                'sum': request_data['a'] + request_data['b']
-            }
+            res = AddTwoIntsResponse()
+            res.sum = request_data.a + request_data.b
             print(f"INFO: OUT: {res}")
             while service_server.normal_reply(res) == False:
                 print("INFO: APL normal_reply() is not done")
@@ -77,9 +91,8 @@ async def cancel_1_test_case():
     if service_server.is_request_in(event):
         req = service_server.get_request()
         print(f"Request data: {req}")
-        res = {
-            'sum': req['a'] + req['b']
-        }
+        res = AddTwoIntsResponse()
+        res.sum = req.a + req.b
         await hako_sleep_async(5)
         event = service_server.poll()
         print(f"event: {event}")
@@ -106,9 +119,8 @@ async def cancel_2_test_case():
     if service_server.is_request_in(event):
         req = service_server.get_request()
         print(f"Request data: {req}")
-        res = {
-            'sum': req['a'] + req['b']
-        }
+        res = AddTwoIntsResponse()
+        res.sum = req.a + req.b
         await hako_sleep_async(5)
         print(f"INFO: OUT: {res}")
         service_server.normal_reply(res)
@@ -179,7 +191,9 @@ def main():
             print(f"ERROR: invalid argument {sys.argv[3]}")
             return 1
 
-    pdu_manager = hako_pdu.HakoPduManager('./hakoniwa-ros2pdu/pdu/offset', config_path)
+    pdu_manager = PduManager()
+    pdu_manager.initialize(config_path=config_path, comm_service=ShmCommunicationService())
+    pdu_manager.start_service_nowait()
 
     hakopy.conductor_start(delta_time_usec, delta_time_usec)
     if is_external:
