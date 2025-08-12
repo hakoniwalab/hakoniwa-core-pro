@@ -80,4 +80,20 @@ install(
   DESTINATION lib/cmake/hakoniwa-core
 )
 
+# Install PDU header files
+install(
+    DIRECTORY ${PROJECT_SOURCE_DIR}/hakoniwa-ros2pdu/pdu/types/
+    DESTINATION include/hakoniwa/pdu
+)
 
+# Install core config file
+install(
+    FILES ${PROJECT_SOURCE_DIR}/hakoniwa-core-cpp/cpp_core_config.json
+    DESTINATION etc/hakoniwa
+)
+
+# Install PDU offset files
+install(
+    DIRECTORY ${PROJECT_SOURCE_DIR}/hakoniwa-ros2pdu/pdu/offset/
+    DESTINATION share/hakoniwa/offset
+)
