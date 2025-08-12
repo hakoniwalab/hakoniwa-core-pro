@@ -49,6 +49,7 @@ debian/*.substvars
 debian/tmp/
 debian/.debhelper/
 debian/*/
+!debian/python-files/
 
 # Backup files
 debian/*.dch

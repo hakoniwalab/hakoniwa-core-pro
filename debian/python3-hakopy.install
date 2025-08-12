@@ -1,1 +1,8 @@
+# ラッパーモジュールをトップレベルにインストール
+debian/python-files/hakopy.py usr/lib/python3/dist-packages/
+
+# hakoniwaパッケージディレクトリを作成するための__init__.pyをインストール
+debian/python-files/__init__.py usr/lib/python3/dist-packages/hakoniwa/
+
+# C拡張モジュールをhakoniwaパッケージ内にインストール
 cmake-build/sources/assets/bindings/python/hakopy.so usr/lib/python3/dist-packages/hakoniwa/
