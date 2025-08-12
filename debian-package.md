@@ -169,4 +169,60 @@ Pythonモジュールは`python3-*`パッケージとして提供し、OSのPyth
 > Debianパッケージはビルド時のPython ABIに一致するよう `${python3:Depends}` により制約します。
 
 # test
-（将来追記予定）
+
+じゃあ、`# test` 節に入れる最小インストール＆動作確認手順の叩き台を作りますね。
+
+---
+
+# test
+
+## 現在の仕様
+
+未定義（将来追記予定）
+
+## 仕様定義の理由
+
+Debianパッケージの品質保証として、インストール後に最低限の動作確認を行える手順を用意する。
+これにより、配布後のトラブル（依存不足・ファイル欠落・バージョン不一致）を早期に発見できる。
+
+## 説明
+
+テストは以下の流れで行う。
+
+1. **クリーン環境にパッケージをインストール**
+
+   ```bash
+   sudo apt update
+   sudo apt install hakoniwa-core
+   ```
+
+   必要に応じて追加：
+
+   ```bash
+   sudo apt install libhakoniwa-assets-dev python3-hakopy
+   ```
+
+2. **CLIの動作確認**
+
+   ```bash
+   hako-cmd --version
+   ```
+
+   → ビルドバージョンが表示されることを確認
+
+3. **ライブラリリンク確認**
+
+   ```bash
+   ldd /usr/bin/hako-cmd
+   ```
+
+   → 依存 `.so` がすべて `/usr/lib/$(dpkg-architecture -qDEB_HOST_MULTIARCH)/` 内に解決されていること
+
+4. **Pythonモジュール動作確認（任意）**
+
+   ```bash
+   python3 -c "import hakopy; print(hakopy.__version__)"
+   ```
+
+   → Pythonビルドバージョンと一致することを確認
+
