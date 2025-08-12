@@ -2,7 +2,7 @@ Source: hakoniwa-core
 Section: utils
 Priority: optional
 Maintainer: Takashi Mori <tmori@hakoniwa-lab.net>
-Build-Depends: debhelper-compat (= 13), cmake, dh-exec, help2man, help2man, help2man
+Build-Depends: debhelper-compat (= 13), cmake, dh-exec, help2man, dh-sequence-python3, python3-dev
 Standards-Version: 4.7.0
 Homepage: https://github.com/hakoniwalab/hakoniwa-core-pro
 Rules-Requires-Root: no
@@ -51,3 +51,13 @@ Depends: ${misc:Depends},
          libhakoniwa-shakoc1 (= ${binary:Version})
 Description: Development files for Hakoniwa core (headers)
  Header files for building applications with Hakoniwa core libraries.
+
+# Python バインディング
+Package: python3-hakopy
+Section: python
+Architecture: any
+Multi-Arch: same
+Depends: ${python3:Depends}, ${shlibs:Depends}, ${misc:Depends}, libhakoniwa-assets1 (= ${binary:Version}), libhakoniwa-conductor1 (= ${binary:Version})
+Description: Python bindings for Hakoniwa core
+ This package provides the hakopy module for interacting with Hakoniwa
+ from Python.

@@ -216,6 +216,30 @@ pip install hakoniwa-pdu
 
 このツールは、必要なファイルやディレクトリがすべて揃っているかをチェックし、結果を報告します。不足している項目がある場合は、その一覧が表示されます。
 
+## Debianパッケージのビルド
+
+### 1. ビルド環境のセットアップ
+
+Debianパッケージをビルドするには、ビルド依存関係を満たすパッケージが必要です。
+`debian/control`の`Build-Depends`に記載されているパッケージを、以下のコマンドなどを用いてインストールしてください。
+
+```sh
+sudo apt-get update
+sudo apt-get install build-essential devscripts debhelper-compat cmake dh-exec help2man dh-sequence-python3 python3-dev
+```
+
+### 2. ビルドの実行
+
+リポジトリのルートディレクトリで以下のコマンドを実行します。
+
+```sh
+dpkg-buildpackage -us -uc
+```
+
+### 3. 成果物
+
+ビルドが成功すると、親ディレクトリ（一つ上の階層）に`.deb`ファイル群が生成されます。
+
 ## 実行方法
 
 ビルド後、サンプルを以下のように実行できます。

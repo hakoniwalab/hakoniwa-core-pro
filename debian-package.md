@@ -14,18 +14,21 @@
 ## 現在の仕様
 
 * **ランタイム**
-  `libhakoniwa-assets1`, `libhakoniwa-conductor1`, `libhakoniwa-shakoc1`, `python3-hakopy`
+  * `libhakoniwa-assets1`
+  * `libhakoniwa-conductor1`
+  * `libhakoniwa-shakoc1`
+  * `python3-hakopy`
 * **開発用**
-  `libhakoniwa-assets-dev`, `libhakoniwa-conductor-dev`, `libhakoniwa-shakoc-dev`
+  * `hakoniwa-core-dev`
 * **CLIツール**
-  `hakoniwa-core`
+  * `hakoniwa-core`
 * **メタパッケージ（任意）**
-  `hakoniwa-core-full`
+  * `hakoniwa-core-full`
 
 ## 仕様定義の理由
 
 * **ランタイムと開発用の分離**
-  ユーザーが実行時に不要なヘッダや開発用ファイルを省き、インストール容量と依存関係を最小化するため。
+  ユーザーが実行時に不要なヘッダや開発用ファイルを省き、インストール容量と依存関係を最小化するため。当初は開発用パッケージもライブラリごとに分割する案がありましたが、依存関係が複雑になるため単一の`hakoniwa-core-dev`に統合されました。
 * **数字付きランタイムパッケージ**
   SONAMEのメジャーバージョンを反映させることで、ABI非互換更新時に旧版と共存可能にするため。
 * **CLI・Pythonの独立化**
@@ -48,8 +51,8 @@ Debianのパッケージ名はaptでの識別子。
 * **共有ライブラリ（内部/dlopen専用）**：`/usr/lib/$(DEB_HOST_MULTIARCH)/hakoniwa-core/`
 * **開発用ヘッダ**：`/usr/include/hakoniwa/`
 * **CMake Config / pkg-config**：
-  `/usr/lib/cmake/hakoniwa-core/`
-  `/usr/lib/$(DEB_HOST_MULTIARCH)/pkgconfig/`
+  * `/usr/lib/cmake/hakoniwa-core/`
+  * `/usr/lib/$(DEB_HOST_MULTIARCH)/pkgconfig/`
 * **CLI**：`/usr/bin/`
 * **設定ファイル**：`/etc/hakoniwa/`
 * **可変データ**：`/var/lib/hakoniwa/`（例：`/var/lib/hakoniwa/mmap`）
@@ -95,10 +98,10 @@ ABI非互換の変更時はSONAMEとランタイムパッケージ名の両方�
 
 ## 現在の仕様
 
-* ランタイムパッケージ：`.so`本体、設定ファイル、可変データディレクトリ
-* 開発用パッケージ：ヘッダ、`.so`シンボリックリンク、pkg-config/CMakeファイル
-* CLIパッケージ：実行ファイル
-* Pythonパッケージ：`hakopy`モジュール
+* **ランタイムパッケージ** (`libhakoniwa-*1`): `.so`本体、設定ファイル、可変データディレクトリ
+* **開発用パッケージ** (`hakoniwa-core-dev`): ヘッダ、`.so`シンボリックリンク、pkg-config/CMakeファイル
+* **CLIパッケージ** (`hakoniwa-core`): 実行ファイル
+* **Pythonパッケージ** (`python3-hakopy`): `hakopy`モジュール
 
 ## 仕様定義の理由
 
@@ -116,40 +119,39 @@ Pythonモジュールは`python3-*`パッケージとして提供し、OSのPyth
 
 ## 現在の仕様
 
-**ランタイム依存（パッケージごと）**
+**ランタイム・開発用依存（パッケージごと）**
 
 * `libhakoniwa-conductor1`
-
   * Depends: `${shlibs:Depends}, ${misc:Depends}`
 
 * `libhakoniwa-assets1`
-
   * Depends: `${shlibs:Depends}, ${misc:Depends}, libhakoniwa-conductor1 (= ${binary:Version})`
 
 * `libhakoniwa-shakoc1`
-
   * Depends: `${shlibs:Depends}, ${misc:Depends}`
 
-* `python3-hakopy`
-
-  * Depends: `${python3:Depends}, ${shlibs:Depends}, ${misc:Depends}, libhakoniwa-assets1 (= ${binary:Version}), libhakoniwa-conductor1 (= ${binary:Version})`
+* `hakoniwa-core-dev`
+  * Depends: `${misc:Depends}, libhakoniwa-conductor1 (= ${binary:Version}), libhakoniwa-assets1 (= ${binary:Version}), libhakoniwa-shakoc1 (= ${binary:Version})`
 
 * `hakoniwa-core`（CLI）
-
   * Depends: `${shlibs:Depends}, ${misc:Depends}`
   * Recommends: `libhakoniwa-assets1 | libhakoniwa-shakoc1`
 
+* `python3-hakopy`
+  * Depends: `${python3:Depends}, ${shlibs:Depends}, ${misc:Depends}, libhakoniwa-assets1 (= ${binary:Version}), libhakoniwa-conductor1 (= ${binary:Version})`
+
 **ビルド依存**
 
-* Build-Depends: `debhelper-compat (= 13), cmake, dh-sequence-python3, python3-dev`
+* Build-Depends: `debhelper-compat (= 13), cmake, dh-exec, help2man, dh-sequence-python3, python3-dev`
 
 ## 仕様定義の理由
 
 * **`${shlibs:Depends}` に任せる方針**
   glibc系（`libc6`, `libstdc++6`, `libgcc-s1`, `libm` など）は `dh_shlibdeps` が自動付与するため、明示列挙しない。
 * **自前ライブラリの“連鎖”は明示**
-  `libassets.so` は `libconductor.so` にリンクしている → `libhakoniwa-assets1` は **`libhakoniwa-conductor1` に明示依存**。
-  `libhako_asset_python.so` は `libassets.so` と `libconductor.so` の両方に依存 → **両方に明示依存**。
+  * `libassets.so` は `libconductor.so` にリンクしている → `libhakoniwa-assets1` は **`libhakoniwa-conductor1` に明示依存**。
+  * `libhako_asset_python.so` は `libassets.so` と `libconductor.so` の両方に依存 → **両方に明示依存**。
+  * `hakoniwa-core-dev` は開発に必要な全てのランタイムライブラリに依存する。
 * **CLIは最小依存＋推奨**
   `hako-cmd` は標準C/C++のみ（ldd上）。実行時に assets/shakoc を使うプロジェクトが多い想定なので、**Recommends** で案内するに留める。
 
@@ -195,7 +197,7 @@ Debianパッケージの品質保証として、インストール後に最低�
    必要に応じて追加：
 
    ```bash
-   sudo apt install libhakoniwa-assets-dev python3-hakopy
+   sudo apt install hakoniwa-core-dev python3-hakopy
    ```
 
 2. **CLIの動作確認**
