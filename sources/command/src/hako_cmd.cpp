@@ -163,7 +163,20 @@ int main(int argc, const char* argv[])
                 return 1;
             }
 #else
-            write(1, pdu_data, size);
+            {
+                const char* p = static_cast<const char*>(pdu_data);
+                size_t left = static_cast<size_t>(size);
+                while (left > 0) {
+                    ssize_t n = ::write(1, p, left);
+                    if (n < 0) {
+                        if (errno == EINTR) continue;
+                        perror("write");
+                        break;
+                    }
+                    p += static_cast<size_t>(n);
+                    left -= static_cast<size_t>(n);
+                }
+            }
 #endif
             free(pdu_data);
         }

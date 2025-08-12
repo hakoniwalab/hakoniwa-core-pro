@@ -36,7 +36,7 @@ bool hako_conductor_impl_start(hako_time_t delta_usec, hako_time_t max_delay_use
             return false;
         }
         hako_conductor->set_config_simtime(max_delay_usec, delta_usec);
-    } catch (std::exception e) {
+    } catch (std::exception& e) {
         std::cout << "INFO: hako::create_master() Failed: " << e.what() << std::endl;
         return false;
     }
