@@ -8,7 +8,7 @@ export DEB_BUILD_OPTIONS = parallel=$(shell nproc)
 # 例: export ENABLE_HAKO_TIME_MEASURE_FLAG=-DENABLE_HAKO_TIME_MEASURE=ON
 
 %:
-	dh $@ --buildsystem=cmake --with python3
+	dh $@ --buildsystem=cmake --builddirectory=cmake-build --with python3
 
 override_dh_installman:
 	help2man -N -n "Hakoniwa command-line tool" -o debian/hakoniwa-core.1 ./cmake-build/sources/command/hako-cmd
@@ -44,8 +44,8 @@ override_dh_auto_test:
 
 
 # .install に任せる
-override_dh_auto_install:
-	true
+#override_dh_auto_install:
+#	true
 
 override_dh_clean:
 	rm -rf obj-* cmake-build CMakeFiles CMakeCache.txt
