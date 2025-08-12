@@ -233,7 +233,7 @@ sudo apt-get install build-essential devscripts debhelper-compat cmake dh-exec h
 リポジトリのルートディレクトリで以下のコマンドを実行します。
 
 ```sh
-dpkg-buildpackage -us -uc
+debuild -us -uc -b
 ```
 
 ### 3. 成果物

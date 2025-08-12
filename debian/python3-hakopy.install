@@ -1,2 +1,1 @@
-cmake-build/sources/assets/bindings/python/hakopy usr/lib/python3/dist-packages/
-cmake-build/sources/assets/bindings/python/hakopy.so usr/lib/python3/dist-packages/hakopy/
+cmake-build/sources/assets/bindings/python/hakopy.so usr/lib/python3/dist-packages/hakoniwa/
