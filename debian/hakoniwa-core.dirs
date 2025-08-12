@@ -1,0 +1,3 @@
+etc/hakoniwa
+usr/share/hakoniwa/offset
+var/lib/hakoniwa/mmap

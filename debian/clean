@@ -1,0 +1,4 @@
+obj-*
+cmake-build
+CMakeFiles
+CMakeCache.txt

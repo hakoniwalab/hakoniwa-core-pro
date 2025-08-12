@@ -1,0 +1,4 @@
+#!/usr/bin/dh-exec
+usr/lib/${DEB_HOST_MULTIARCH}/libconductor.so.1 usr/lib/${DEB_HOST_MULTIARCH}/libconductor.so
+usr/lib/${DEB_HOST_MULTIARCH}/libassets.so.1    usr/lib/${DEB_HOST_MULTIARCH}/libassets.so
+usr/lib/${DEB_HOST_MULTIARCH}/libshakoc.so.1    usr/lib/${DEB_HOST_MULTIARCH}/libshakoc.so

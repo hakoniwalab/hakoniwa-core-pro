@@ -1,0 +1,53 @@
+Source: hakoniwa-core
+Section: utils
+Priority: optional
+Maintainer: Takashi Mori <tmori@hakoniwa-lab.net>
+Build-Depends: debhelper-compat (= 13), cmake, dh-exec, help2man, help2man, help2man
+Standards-Version: 4.7.0
+Homepage: https://github.com/hakoniwalab/hakoniwa-core-pro
+Rules-Requires-Root: no
+
+# CLI パッケージ（ツール郡）
+Package: hakoniwa-core
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Recommends: libhakoniwa-assets1 | libhakoniwa-shakoc1
+Description: Hakoniwa command-line tools and default data
+ CLI utilities (hako-cmd), default configs and offset data for Hakoniwa.
+
+# ランタイム共有ライブラリ（3つ）
+Package: libhakoniwa-conductor1
+Section: libs
+Architecture: any
+Multi-Arch: same
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Hakoniwa conductor shared library (runtime)
+ Shared library for Hakoniwa conductor.
+
+Package: libhakoniwa-assets1
+Section: libs
+Architecture: any
+Multi-Arch: same
+Depends: ${shlibs:Depends}, ${misc:Depends}, libhakoniwa-conductor1 (= ${binary:Version})
+Description: Hakoniwa assets (callback) shared library (runtime)
+ Assets callback library depending on conductor.
+
+Package: libhakoniwa-shakoc1
+Section: libs
+Architecture: any
+Multi-Arch: same
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Hakoniwa assets (polling) shared library (runtime)
+ Polling-mode assets library.
+
+# 開発用ヘッダ（テキストのみ → all でOK）
+Package: hakoniwa-core-dev
+Section: libdevel
+Architecture: any
+Multi-Arch: same
+Depends: ${misc:Depends},
+         libhakoniwa-conductor1 (= ${binary:Version}),
+         libhakoniwa-assets1 (= ${binary:Version}),
+         libhakoniwa-shakoc1 (= ${binary:Version})
+Description: Development files for Hakoniwa core (headers)
+ Header files for building applications with Hakoniwa core libraries.

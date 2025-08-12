@@ -1,0 +1,55 @@
+#!/usr/bin/make -f
+
+# 並列ビルド数
+export DEB_BUILD_OPTIONS = parallel=$(shell nproc)
+
+# 必要ならここでビルド用の環境変数を固定
+# 例: export ASSET_NUM=8
+# 例: export ENABLE_HAKO_TIME_MEASURE_FLAG=-DENABLE_HAKO_TIME_MEASURE=ON
+
+%:
+	dh $@ --buildsystem=cmake
+
+override_dh_installman:
+	help2man -N -n "Hakoniwa command-line tool" -o debian/hakoniwa-core.1 ./cmake-build/sources/command/hako-cmd
+	dh_installman debian/hakoniwa-core.1
+
+# CMakeの自動configureは使わず、あなたのスクリプトで実行
+override_dh_auto_configure:
+	chmod +x ./build.bash
+	mkdir -p cmake-build
+	ASSET_NUM="$(ASSET_NUM)" ENABLE_HAKO_TIME_MEASURE_FLAG="$(ENABLE_HAKO_TIME_MEASURE_FLAG)" \
+	BUILD_C_FLAGS="-DCMAKE_SKIP_RPATH=ON" \
+		./build.bash
+
+# build もスクリプトに任せる（再ビルド）
+override_dh_auto_build:
+	ASSET_NUM="$(ASSET_NUM)" ENABLE_HAKO_TIME_MEASURE_FLAG="$(ENABLE_HAKO_TIME_MEASURE_FLAG)" \
+		./build.bash
+
+
+# clean はスクリプトの「引数あり＝クリーン」分岐を利用
+override_dh_auto_clean:
+	rm -rf obj-* cmake-build CMakeFiles CMakeCache.txt
+
+	./build.bash clean || true
+	# 念のため
+	rm -rf cmake-build
+
+override_dh_auto_test:
+	# CTestは回さない（プロジェクトでテスト未定義のため）
+	true
+
+
+# .install に任せる
+override_dh_auto_install:
+	true
+
+override_dh_clean:
+	rm -rf obj-* cmake-build CMakeFiles CMakeCache.txt
+	dh_clean
+
+override_dh_installman:
+	help2man -N -n "Hakoniwa command-line tool" \
+	 -o debian/hako-cmd.1 ./cmake-build/sources/command/hako-cmd
+	dh_installman debian/hako-cmd.1

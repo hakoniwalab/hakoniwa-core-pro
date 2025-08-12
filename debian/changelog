@@ -1,0 +1,19 @@
+hakoniwa-core (1.0.0-3) noble; urgency=medium
+
+  * Cleanup: SONAME, manpage, debian/copyright.
+
+ -- HakoniwaLab <tmori@hakoniwa-lab.net>  Tue, 12 Aug 2025 12:21:58 +0900
+
+hakoniwa-core (1.0.0-2) noble; urgency=medium
+
+  * Initial packaging for Noble (cleanup).
+
+ -- HakoniwaLab <tmori@hakoniwa-lab.net>  Tue, 12 Aug 2025 11:27:54 +0900
+
+hakoniwa-core (1.0.0-1) noble; urgency=low
+
+  [ Takashi Mori ]
+  * Initial release. Closes: #nnnn
+    <nnnn is the bug number of your ITP>
+
+ -- HakoniwaLab <tmori@hakoniwa-lab.net>  Tue, 12 Aug 2025 11:20:44 +0900

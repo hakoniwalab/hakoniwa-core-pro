@@ -1,0 +1,9 @@
+#!/bin/sh
+set -e
+case "$1" in
+  configure)
+    install -d -m 755 /var/lib/hakoniwa/mmap
+    install -d -m 755 /etc/hakoniwa
+  ;;
+esac
+exit 0

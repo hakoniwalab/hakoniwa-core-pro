@@ -40,3 +40,29 @@ __pycache__
 # Others
 .DS_Store
 .vscode
+
+# Debian packaging build artifacts
+debian/files
+debian/*.log
+debian/*.debhelper*
+debian/*.substvars
+debian/tmp/
+debian/.debhelper/
+debian/*/
+
+# Backup files
+debian/*.dch
+debian/*~
+debian/*.bak
+debian/*.orig
+
+# Build results (parent directory)
+../*.deb
+../*.udeb
+../*.changes
+../*.buildinfo
+../*.dsc
+../*.tar.*
+
+# Generated files
+debian/control.in
