@@ -35,3 +35,4 @@ target_include_directories(
     PRIVATE ${HAKO_CORE_SOURCE_DIR}/src/hako
     PRIVATE ${nlohmann_json_SOURCE_DIR}/single_include
 )
+install(TARGETS hako-cmd DESTINATION bin)
