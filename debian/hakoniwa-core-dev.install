@@ -1,2 +1,11 @@
+#!/usr/bin/dh-exec
+# Headers
 include/* usr/include/hakoniwa/
 hakoniwa-ros2pdu/pdu/types/* usr/include/hakoniwa/pdu/
+
+# pkg-config file
+cmake-build/hakoniwa-core.pc usr/lib/$(DEB_HOST_MULTIARCH)/pkgconfig/
+
+# CMake files
+cmake-build/hakoniwa-coreConfig.cmake usr/lib/cmake/hakoniwa-core/
+cmake-build/hakoniwa-core-targets.cmake usr/lib/cmake/hakoniwa-core/

@@ -63,3 +63,10 @@ target_include_directories(
     PRIVATE ${nlohmann_json_SOURCE_DIR}/single_include
 )
 set_target_properties(assets PROPERTIES VERSION 1.0.0 SOVERSION 1)
+
+install(TARGETS assets
+  EXPORT hakoniwa-core-targets
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)

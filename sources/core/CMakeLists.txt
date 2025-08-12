@@ -84,3 +84,10 @@ elseif(WIN32)
     target_link_libraries(hako stdc++)
 else()
 endif()
+
+install(TARGETS hako
+  EXPORT hakoniwa-core-targets
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)

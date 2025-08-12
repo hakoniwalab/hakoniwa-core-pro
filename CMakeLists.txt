@@ -47,4 +47,37 @@ if(NOT "${CMAKE_CXX_FLAGS}" MATCHES "-m32")
 add_subdirectory(sources/assets/bindings/python)
 endif()
 
+# For pkg-config support
+include(GNUInstallDirs)
+configure_file(
+  cmake/hakoniwa-core.pc.in
+  ${CMAKE_BINARY_DIR}/hakoniwa-core.pc
+  @ONLY
+)
+install(
+  FILES ${CMAKE_BINARY_DIR}/hakoniwa-core.pc
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
+)
+
+# For find_package support
+include(CMakePackageConfigHelpers)
+
+install(EXPORT hakoniwa-core-targets
+  FILE hakoniwa-core-targets.cmake
+  NAMESPACE hakoniwa-core::
+  DESTINATION lib/cmake/hakoniwa-core
+)
+
+configure_package_config_file(
+  cmake/hakoniwa-coreConfig.cmake.in
+  ${CMAKE_BINARY_DIR}/hakoniwa-coreConfig.cmake
+  INSTALL_DESTINATION lib/cmake/hakoniwa-core
+  PATH_VARS CMAKE_INSTALL_PREFIX
+)
+
+install(
+  FILES ${CMAKE_BINARY_DIR}/hakoniwa-coreConfig.cmake
+  DESTINATION lib/cmake/hakoniwa-core
+)
+
 

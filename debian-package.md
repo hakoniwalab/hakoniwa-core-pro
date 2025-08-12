@@ -50,7 +50,7 @@ Debianのパッケージ名はaptでの識別子。
 * **実行時参照ファイル**：`/usr/share/hakoniwa/`
 * **共有ライブラリ（内部/dlopen専用）**：`/usr/lib/$(DEB_HOST_MULTIARCH)/hakoniwa-core/`
 * **開発用ヘッダ**：`/usr/include/hakoniwa/`
-* **CMake Config / pkg-config**：
+* **CMake Config / pkg-config**：（注：現状は未実装）
   * `/usr/lib/cmake/hakoniwa-core/`
   * `/usr/lib/$(DEB_HOST_MULTIARCH)/pkgconfig/`
 * **CLI**：`/usr/bin/`
@@ -99,7 +99,7 @@ ABI非互換の変更時はSONAMEとランタイムパッケージ名の両方�
 ## 現在の仕様
 
 * **ランタイムパッケージ** (`libhakoniwa-*1`): `.so`本体、設定ファイル、可変データディレクトリ
-* **開発用パッケージ** (`hakoniwa-core-dev`): ヘッダ、`.so`シンボリックリンク、pkg-config/CMakeファイル
+* **開発用パッケージ** (`hakoniwa-core-dev`): ヘッダ、`.so`シンボリックリンク
 * **CLIパッケージ** (`hakoniwa-core`): 実行ファイル
 * **Pythonパッケージ** (`python3-hakopy`): `hakopy`モジュール
 

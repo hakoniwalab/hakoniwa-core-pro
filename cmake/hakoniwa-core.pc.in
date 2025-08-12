@@ -1,0 +1,11 @@
+prefix=@CMAKE_INSTALL_PREFIX@
+libdir=${prefix}/lib
+includedir=${prefix}/include
+
+Name: hakoniwa-core
+Description: Hakoniwa core libraries for robot simulation
+Version: @PROJECT_VERSION@
+
+Requires:
+Libs: -L${libdir} -lhakoniwa-assets -lhakoniwa-conductor -lhakoniwa-shakoc
+Cflags: -I${includedir}

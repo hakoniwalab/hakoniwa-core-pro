@@ -89,3 +89,10 @@ target_include_directories(
 )
 
 set_target_properties(shakoc PROPERTIES VERSION 1.0.0 SOVERSION 1)
+
+install(TARGETS shakoc
+  EXPORT hakoniwa-core-targets
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)

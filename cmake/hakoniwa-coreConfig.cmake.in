@@ -1,0 +1,7 @@
+# CMake package configuration file for hakoniwa-core
+
+@PACKAGE_INIT@
+
+# Include the targets file
+include("${CMAKE_CURRENT_LIST_DIR}/hakoniwa-core-targets.cmake")
+
