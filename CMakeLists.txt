@@ -16,8 +16,10 @@ set(HAKO_INC_DIR "${PROJECT_SOURCE_DIR}/include")
 set(HAKO_CORE_PRO_SOURCE_DIR "${PROJECT_SOURCE_DIR}/sources")
 
 if (DEFINED HAKO_CLIENT_OPTION_FILEPATH)
+    MESSAGE(STATUS "Using custom CMake options from ${HAKO_CLIENT_OPTION_FILEPATH}")
     include(${HAKO_CLIENT_OPTION_FILEPATH})
 else()
+    MESSAGE(STATUS "Using default CMake options")
     include(cmake-options/default-cmake-options.cmake)
 endif()
 

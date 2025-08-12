@@ -19,7 +19,7 @@ override_dh_auto_configure:
 	chmod +x ./build.bash
 	mkdir -p cmake-build
 	ASSET_NUM="$(ASSET_NUM)" ENABLE_HAKO_TIME_MEASURE_FLAG="$(ENABLE_HAKO_TIME_MEASURE_FLAG)" \
-	BUILD_C_FLAGS="-DHAKO_CLIENT_OPTION_FILEPATH=../cmake-options/default-cmake-options.cmake -DCMAKE_SKIP_RPATH=ON" \
+	BUILD_C_FLAGS="-DHAKO_CLIENT_OPTION_FILEPATH=./cmake-options/default-cmake-options.cmake -DCMAKE_SKIP_RPATH=ON" \
 		./build.bash
 
 # build もスクリプトに任せる（再ビルド）
