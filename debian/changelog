@@ -12,8 +12,6 @@ hakoniwa-core (1.0.0-2) noble; urgency=medium
 
 hakoniwa-core (1.0.0-1) noble; urgency=low
 
-  [ Takashi Mori ]
-  * Initial release. Closes: #nnnn
-    <nnnn is the bug number of your ITP>
+  * Initial release
 
  -- HakoniwaLab <tmori@hakoniwa-lab.net>  Tue, 12 Aug 2025 11:20:44 +0900
