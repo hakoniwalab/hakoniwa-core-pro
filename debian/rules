@@ -55,3 +55,6 @@ override_dh_installman:
 	help2man -N -n "Hakoniwa command-line tool" \
 	 -o debian/hako-cmd.1 ./cmake-build/sources/command/hako-cmd
 	dh_installman debian/hako-cmd.1
+
+# strip しない
+override_dh_strip:
