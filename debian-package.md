@@ -2,13 +2,14 @@
 
 仕様項目：
 
-- [パッケージ名](#パッケージ名)
-- [配置場所](#配置場所)
-- [バージョン番号](#バージョン番号)
-- [インストール対象ファイル](#インストール対象ファイル)
-- [依存関係](#依存関係)
+- [パッケージ名](#package-name)
+- [配置場所](#package-location)
+- [バージョン番号](#version-number)
+- [インストール対象ファイル](#install-target-files)
+- [依存関係](#dependencies)
+- [テスト](#test)
 
-# パッケージ名
+# package-name
 
 ## 現在の仕様
 
@@ -38,11 +39,12 @@ Debianのパッケージ名はaptでの識別子。
 
 ---
 
-# 配置場所
+# package-location
 
 ## 現在の仕様
 
 * **共有ライブラリ（公開API）**：`/usr/lib/$(DEB_HOST_MULTIARCH)/`
+* **実行時参照ファイル**：`/usr/share/hakoniwa/`
 * **共有ライブラリ（内部/dlopen専用）**：`/usr/lib/$(DEB_HOST_MULTIARCH)/hakoniwa-core/`
 * **開発用ヘッダ**：`/usr/include/hakoniwa/`
 * **CMake Config / pkg-config**：
@@ -66,7 +68,7 @@ Debianパッケージ品質の要はファイル配置にある。
 
 ---
 
-# バージョン番号
+# version-number
 
 ## 現在の仕様
 
@@ -89,7 +91,7 @@ ABI非互換の変更時はSONAMEとランタイムパッケージ名の両方�
 
 ---
 
-# インストール対象ファイル
+# install-target-files
 
 ## 現在の仕様
 
@@ -110,7 +112,7 @@ Pythonモジュールは`python3-*`パッケージとして提供し、OSのPyth
 
 ---
 
-# 依存関係
+# dependencies
 
 ## 現在の仕様
 
@@ -162,3 +164,9 @@ Pythonモジュールは`python3-*`パッケージとして提供し、OSのPyth
 >
 > * ビルド成果物に **RPATH（ビルドツリーの絶対パス）が残らない**ようにする（`readelf -d` / `chrpath -l` で確認）。
 > * これにより、`ldd` にローカルパス（`/home/.../cmake-build/...`）が出る事象を防止。
+
+> **注意**: Python ABI 非互換（例: 3.12 ビルド済を 3.13 で実行など）の場合、実行時エラー（SIGSEGV）が発生します。  
+> Debianパッケージはビルド時のPython ABIに一致するよう `${python3:Depends}` により制約します。
+
+# test
+（将来追記予定）
