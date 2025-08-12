@@ -1,3 +1,3 @@
-cmake-build/sources/command/hako-cmd usr/bin/
-hakoniwa-core-cpp/cpp_core_config.json etc/hakoniwa/
-hakoniwa-ros2pdu/pdu/offset/* usr/share/hakoniwa/offset/
+usr/bin/hako-cmd
+etc/hakoniwa/cpp_core_config.json
+usr/share/hakoniwa/offset

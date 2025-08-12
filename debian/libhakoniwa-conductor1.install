@@ -1,2 +1,1 @@
-#!/usr/bin/dh-exec
-cmake-build/sources/conductor/libconductor.so.1* usr/lib/${DEB_HOST_MULTIARCH}/
+usr/lib/*/libconductor.so.*
