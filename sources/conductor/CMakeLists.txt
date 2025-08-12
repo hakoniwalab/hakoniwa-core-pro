@@ -39,3 +39,4 @@ target_include_directories(
     PRIVATE ${HAKO_CORE_SOURCE_DIR}/src/hako
     PRIVATE ${nlohmann_json_SOURCE_DIR}/single_include
 )
+set_target_properties(conductor PROPERTIES VERSION 1.0.0 SOVERSION 1)

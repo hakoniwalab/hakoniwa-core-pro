@@ -88,3 +88,4 @@ target_include_directories(
     PRIVATE ${HAKO_CORE_PRO_SOURCE_DIR}/core/src/service
 )
 
+set_target_properties(shakoc PROPERTIES VERSION 1.0.0 SOVERSION 1)
