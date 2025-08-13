@@ -69,7 +69,7 @@ then
     ${SUDO} cp ./cmake-build/sources/assets/callback/libassets.* ${INSTALL_DIR}/lib/hakoniwa/
     ${SUDO} cp ./cmake-build/sources/conductor/libconductor.* ${INSTALL_DIR}/lib/hakoniwa/
     ${SUDO} cp ./cmake-build/sources/assets/polling/libshakoc.* ${INSTALL_DIR}/lib/hakoniwa/
-    ${SUDO} cp ./cmake-build/sources/assets/bindings/python/libhako_asset_python.* ${INSTALL_DIR}/lib/hakoniwa/py/hakopy.so
+    ${SUDO} cp ./cmake-build/sources/assets/bindings/python/libhakopy.dylib ${INSTALL_DIR}/lib/hakoniwa/py/hakopy.so
 	${SUDO} cp ./cmake-build/sources/assets/polling/libshakoc.dylib ${INSTALL_DIR}/lib/hakoniwa/hakoc.so
     ${SUDO} cp ./cmake-build/sources/command/hako-cmd ${INSTALL_DIR}/bin/hakoniwa/
 elif [ "$OS" = "Linux"  ]
@@ -77,14 +77,14 @@ then
     ${SUDO} cp ./cmake-build/sources/assets/callback/libassets.* ${INSTALL_DIR}/lib/hakoniwa/
     ${SUDO} cp ./cmake-build/sources/conductor/libconductor.* ${INSTALL_DIR}/lib/hakoniwa/
     ${SUDO} cp ./cmake-build/sources/assets/polling/libshakoc.* ${INSTALL_DIR}/lib/hakoniwa/
-    ${SUDO} cp ./cmake-build/sources/assets/bindings/python/libhako_asset_python.* ${INSTALL_DIR}/lib/hakoniwa/py/hakopy.so
+    ${SUDO} cp ./cmake-build/sources/assets/bindings/python/libhakopy.so ${INSTALL_DIR}/lib/hakoniwa/py/hakopy.so
 	${SUDO} cp ./cmake-build/sources/assets/polling/libshakoc.so ${INSTALL_DIR}/lib/hakoniwa/hakoc.so
     ${SUDO} cp ./cmake-build/sources/command/hako-cmd ${INSTALL_DIR}/bin/hakoniwa/
 else
     ${SUDO} cp ./cmake-build/sources/assets/callback/assets.* ${INSTALL_DIR}/lib/hakoniwa/
     ${SUDO} cp ./cmake-build/sources/conductor/conductor.* ${INSTALL_DIR}/lib/hakoniwa/
     ${SUDO} cp ./cmake-build/sources/assets/polling/shakoc.* ${INSTALL_DIR}/lib/hakoniwa/
-    ${SUDO} cp ./cmake-build/sources/assets/bindings/python/hako_asset_python.* ${INSTALL_DIR}/lib/hakoniwa/py/hakopy.pyd
+    ${SUDO} cp ./cmake-build/sources/assets/bindings/python/hakopy.dll ${INSTALL_DIR}/lib/hakoniwa/py/hakopy.pyd
 	${SUDO} cp ./cmake-build/sources/assets/polling/shakoc.so ${INSTALL_DIR}/lib/hakoniwa/hakoc.so
     ${SUDO} cp ./cmake-build/sources/command/hako-cmd.exe ${INSTALL_DIR}/bin/hakoniwa/
 fi
