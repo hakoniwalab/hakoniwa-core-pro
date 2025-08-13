@@ -5,4 +5,5 @@ debian/python-files/hakopy.py usr/lib/python3/dist-packages/
 debian/python-files/__init__.py usr/lib/python3/dist-packages/hakoniwa/
 
 # C拡張モジュールをhakoniwaパッケージ内にインストール
-usr/lib/hakoniwa-core/libhakopy.so usr/lib/python3/dist-packages/hakoniwa/hakopy.so
+debian/tmp/usr/lib/python3/dist-packages/hakoniwa/hakopy*.so  usr/lib/python3/dist-packages/hakoniwa/
+

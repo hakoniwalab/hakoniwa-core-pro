@@ -87,9 +87,12 @@ target_link_libraries(
 )
 
 # 出力されるファイル名をlibhako_asset_python.soからhakopy.soに変更
-set_target_properties(hako_asset_python PROPERTIES OUTPUT_NAME "hakopy")
+set_target_properties(hako_asset_python PROPERTIES
+    PREFIX ""  # lib 前置きを消す
+    OUTPUT_NAME "hakopy"
+)
 
 # ライブラリをインストールする設定
 install(TARGETS hako_asset_python
-    LIBRARY DESTINATION lib/hakoniwa-core
+    LIBRARY DESTINATION lib/python3/dist-packages/hakoniwa
 )
