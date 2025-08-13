@@ -55,3 +55,10 @@ override_dh_installman:
 
 # strip しない
 override_dh_strip:
+
+override_dh_missing:
+	dh_missing --list-missing
+
+# debian/rules
+override_dh_shlibdeps:
+	dh_shlibdeps --dpkg-shlibdeps-params=--warnings=0

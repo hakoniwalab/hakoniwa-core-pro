@@ -20,9 +20,9 @@
   * `python3-hakopy`
 * **開発用**
   * `hakoniwa-core-dev`
-* **CLIツール**
+* **基盤**
   * `hakoniwa-core`
-* **メタパッケージ（任意）**
+* **メタパッケージ**
   * `hakoniwa-core-full`
 
 ## 仕様定義の理由
@@ -98,10 +98,14 @@ ABI非互換の変更時はSONAMEとランタイムパッケージ名の両方�
 
 ## 現在の仕様
 
-* **ランタイムパッケージ** (`libhakoniwa-*1`): `.so`本体、設定ファイル、可変データディレクトリ
-* **開発用パッケージ** (`hakoniwa-core-dev`): ヘッダ、`.so`シンボリックリンク
-* **CLIパッケージ** (`hakoniwa-core`): 実行ファイル
-* **Pythonパッケージ** (`python3-hakopy`): `hakopy`モジュール
+* **ランタイムパッケージ** (`libhakoniwa-*1`): `.so`本体（公開APIのみ）
+* **開発用パッケージ** (`hakoniwa-core-dev`): ヘッダ、`.so` 開発リンク、pkgconfig/cmake
+* **基盤パッケージ** (`hakoniwa-core`): 
+  * 実行ファイル（**/usr/bin/hako-cmd** 等）
+  * 実行時参照データ（**/usr/share/hakoniwa/**）
+  * 設定（**/etc/hakoniwa/**、あれば）
+  * 可変データ用ディレクトリ（**/var/lib/hakoniwa/**）
+* **Pythonパッケージ** (`python3-hakopy`):  **/usr/lib/python3/dist-packages/hakoniwa/**（C拡張含む）
 
 ## 仕様定義の理由
 
@@ -133,7 +137,7 @@ Pythonモジュールは`python3-*`パッケージとして提供し、OSのPyth
 * `hakoniwa-core-dev`
   * Depends: `${misc:Depends}, libhakoniwa-conductor1 (= ${binary:Version}), libhakoniwa-assets1 (= ${binary:Version}), libhakoniwa-shakoc1 (= ${binary:Version})`
 
-* `hakoniwa-core`（CLI）
+* `hakoniwa-core`（基盤）
   * Depends: `${shlibs:Depends}, ${misc:Depends}`
   * Recommends: `libhakoniwa-assets1 | libhakoniwa-shakoc1`
 
@@ -176,51 +180,101 @@ Pythonモジュールは`python3-*`パッケージとして提供し、OSのPyth
 
 ## 現在の仕様
 
-未定義（将来追記予定）
+ローカルビルドした `.deb` を用いたインストール／動作確認／アンインストールの手順を定義する。
 
 ## 仕様定義の理由
 
-Debianパッケージの品質保証として、インストール後に最低限の動作確認を行える手順を用意する。
-これにより、配布後のトラブル（依存不足・ファイル欠落・バージョン不一致）を早期に発見できる。
+Debianパッケージの品質保証として、インストール後に最低限の動作確認を行うことで、配布後のトラブル（依存不足・ファイル欠落・バージョン不一致）を早期に発見できる。
+また、アンインストールテストも行い、不要ファイルの残留やディレクトリ削除の挙動を確認する。
 
 ## 説明
 
 テストは以下の流れで行う。
 
-1. **クリーン環境にパッケージをインストール**
+---
 
-   ```bash
-   sudo apt update
-   sudo apt install hakoniwa-core
-   ```
+### 1. クリーン環境にパッケージをインストール
 
-   必要に応じて追加：
+ローカル `.deb` を直接インストールする場合：
 
-   ```bash
-   sudo apt install hakoniwa-core-dev python3-hakopy
-   ```
+```bash
+sudo apt install -y \
+  ./libhakoniwa-conductor1_*.deb \
+  ./libhakoniwa-assets1_*.deb \
+  ./libhakoniwa-shakoc1_*.deb \
+  ./python3-hakopy_*.deb \
+  ./hakoniwa-core-dev_*.deb \
+  ./hakoniwa-core_*.deb \
+  ./hakoniwa-core-full_*.deb
+```
 
-2. **CLIの動作確認**
+> `hakoniwa-core-full` はメタパッケージのため、依存一式を同時にインストールする必要がある。
 
-   ```bash
-   hako-cmd --version
-   ```
+---
 
-   → ビルドバージョンが表示されることを確認
+### 2. インストール確認
 
-3. **ライブラリリンク確認**
+```bash
+# インストール済みパッケージ一覧
+apt list --installed | grep -E 'hakoniwa|libhakoniwa'
 
-   ```bash
-   ldd /usr/bin/hako-cmd
-   ```
+# メタパッケージの依存確認
+apt-cache depends hakoniwa-core-full
 
-   → 依存 `.so` がすべて `/usr/lib/$(dpkg-architecture -qDEB_HOST_MULTIARCH)/` 内に解決されていること
+# 詳細情報
+apt show hakoniwa-core-full
+```
 
-4. **Pythonモジュール動作確認（任意）**
+---
 
-   ```bash
-   python3 -c "import hakopy; print(hakopy.__version__)"
-   ```
+### 3. CLIの動作確認
 
-   → Pythonビルドバージョンと一致することを確認
+```bash
+hako-cmd --version
+```
 
+→ ビルドバージョンが表示されることを確認。
+
+---
+
+### 4. ライブラリリンク確認
+
+```bash
+ldd /usr/bin/hako-cmd
+```
+
+→ 依存 `.so` がすべて `/usr/lib/$(dpkg-architecture -qDEB_HOST_MULTIARCH)/` 内に解決されていることを確認。
+
+---
+
+### 5. Pythonモジュール動作確認（任意）
+
+```bash
+python3 -c "import hakopy; print(hakopy.__version__)"
+```
+
+→ Pythonビルドバージョンと一致することを確認。
+
+---
+
+### 6. アンインストールテスト
+
+#### メタパッケージだけ削除（依存は残す）
+
+```bash
+sudo apt remove hakoniwa-core-full
+```
+
+#### 依存も含めて全削除
+
+```bash
+sudo apt purge hakoniwa-core hakoniwa-core-dev \
+  libhakoniwa-conductor1 libhakoniwa-assets1 libhakoniwa-shakoc1 \
+  python3-hakopy
+sudo apt autoremove
+```
+
+> `/var/lib/hakoniwa/mmap` など可変データが残る場合は手動で削除する。
+> 完全自動化する場合は `postrm` スクリプトで対応可能。
+
+---

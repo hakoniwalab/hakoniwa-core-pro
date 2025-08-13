@@ -7,7 +7,7 @@ Standards-Version: 4.7.0
 Homepage: https://github.com/hakoniwalab/hakoniwa-core-pro
 Rules-Requires-Root: no
 
-# CLI パッケージ（ツール郡）
+# 基盤パッケージ（実行時に必要なファイルや、ツール郡）
 Package: hakoniwa-core
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
@@ -61,3 +61,16 @@ Depends: ${python3:Depends}, ${shlibs:Depends}, ${misc:Depends}, libhakoniwa-ass
 Description: Python bindings for Hakoniwa core
  This package provides the hakopy module for interacting with Hakoniwa
  from Python.
+
+Package: hakoniwa-core-full
+Architecture: all
+Depends: ${misc:Depends},
+         hakoniwa-core,
+         libhakoniwa-conductor1 (= ${binary:Version}),
+         libhakoniwa-assets1 (= ${binary:Version}),
+         libhakoniwa-shakoc1 (= ${binary:Version}),
+         python3-hakopy,
+         hakoniwa-core-dev
+Description: Meta package: full Hakoniwa core (tools, libs, python, headers)
+ Installs the full Hakoniwa toolchain: CLI tools, runtime libs, Python bindings,
+ and development headers.
