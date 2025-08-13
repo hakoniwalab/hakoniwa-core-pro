@@ -72,6 +72,7 @@ target_include_directories(
     hako
     PRIVATE /usr/local/include
     PRIVATE /mingw64/include
+    PRIVATE ${HAKO_INC_DIR}
     PRIVATE ${HAKO_CORE_SOURCE_DIR}/src/include
     PRIVATE ${HAKO_CORE_SOURCE_DIR}/src//hako
     PRIVATE ${HAKO_PDU_SOURCE_DIR}
