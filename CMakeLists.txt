@@ -80,6 +80,15 @@ install(
   DESTINATION lib/cmake/hakoniwa-core
 )
 
+# Install hakonwia core header files
+file(GLOB HAKO_ROOT_HEADERS
+    "${PROJECT_SOURCE_DIR}/include/*.h*"
+)
+install(
+  FILES ${HAKO_ROOT_HEADERS}
+  DESTINATION include/hakoniwa
+)
+
 # Install PDU header files
 install(
     DIRECTORY ${PROJECT_SOURCE_DIR}/hakoniwa-ros2pdu/pdu/types/
