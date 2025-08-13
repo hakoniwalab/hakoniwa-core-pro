@@ -89,7 +89,7 @@ install(
 # Install core config file
 install(
     FILES ${PROJECT_SOURCE_DIR}/hakoniwa-core-cpp/cpp_core_config.json
-    DESTINATION etc/hakoniwa
+    DESTINATION /etc/hakoniwa
 )
 
 # Install PDU offset files
