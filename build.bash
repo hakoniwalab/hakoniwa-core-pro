@@ -26,7 +26,7 @@ then
     cd cmake-build
     if [ ${OS_TYPE} = "posix" ]
     then
-        cmake .. $ENABLE_HAKO_TIME_MEASURE_FLAG -DHAKO_DATA_MAX_ASSET_NUM=${ASSET_NUM} $BUILD_C_FLAGS
+        cmake .. -DCMAKE_INSTALL_PREFIX=/usr $ENABLE_HAKO_TIME_MEASURE_FLAG -DHAKO_DATA_MAX_ASSET_NUM=${ASSET_NUM} $BUILD_C_FLAGS
         make
     else
         cmake ..
