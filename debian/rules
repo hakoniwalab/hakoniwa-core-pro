@@ -10,9 +10,7 @@ export DEB_BUILD_OPTIONS = parallel=$(shell nproc)
 %:
 	dh $@ --buildsystem=cmake --builddirectory=cmake-build --with python3
 
-override_dh_installman:
-	help2man -N -n "Hakoniwa command-line tool" -o debian/hakoniwa-core.1 ./cmake-build/sources/command/hako-cmd
-	dh_installman debian/hakoniwa-core.1
+
 
 # CMakeの自動configureは使わず、あなたのスクリプトで実行
 override_dh_auto_configure:
