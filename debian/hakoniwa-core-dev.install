@@ -4,3 +4,4 @@ usr/lib/*/pkgconfig
 usr/lib/*/libassets.so
 usr/lib/*/libconductor.so
 usr/lib/*/libshakoc.so
+usr/lib/*/libhako.a
