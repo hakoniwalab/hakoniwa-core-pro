@@ -1,5 +1,7 @@
 # Define build options
 add_definitions(-DNOUSE_HAKO_MSTER)
+add_compile_definitions(HAKO_CORE_EXTENSION=TRUE)
+add_compile_definitions(FIX_PDU_CREATE_TIMING=TRUE)
 
 # Compiler settings
 if(MSVC)

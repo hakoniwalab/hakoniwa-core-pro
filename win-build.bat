@@ -25,7 +25,7 @@ if not exist cmake-build (
 
 rem Change to build directory and run cmake and build
 cd cmake-build
-cmake .. -C ../cmake-options/win-cmake-options.cmake -DHAKO_DATA_MAX_ASSET_NUM=%ASSET_NUM%
-cmake --build . --target ALL_BUILD --config Release
+cmake .. -G "Visual Studio 17 2022" -A x64 -DHAKO_CLIENT_OPTION_FILEPATH="cmake-options\win-cmake-options.cmake" -DHAKO_DATA_MAX_ASSET_NUM=%ASSET_NUM%
+cmake --build . --config Release
 
 endlocal
