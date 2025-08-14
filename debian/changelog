@@ -1,3 +1,9 @@
+hakoniwa-core (1.0.0-5) noble; urgency=medium
+
+  * Rebuild: hakoniwa-core-cpp bug fixed
+
+ -- Takashi Mori <tmori@hakoniwa-lab.net>  Thu, 14 Aug 2025 10:33:40 +0900
+
 hakoniwa-core (1.0.0-4) noble; urgency=medium
 
   [ Takashi Mori ]

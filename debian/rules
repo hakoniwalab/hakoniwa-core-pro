@@ -66,9 +66,8 @@ override_dh_shlibdeps:
 # 例: debian/rules
 export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 
-# ここで好きな出力先を決める（リポジトリ直下の dist/ など）
 OUT := $(CURDIR)/dist
-
 override_dh_builddeb:
 	mkdir -p $(OUT)
 	dh_builddeb --destdir=$(OUT)
+	ln -sf $(OUT)/*.deb ..
