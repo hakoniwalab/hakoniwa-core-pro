@@ -4,7 +4,6 @@
 #include <iostream>
 #include <vector>
 #include <stdexcept>
-#include <sys/stat.h>
 #include <nlohmann/json.hpp>
 #include "utils/hako_config_loader.hpp"
 
@@ -28,11 +27,6 @@ void hako::command::HakoMetaDumper::parse()
     char buf[4096];
     snprintf(buf, sizeof(buf), "%s/mmap-0x%x.bin", core_mmap_path.c_str(), HAKO_SHARED_MEMORY_ID_0);
     std::string filepath(buf);
-
-    struct stat stat_buf;
-    if (stat(filepath.c_str(), &stat_buf) != 0) {
-        throw std::runtime_error("File not found: " + filepath);
-    }
 
     std::ifstream file(filepath, std::ios::binary | std::ios::ate);
     if (!file.is_open()) {
