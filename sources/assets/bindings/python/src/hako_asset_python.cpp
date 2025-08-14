@@ -702,7 +702,6 @@ static PyObject* py_hako_asset_service_client_call_request(PyObject*, PyObject* 
         return NULL;
     }
 
-    // handleの構築
     PyObject* py_service_id = PyDict_GetItemString(dict, "service_id");
     PyObject* py_client_id = PyDict_GetItemString(dict, "client_id");
     if (!py_service_id || !py_client_id) {
@@ -714,7 +713,6 @@ static PyObject* py_hako_asset_service_client_call_request(PyObject*, PyObject* 
     handle.service_id = (int)PyLong_AsLong(py_service_id);
     handle.client_id = (int)PyLong_AsLong(py_client_id);
 
-    // パケット取得
     char* packet = PyByteArray_AsString(py_packet);
     Py_ssize_t packet_len = PyByteArray_Size(py_packet);
     if (packet == NULL || packet_len <= 0) {

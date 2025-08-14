@@ -9,7 +9,7 @@ add_compile_definitions(HAKO_CORE_EXTENSION=TRUE)
 add_compile_definitions(FIX_PDU_CREATE_TIMING=TRUE)
 
 if (MSVC)
-add_compile_options(/wd4061 /wd4819 /wd4710 /wd4711)
+add_compile_options(/wd4061 /wd4819 /wd4710 /wd4711 /wd4866 /wd4003 /wd5267)
 add_compile_options(/wd4477 /wd4244 /wd4245)
 add_compile_options(/wd4820 /wd4365)
 add_compile_options(/wd4267)

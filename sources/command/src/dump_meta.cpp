@@ -135,7 +135,7 @@ std::string hako::command::HakoMetaDumper::dump_json() {
         });
     }
     root["master_data"]["pdu_meta_data"]["channel_map"] = channel_maps;
-    // is_dirty, is_rbusy, is_rbusy_for_external, is_wbusy の出力
+
     json flags_json;
     for (int i = 0; i < meta.channel_num; i++) {
         flags_json["is_dirty"].push_back(m.pdu_meta_data.is_dirty[i]);
@@ -173,6 +173,6 @@ std::string hako::command::HakoMetaDumper::dump_json() {
     version_json["pdu_write_version"] = write_version_json;
     
     root["master_data"]["pdu_meta_data"]["version"] = version_json;
-    return root.dump(2);  // インデント2で整形出力
+    return root.dump(2);
 }
 
