@@ -92,7 +92,24 @@ set_target_properties(hako_asset_python PROPERTIES
     OUTPUT_NAME "hakopy"
 )
 
+# Pythonがインポートできるよう、プラットフォーム毎に拡張子を修正
+# - Windows: .pyd
+# - macOS: .so
+# - Linux: .so (デフォルト)
+if(WIN32)
+    set_target_properties(hako_asset_python PROPERTIES SUFFIX ".pyd")
+elseif(APPLE)
+    set_target_properties(hako_asset_python PROPERTIES SUFFIX ".so")
+endif()
+
+# macOS用のrpath設定: hakopy.soが依存するdylibを見つけられるようにする
+if(APPLE)
+    set_target_properties(hako_asset_python PROPERTIES
+        INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib"
+    )
+endif()
+
 # ライブラリをインストールする設定
 install(TARGETS hako_asset_python
-    LIBRARY DESTINATION lib/python3/dist-packages/hakoniwa
+    LIBRARY DESTINATION ${Python_SITELIB}
 )

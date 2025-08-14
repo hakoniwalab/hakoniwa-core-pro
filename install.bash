@@ -3,7 +3,7 @@
 
 set -e
 BUILD_DIR="cmake-build"
-INSTALL_PREFIX="/usr/local"  # Default installation prefix
+INSTALL_PREFIX="/usr/local/hakoniwa"  # Default installation prefix
 ASSET_NUM=4  # Default asset number
 
 echo "Starting Hakoniwa build..."
