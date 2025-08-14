@@ -2,8 +2,11 @@
 set -e
 case "$1" in
   configure)
-    install -d -m 755 /var/lib/hakoniwa/mmap
-    install -d -m 755 /etc/hakoniwa
+    addgroup --system hakoniwa >/dev/null 2>&1 || true
+
+    # ディレクトリ作成と権限（setgid で中のファイルのGID固定）
+    install -d -o root -g hakoniwa -m 2775 /var/lib/hakoniwa
+    install -d -o root -g hakoniwa -m 2770 /var/lib/hakoniwa/mmap
   ;;
 esac
 exit 0

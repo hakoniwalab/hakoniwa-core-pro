@@ -1,0 +1,14 @@
+#!/bin/sh
+set -e
+case "$1" in
+  purge)
+    # /var/lib/hakoniwa 配下を全削除（サブマウントやシンボリックリンクは跨がない）
+    if [ -d /var/lib/hakoniwa ]; then
+      find /var/lib/hakoniwa -xdev -mindepth 1 -exec rm -rf -- {} + || true
+      rmdir /var/lib/hakoniwa 2>/dev/null || rm -rf /var/lib/hakoniwa
+    fi
+    ;;
+esac
+
+#DEBHELPER#
+exit 0

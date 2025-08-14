@@ -10,7 +10,7 @@ Rules-Requires-Root: no
 # 基盤パッケージ（実行時に必要なファイルや、ツール郡）
 Package: hakoniwa-core
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}, adduser
 Recommends: libhakoniwa-assets1 | libhakoniwa-shakoc1
 Description: Hakoniwa command-line tools and default data
  CLI utilities (hako-cmd), default configs and offset data for Hakoniwa.
@@ -65,12 +65,12 @@ Description: Python bindings for Hakoniwa core
 Package: hakoniwa-core-full
 Architecture: all
 Depends: ${misc:Depends},
-         hakoniwa-core,
+         hakoniwa-core (= ${binary:Version}),
          libhakoniwa-conductor1 (= ${binary:Version}),
          libhakoniwa-assets1 (= ${binary:Version}),
          libhakoniwa-shakoc1 (= ${binary:Version}),
-         python3-hakopy,
-         hakoniwa-core-dev
+         python3-hakopy (= ${binary:Version}),
+         hakoniwa-core-dev (= ${binary:Version})
 Description: Meta package: full Hakoniwa core (tools, libs, python, headers)
  Installs the full Hakoniwa toolchain: CLI tools, runtime libs, Python bindings,
  and development headers.
