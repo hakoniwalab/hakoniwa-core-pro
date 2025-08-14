@@ -1,39 +1,59 @@
-# Define build options
-add_definitions(-DNOUSE_HAKO_MSTER)
+set(CMAKE_C_FLAGS "-std=gnu99")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall")
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
+
 add_compile_definitions(HAKO_CORE_EXTENSION=TRUE)
 add_compile_definitions(FIX_PDU_CREATE_TIMING=TRUE)
 
-# Compiler settings
-if(MSVC)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /W3")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W3 /EHsc")
-    add_compile_options(/wd4710 /wd4711) # Suppress warnings C4710 and C4711
+if (MSVC)
+add_compile_options(/wd4061 /wd4819 /wd4710 /wd4711)
+add_compile_options(/wd4477 /wd4244 /wd4245)
+add_compile_options(/wd4820 /wd4365)
+add_compile_options(/wd4267)
+add_compile_options(/wd4623 /wd4625 /wd4626 /wd5027 /wd5045) #nlohmann::json
+add_compile_options(/wd4668)
+add_compile_options(/wd4996)
+add_compile_options(/wd5039)
 else()
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99 -Wall -Wunknown-pragmas -Wmissing-prototypes -Wtrigraphs -Wimplicit-int")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wno-long-long -pedantic -fPIC")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wimplicit-int")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wtrigraphs")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wunknown-pragmas")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pedantic")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wextra")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-long-long")
 endif()
 
-# C++ standard
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Platform-specific settings
-if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+set(BUILD_TYPE "release")
+if (debug)
+    set(BUILD_TYPE "debug")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0")
+else()
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2")
+endif()
+
+if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     add_compile_definitions(MACOSX TRUE)
-elseif(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+elseif(WIN32)
+else()
     set(CMAKE_THREAD_LIBS_INIT "-lpthread")
     set(CMAKE_HAVE_THREADS_LIBRARY 1)
     set(CMAKE_USE_WIN32_THREADS_INIT 0)
     set(CMAKE_USE_PTHREADS_INIT 1)
     set(THREADS_PREFER_PTHREAD_FLAG ON)
+    add_definitions(-fPIC)
 endif()
 
-# Coverage settings
-if(gcov AND NOT MSVC)
+set(GCOV "disabled")
+if (gcov)
     set(GCOV "enabled")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --coverage")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --coverage")
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} --coverage")
-else()
-    set(GCOV "disabled")
 endif()

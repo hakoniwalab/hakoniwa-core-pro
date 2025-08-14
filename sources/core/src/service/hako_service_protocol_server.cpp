@@ -161,7 +161,7 @@ bool hako::service::HakoServiceServerProtocol::set_response_header(HakoCpp_Servi
     header.service_name = server_->get_service_name();
     header.client_name = server_->get_client_name(server_->get_current_client_id());
     header.status = status;
-    header.processing_percentage = percentage_;
+    header.processing_percentage = (Hako_uint8)percentage_;
     header.result_code = result_code;
     //debug
     //std::cout << "INFO: set_response_header() request_id=" << header.request_id << std::endl;

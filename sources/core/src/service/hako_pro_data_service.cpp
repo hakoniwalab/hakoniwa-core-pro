@@ -122,7 +122,7 @@ int hako::data::pro::HakoProData::get_service_id(const std::string& service_name
          }
      } catch (const std::exception& e) {
          std::cerr << "Error: Failed to parse service config JSON: " << e.what() << std::endl;
-         return -1;
+         return false;
      }
      ifs.close();
      
