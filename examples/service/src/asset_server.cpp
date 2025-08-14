@@ -67,7 +67,7 @@ static void cancel_1_test_case()
         res.sum = req.a + req.b;
         std::cout << "IN: a=" << req.a << " b=" << req.b << std::endl;
         hako_sleep();
-        int ret = service_server.poll();
+        ret = service_server.poll();
         std::cout << "INFO: APL EVENT: " << ret << std::endl;
         if (service_server.is_request_cancel(ret)) {
             printf("WARNING: APL cancel request is happened.\n");
@@ -97,7 +97,7 @@ static void cancel_2_test_case()
         hako_sleep();
         std::cout << "OUT: sum=" << res.sum << std::endl;
         (void)service_server.normal_reply(res);
-        int ret = service_server.poll();
+        ret = service_server.poll();
         std::cout << "INFO: APL EVENT: " << ret << std::endl;
     }
 }
