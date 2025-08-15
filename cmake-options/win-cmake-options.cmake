@@ -1,3 +1,7 @@
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+add_compile_options(/std:c++20 /Zc:__cplusplus)
+
 set(CMAKE_C_FLAGS "-std=gnu99")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall")
 
