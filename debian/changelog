@@ -1,3 +1,15 @@
+hakoniwa-core (1.1.0-1) noble; urgency=medium
+
+  * New upstream release 1.1.0
+
+ -- Takashi Mori <tmori@hakoniwa-lab.net>  Sat, 16 Aug 2025 04:58:24 +0900
+
+hakoniwa-core (1.0.0-6) noble; urgency=medium
+
+  * python install path is changed
+
+ -- Takashi Mori <tmori@hakoniwa-lab.net>  Fri, 15 Aug 2025 09:39:20 +0900
+
 hakoniwa-core (1.0.0-5) noble; urgency=medium
 
   * Rebuild: hakoniwa-core-cpp bug fixed
