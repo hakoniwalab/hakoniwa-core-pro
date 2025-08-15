@@ -2,7 +2,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #ifdef WIN32
+  #ifndef NOMINMAX
+  #define NOMINMAX
+  #endif
+  #define WIN32_LEAN_AND_MEAN
 #include "windows.h"
+#ifdef min
+  #undef min
+#endif
+#ifdef max
+  #undef max
+#endif
 #else
 #include <unistd.h>
 #endif
