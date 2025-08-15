@@ -138,16 +138,16 @@ std::string hako::command::HakoMetaDumper::dump_json() {
 
     json flags_json;
     for (int i = 0; i < meta.channel_num; i++) {
-        flags_json["is_dirty"].push_back(m.pdu_meta_data.is_dirty[i]);
-        flags_json["is_wbusy"].push_back(m.pdu_meta_data.is_wbusy[i]);
-        flags_json["is_rbusy_for_external"].push_back(m.pdu_meta_data.is_rbusy_for_external[i]);
+        flags_json["is_dirty"].push_back(m.pdu_meta_data.atomic_is_dirty[i]);
+        flags_json["is_wbusy"].push_back(m.pdu_meta_data.atomic_is_wbusy[i]);
+        flags_json["is_rbusy_for_external"].push_back(m.pdu_meta_data.atomic_is_rbusy_for_external[i]);
     }
 
     json rbusy_json;
     for (uint32_t aid = 0; aid < m.asset_num; aid++) {
         json asset_rbusy;
         for (int cid = 0; cid < meta.channel_num; cid++) {
-            asset_rbusy.push_back(m.pdu_meta_data.is_rbusy[aid][cid]);
+            asset_rbusy.push_back(m.pdu_meta_data.atomic_is_rbusy[aid][cid]);
         }
         rbusy_json[std::string(m.assets[aid].name.data)] = asset_rbusy;
     }
@@ -160,7 +160,7 @@ std::string hako::command::HakoMetaDumper::dump_json() {
     for (uint32_t aid = 0; aid < m.asset_num; aid++) {
         json versions;
         for (int cid = 0; cid < meta.channel_num; cid++) {
-            versions.push_back(m.pdu_meta_data.pdu_read_version[aid][cid]);
+            versions.push_back(m.pdu_meta_data.atomic_pdu_read_version[aid][cid]);
         }
         read_version_json[std::string(m.assets[aid].name.data)] = versions;
     }
@@ -168,7 +168,7 @@ std::string hako::command::HakoMetaDumper::dump_json() {
     
     json write_version_json = json::array();
     for (int cid = 0; cid < meta.channel_num; cid++) {
-        write_version_json.push_back(m.pdu_meta_data.pdu_write_version[cid]);
+        write_version_json.push_back(m.pdu_meta_data.atomic_pdu_write_version[cid]);
     }
     version_json["pdu_write_version"] = write_version_json;
     
