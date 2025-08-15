@@ -19,6 +19,12 @@ cmake --build ${BUILD_DIR}
 echo "Step 2/2: Installing project to ${INSTALL_PREFIX}..."
 sudo cmake --install ${BUILD_DIR}
 
+echo "Configuring directory for mmap files..."
+sudo mkdir -p /var/lib/hakoniwa/mmap/
+sudo chmod 755 /var/lib/hakoniwa
+sudo chmod 777 /var/lib/hakoniwa/mmap/
+
+
 echo ""
 echo "Hakoniwa installation completed successfully."
 echo "Installation manifest is located at: ${BUILD_DIR}/install_manifest.txt"

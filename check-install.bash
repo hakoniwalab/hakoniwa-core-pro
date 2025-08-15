@@ -34,7 +34,13 @@ while IFS= read -r file_path || [ -n "$file_path" ]; do
     fi
 done < "${MANIFEST_FILE}"
 
-
+if [ ! -d /var/lib/hakoniwa/mmap ]
+then
+    echo "  [ MISSING] /var/lib/hakoniwa/mmap"
+    ALL_FILES_FOUND=false
+else
+    echo "  [ EXISTS ] /var/lib/hakoniwa/mmap"
+fi
 
 
 echo ""

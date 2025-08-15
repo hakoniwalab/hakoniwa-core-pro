@@ -28,6 +28,7 @@ else
     echo "An error occurred during file removal." >&2
     exit 1
 fi
+sudo rm -rf /var/lib/hakoniwa
 
 # Optional: You might want to remove the now-empty directories.
 # For simplicity, this script only removes files listed in the manifest.
