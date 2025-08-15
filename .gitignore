@@ -33,6 +33,7 @@
 
 # Cmake files
 cmake-build/*
+!cmake-build/.gitkeep
 
 # Python
 __pycache__
