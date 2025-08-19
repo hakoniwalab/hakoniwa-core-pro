@@ -43,7 +43,7 @@ class LauncherService:
         print("[INFO] state -> ACTIVATED")
 
     def cmd(self, command: str) -> int:
-        if self.state not in ("ACTIVATED", "RUNNING", "STOPPED", "IDLE"):
+        if self.state not in ("ACTIVATED", "RUNNING", "STOPPED"):
             print(f"[launcher] start: invalid state={self.state}", file=sys.stderr)
             return 2
         print(f"[INFO] starting simulation (hako-cmd {command})...")
@@ -61,7 +61,7 @@ class LauncherService:
                 print(f"[INFO] hako-cmd stop exited with {rc}")
             case "reset":
                 rc = self.cli.reset()
-                self.state = "IDLE"
+                self.state = "ACTIVATED"
                 print(f"[INFO] hako-cmd reset exited with {rc}")
         return rc
 
