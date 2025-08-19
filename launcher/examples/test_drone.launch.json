@@ -1,0 +1,34 @@
+{
+  "version": "0.1",
+  "defaults": {
+    "cwd": ".",
+    "stdout": "logs/${asset}.out",
+    "stderr": "logs/${asset}.err",
+    "env": {
+      "prepend": {
+        "lib_path": [
+          "/usr/local/hakoniwa/lib"
+        ],
+        "PATH": ["/usr/local/hakoniwa/bin"] 
+      }
+    },    
+    "start_grace_sec": 5,
+    "delay_sec": 3
+  },
+  "assets": [
+    {
+      "name": "drone",
+      "command": "src/cmake-build/main_for_sample/hakoniwa/hako_drone_service",
+      "args": [
+        "config/drone/api",
+        "config/pdudef/webavatar.json"
+      ],
+      "cwd": "/Users/tmori/project/private/hakoniwa-drone-pro"
+    }
+  ],
+  "notify": {
+    "type": "exec",
+    "command": "scripts/notify_on_fail.sh",
+    "args": ["${asset}", "asset_exit", "${timestamp}"]
+  }
+}
