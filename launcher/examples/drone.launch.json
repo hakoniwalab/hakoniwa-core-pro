@@ -20,7 +20,7 @@
       "name": "drone",
       "command": "src/cmake-build/main_for_sample/hakoniwa/hako_drone_service",
       "args": [
-        "config/drone/api",
+        "config/drone/rc",
         "config/pdudef/webavatar.json"
       ],
       "cwd": "/Users/tmori/project/private/hakoniwa-drone-pro"
@@ -31,6 +31,16 @@
       "args": [],
       "cwd": "/Users/tmori/project/oss/hakoniwa-unity-drone/avatar-demo",
       "depends_on": ["drone"]
+    },
+    {
+      "name": "radio_control",
+      "command": "python",
+      "args": [
+        "rc/rc-custom.py",
+        "../config/pdudef/webavatar.json",
+        "rc/rc_config/ps4-control.json"
+      ],
+      "cwd": "/Users/tmori/project/private/hakoniwa-drone-pro/drone_api"
     }
   ],
   "notify": {
