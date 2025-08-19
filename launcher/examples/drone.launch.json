@@ -8,7 +8,8 @@
       "prepend": {
         "lib_path": [
           "/usr/local/hakoniwa/lib"
-        ]
+        ],
+        "PATH": ["/usr/local/hakoniwa/bin"] 
       }
     },    
     "start_grace_sec": 5,
