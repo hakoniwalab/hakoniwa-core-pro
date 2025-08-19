@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import os
 import time
-import signal
+from pathlib import Path
 import subprocess
 from dataclasses import dataclass
 from typing import Dict, List, Optional
@@ -16,6 +16,16 @@ from .hako_asset_runner import AssetRunner
 class Running:
     asset: EffectiveAsset
     runner: AssetRunner
+
+
+def _expand_path(p: Path | str | None, *, asset: str, base_dir: Path) -> str | None:
+    if p is None:
+        return None
+    s = str(p)
+    ts = time.strftime("%Y-%m-%dT%H-%M-%S")  # ファイル名に安全なタイムスタンプ
+    s = s.replace("${asset}", asset).replace("${timestamp}", ts).replace("${base_dir}", str(base_dir))
+    # 相対なら base_dir 起点で絶対化
+    return s if os.path.isabs(s) else str((base_dir / s).resolve())
 
 class HakoMonitor:
     """
@@ -51,14 +61,16 @@ class HakoMonitor:
                 asset_env=(a.env or None),
                 asset_name=a.name,
             )
-
+            out_path = _expand_path(a.stdout, asset=a.name, base_dir=self.spec.base_dir)
+            err_path = _expand_path(a.stderr, asset=a.name, base_dir=self.spec.base_dir)
+            print(f'[INFO] activating {a.name}: (stdout: {out_path}, stderr: {err_path})')
             r = AssetRunner(env=env)
             r.spawn(
                 a.command,
                 a.args,
                 cwd=str(a.cwd),
-                stdout=(str(a.stdout) if a.stdout else None),
-                stderr=(str(a.stderr) if a.stderr else None),
+                stdout=(str(out_path) if out_path else None),
+                stderr=(str(err_path) if err_path else None),
             )
             self.procs.append(Running(asset=a, runner=r))
 
