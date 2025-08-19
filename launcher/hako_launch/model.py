@@ -61,7 +61,7 @@ class Asset(BaseModel):
     stderr: Optional[str] = None
 
     # このアセット起動後に挟む待ち時間（秒。0で待機なし）
-    delay_sec: NonNegativeFloat = 0.0
+    delay_sec: Optional[NonNegativeFloat] = None
 
     # 依存（必要なら使用）。未使用なら空配列のままでOK。
     depends_on: List[str] = Field(default_factory=list)

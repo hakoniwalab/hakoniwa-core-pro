@@ -75,12 +75,14 @@ class HakoMonitor:
             self.procs.append(Running(asset=a, runner=r))
 
             # 起動安定チェック（Tier0: “猶予時間中に生きていればOK”）
+            print(f'[INFO] waiting for {a.name} to stabilize (grace: {a.start_grace_sec} seconds)...')
             if not self._wait_alive(r, a.start_grace_sec):
                 self._notify("asset_start_failed", a.name)
                 self.abort("start_failed")
                 return
 
             # 次の起動までの待機
+            print(f'[INFO] waiting for {a.name} to delay for {a.delay_sec} seconds before next asset...')
             if a.delay_sec > 0:
                 time.sleep(a.delay_sec)
 

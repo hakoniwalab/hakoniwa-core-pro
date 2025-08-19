@@ -83,7 +83,7 @@ def apply_defaults_and_normalize(spec: LauncherSpec, base_dir: Path) -> Effectiv
     )
 
 
-def load(path: str | Path) -> EffectiveSpec:
+def load(path: str | Path) -> Tuple[LauncherSpec, EffectiveSpec]:
     """
     これ一発で OK：
       - JSON 読み込み & 型チェック
@@ -91,5 +91,5 @@ def load(path: str | Path) -> EffectiveSpec:
       - パス正規化
       - トポ順適用
     """
-    spec, base_dir = load_spec(path)
-    return apply_defaults_and_normalize(spec, base_dir)
+    launcher_spec, base_dir = load_spec(path)
+    return launcher_spec, apply_defaults_and_normalize(launcher_spec, base_dir)

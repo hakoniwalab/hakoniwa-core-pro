@@ -12,7 +12,7 @@
         "PATH": ["/usr/local/hakoniwa/bin"] 
       }
     },    
-    "start_grace_sec": 5,
+    "start_grace_sec": 1,
     "delay_sec": 3
   },
   "assets": [

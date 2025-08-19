@@ -6,6 +6,9 @@ import signal
 
 from .loader import load
 from .hako_monitor import HakoMonitor
+from .model import LauncherSpec
+from .effective_model import EffectiveSpec
+from .hako_cli import HakoCli
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Hakoniwa Launcher CLI")
@@ -14,12 +17,15 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     try:
-        spec = load(args.launch_file)
+        launcher_spec, effective_spec = load(args.launch_file)
     except Exception as e:
         print(f"[launcher] Failed to load spec: {e}", file=sys.stderr)
         return 1
 
-    monitor = HakoMonitor(spec)
+    defaults_env_ops = None
+    if launcher_spec.defaults and launcher_spec.defaults.env:
+        defaults_env_ops = launcher_spec.defaults.env.model_dump(exclude_none=True)
+    monitor = HakoMonitor(effective_spec, defaults_env_ops=defaults_env_ops)
 
     def _sigint_handler(signum, frame):
         print("[launcher] SIGINT received → aborting...")
@@ -29,7 +35,7 @@ def main(argv: list[str] | None = None) -> int:
     signal.signal(signal.SIGINT, _sigint_handler)
 
     print(f'[INFO] HakoLauncher started: assets:')
-    for asset in spec.assets:
+    for asset in effective_spec.assets:
         print(f' - {asset.name}')
         print(f'   env: {asset.env}')
         print(f'   cwd: {asset.cwd}')
@@ -38,6 +44,8 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         monitor.start_all()
+        cli  = HakoCli(spec=effective_spec, defaults_env_ops=monitor.defaults_env_ops)
+        cli.start()
         if not args.no_watch:
             monitor.watch()
     except Exception as e:
