@@ -3,55 +3,171 @@ from __future__ import annotations
 import sys
 import argparse
 import signal
+import threading
+import time
+from typing import Optional
 
 from .loader import load
 from .hako_monitor import HakoMonitor
-from .model import LauncherSpec
-from .effective_model import EffectiveSpec
 from .hako_cli import HakoCli
 
+class LauncherService:
+    """起動・監視・停止を状態付きで提供。将来のRPCエンドポイント差し替えを想定。"""
+
+    def __init__(self, *, launch_path: str) -> None:
+        self.launcher_spec, self.spec = load(launch_path)  # (LauncherSpec, EffectiveSpec)
+        self.defaults_env_ops = None
+        if self.launcher_spec.defaults and self.launcher_spec.defaults.env:
+            # pydantic(v2) -> dict にして envmerge に渡す
+            self.defaults_env_ops = self.launcher_spec.defaults.env.model_dump(exclude_none=True)
+
+        self.monitor = HakoMonitor(self.spec, defaults_env_ops=self.defaults_env_ops)
+        self.cli     = HakoCli(spec=self.spec, defaults_env_ops=self.defaults_env_ops)
+
+        self.state: str = "IDLE"
+        self._watch_thread: Optional[threading.Thread] = None
+        self._stop_watch = threading.Event()
+
+    # -------- 状態遷移API --------
+    def activate(self) -> None:
+        if self.state not in ("IDLE",):
+            print(f"[launcher] activate: invalid state={self.state}", file=sys.stderr)
+            return
+        print("[INFO] activating all assets...")
+        self.monitor.start_all()
+        # 監視スレッド（誰か落ちたら terminate）
+        self._stop_watch.clear()
+        self._watch_thread = threading.Thread(target=self._watch_loop, daemon=True)
+        self._watch_thread.start()
+        self.state = "ACTIVATED"
+        print("[INFO] state -> ACTIVATED")
+
+    def start(self) -> int:
+        if self.state not in ("ACTIVATED", "RUNNING"):
+            print(f"[launcher] start: invalid state={self.state}", file=sys.stderr)
+            return 2
+        print("[INFO] starting simulation (hako-cmd start)...")
+        self.state = "RUNNING"
+        rc = self.cli.start()
+        print(f"[INFO] hako-cmd start exited with {rc}")
+        # RUNNING 維持。終了検知は watch スレッドが担当。
+        return rc
+
+    def terminate(self) -> None:
+        if self.state in ("TERMINATED", "IDLE"):
+            print(f"[launcher] terminate: already {self.state}")
+            return
+        print("[INFO] terminating all assets...")
+        self.monitor.abort("terminate")
+        self._stop_watch.set()
+        self.state = "TERMINATED"
+        print("[INFO] state -> TERMINATED")
+
+    def status(self) -> str:
+        return self.state
+
+    # -------- 内部：監視ループ（非ブロッキング） --------
+    def _watch_loop(self):
+        # hako_monitor.watch() はブロックするので、簡易ポーリングで等価動作
+        # 誰か死んだら abort し、状態を遷移させる。
+        try:
+            while not self._stop_watch.is_set() and self.monitor.procs:
+                for rp in list(self.monitor.procs):
+                    if not rp.runner.is_alive():
+                        print(f"[WARN] asset exited: {rp.asset.name} -> abort all")
+                        self.monitor.abort("asset_exit")
+                        self.state = "TERMINATED"
+                        self._stop_watch.set()
+                        return
+                time.sleep(0.2)
+        except Exception as e:
+            print(f"[watch] exception: {e}", file=sys.stderr)
+            self.monitor.abort("watch_exception")
+            self.state = "TERMINATED"
+            self._stop_watch.set()
+
+# -------- CLI エントリ --------
+
+def _install_sigint(service: LauncherService):
+    def _sigint_handler(signum, frame):
+        print("[launcher] SIGINT received → aborting...")
+        try:
+            service.terminate()
+        finally:
+            sys.exit(1)
+    signal.signal(signal.SIGINT, _sigint_handler)
+
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Hakoniwa Launcher CLI")
+    parser = argparse.ArgumentParser(description="Hakoniwa Launcher")
     parser.add_argument("launch_file", help="Path to launcher JSON")
-    parser.add_argument("--no-watch", action="store_true", help="Start assets then exit (no monitoring)")
+    parser.add_argument(
+        "--mode",
+        choices=["immediate", "serve"],
+        default="immediate",
+        help="immediate: activate→start→watch / serve: 待機して外部コマンドを受け付ける",
+    )
+    parser.add_argument("--no-watch", action="store_true",
+                        help="(immediate時) 監視せず起動だけして終了")
     args = parser.parse_args(argv)
 
     try:
-        launcher_spec, effective_spec = load(args.launch_file)
+        service = LauncherService(launch_path=args.launch_file)
     except Exception as e:
         print(f"[launcher] Failed to load spec: {e}", file=sys.stderr)
         return 1
 
-    defaults_env_ops = None
-    if launcher_spec.defaults and launcher_spec.defaults.env:
-        defaults_env_ops = launcher_spec.defaults.env.model_dump(exclude_none=True)
-    monitor = HakoMonitor(effective_spec, defaults_env_ops=defaults_env_ops)
+    _install_sigint(service)
 
-    def _sigint_handler(signum, frame):
-        print("[launcher] SIGINT received → aborting...")
-        monitor.abort("sigint")
-        sys.exit(1)
+    # ログ：有効アセット一覧
+    print("[INFO] HakoLauncher ready. assets:")
+    for a in service.spec.assets:
+        print(f" - {a.name} (cwd={a.cwd}, cmd={a.command}, args={a.args})")
 
-    signal.signal(signal.SIGINT, _sigint_handler)
+    # ---- immediate モード：従来互換 ----
+    if args.mode == "immediate":
+        try:
+            service.activate()
+            rc = service.start()
+            if not args.no_watch:
+                # 監視スレッドが abort するまで待機
+                while service.status() not in ("TERMINATED",):
+                    time.sleep(0.5)
+            return 0 if rc == 0 else rc
+        except Exception as e:
+            print(f"[launcher] Exception: {e}", file=sys.stderr)
+            service.terminate()
+            return 1
 
-    print(f'[INFO] HakoLauncher started: assets:')
-    for asset in effective_spec.assets:
-        print(f' - {asset.name}')
-        print(f'   env: {asset.env}')
-        print(f'   cwd: {asset.cwd}')
-        print(f'   cmd: {asset.command}')
-        print(f'   args: {asset.args}')
-
-    try:
-        monitor.start_all()
-        cli  = HakoCli(spec=effective_spec, defaults_env_ops=monitor.defaults_env_ops)
-        cli.start()
-        if not args.no_watch:
-            monitor.watch()
-    except Exception as e:
-        print(f"[launcher] Exception: {e}", file=sys.stderr)
-        monitor.abort("exception")
-        return 1
+    # ---- serve モード：待機（簡易REPL）。将来ここを箱庭RPCに差し替え（TODO） ----
+    print("[INFO] serve mode. commands: activate | start | terminate | status | quit")
+    while True:
+        try:
+            sys.stdout.write("> ")
+            sys.stdout.flush()
+            line = sys.stdin.readline()
+            if not line:
+                break
+            cmd = line.strip().lower()
+            if cmd == "activate":
+                service.activate()
+            elif cmd == "start":
+                service.start()
+            elif cmd == "terminate":
+                service.terminate()
+            elif cmd == "status":
+                print(service.status())
+            elif cmd in ("quit", "exit"):
+                service.terminate()
+                break
+            elif cmd == "":
+                continue
+            else:
+                print(f"unknown command: {cmd}")
+        except KeyboardInterrupt:
+            service.terminate()
+            break
+        except Exception as e:
+            print(f"[serve] error: {e}", file=sys.stderr)
 
     return 0
 
