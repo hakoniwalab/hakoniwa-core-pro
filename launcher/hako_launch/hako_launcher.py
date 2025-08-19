@@ -42,15 +42,27 @@ class LauncherService:
         self.state = "ACTIVATED"
         print("[INFO] state -> ACTIVATED")
 
-    def start(self) -> int:
-        if self.state not in ("ACTIVATED", "RUNNING"):
+    def cmd(self, command: str) -> int:
+        if self.state not in ("ACTIVATED", "RUNNING", "STOPPED", "IDLE"):
             print(f"[launcher] start: invalid state={self.state}", file=sys.stderr)
             return 2
-        print("[INFO] starting simulation (hako-cmd start)...")
-        self.state = "RUNNING"
-        rc = self.cli.start()
-        print(f"[INFO] hako-cmd start exited with {rc}")
-        # RUNNING 維持。終了検知は watch スレッドが担当。
+        print(f"[INFO] starting simulation (hako-cmd {command})...")
+        if command not in ("start", "stop", "reset"):
+            return 1
+        rc = 1
+        match command:
+            case "start":
+                rc = self.cli.start()
+                self.state = "RUNNING"
+                print(f"[INFO] hako-cmd start exited with {rc}")
+            case "stop":
+                rc = self.cli.stop()
+                self.state = "STOPPED"
+                print(f"[INFO] hako-cmd stop exited with {rc}")
+            case "reset":
+                rc = self.cli.reset()
+                self.state = "IDLE"
+                print(f"[INFO] hako-cmd reset exited with {rc}")
         return rc
 
     def terminate(self) -> None:
@@ -127,7 +139,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.mode == "immediate":
         try:
             service.activate()
-            rc = service.start()
+            rc = service.cmd("start")
             if not args.no_watch:
                 # 監視スレッドが abort するまで待機
                 while service.status() not in ("TERMINATED",):
@@ -139,7 +151,7 @@ def main(argv: list[str] | None = None) -> int:
             return 1
 
     # ---- serve モード：待機（簡易REPL）。将来ここを箱庭RPCに差し替え（TODO） ----
-    print("[INFO] serve mode. commands: activate | start | terminate | status | quit")
+    print("[INFO] serve mode. commands: activate | start | stop | reset | terminate | status | quit")
     while True:
         try:
             sys.stdout.write("> ")
@@ -151,7 +163,11 @@ def main(argv: list[str] | None = None) -> int:
             if cmd == "activate":
                 service.activate()
             elif cmd == "start":
-                service.start()
+                service.cmd("start")
+            elif cmd == "stop":
+                service.cmd("stop")
+            elif cmd == "reset":
+                service.cmd("reset")
             elif cmd == "terminate":
                 service.terminate()
             elif cmd == "status":
