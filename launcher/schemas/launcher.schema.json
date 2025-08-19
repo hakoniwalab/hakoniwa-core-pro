@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Hakoniwa Launcher (No-Health)",
+  "$id": "https://hakoniwa.dev/schemas/launcher.schema.json",
+  "type": "object",
+  "required": ["assets"],
+  "properties": {
+    "version": { "type": "string" },
+    "defaults": {
+      "type": "object",
+      "properties": {
+        "cwd": { "type": "string" },
+        "stdout": { "type": ["string", "null"] },
+        "stderr": { "type": ["string", "null"] },
+        "start_grace_sec": {
+          "type": "number",
+          "minimum": 0,
+          "default": 5,
+          "description": "起動後、この秒数（秒）生存していれば安定稼働とみなす。現状未サポート。"
+        },
+        "delay_sec": {
+          "type": "number",
+          "minimum": 0,
+          "default": 3,
+          "description": "このアセットを起動した後に挟む待ち時間（秒。0で待機なし）"
+        },
+        "env": { "$ref": "#/$defs/envOps" }
+      },
+      "additionalProperties": false
+    },
+    "assets": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/asset" }
+    },
+    "notify": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "type": { "const": "webhook" },
+            "url": { "type": "string", "format": "uri" },
+            "secret": { "type": "string" }
+          },
+          "required": ["type", "url"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": { "const": "exec" },
+            "command": { "type": "string" },
+            "args": { "type": "array", "items": { "type": "string" }, "default": [] }
+          },
+          "required": ["type", "command"],
+          "additionalProperties": false
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "envOps": {
+      "type": "object",
+      "properties": {
+        "set": { "type": "object", "additionalProperties": { "type": "string" } },
+        "prepend": {
+          "type": "object",
+          "properties": {
+            "lib_path": { "type": "array", "items": { "type": "string" } }
+          },
+          "additionalProperties": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "description": "抽象キー。lib_path は OS ごとに DYLD_LIBRARY_PATH / LD_LIBRARY_PATH / PATH に展開される。他キーはそのまま適用。"
+        },
+        "append": { "type": "object", "additionalProperties": { "type": "array", "items": { "type": "string" } } },
+        "unset":  { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": false
+    },
+    "asset": {
+      "type": "object",
+      "required": ["name", "command"],
+      "properties": {
+        "name": { "type": "string" },
+        "command": { "type": "string" },
+        "args": { "type": "array", "items": { "type": "string" }, "default": [] },
+        "cwd": { "type": ["string", "null"] },
+        "env": { "$ref": "#/$defs/envOps" },
+        "stdout": { "type": ["string", "null"] },
+        "stderr": { "type": ["string", "null"] },
+        "delay_sec": {
+          "type": "number",
+          "minimum": 0,
+          "default": 0,
+          "description": "このアセットを起動した後に挟む待ち時間（秒。0で待機なし）"
+        },
+        "depends_on": { "type": "array", "items": { "type": "string" }, "default": [] },
+        "start_grace_sec": { "type": "number", "minimum": 0 }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
