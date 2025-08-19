@@ -28,6 +28,14 @@ def main(argv: list[str] | None = None) -> int:
 
     signal.signal(signal.SIGINT, _sigint_handler)
 
+    print(f'[INFO] HakoLauncher started: assets:')
+    for asset in spec.assets:
+        print(f' - {asset.name}')
+        print(f'   env: {asset.env}')
+        print(f'   cwd: {asset.cwd}')
+        print(f'   cmd: {asset.command}')
+        print(f'   args: {asset.args}')
+
     try:
         monitor.start_all()
         if not args.no_watch:

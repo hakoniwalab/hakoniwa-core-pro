@@ -46,8 +46,8 @@ class AssetRunner:
         parent = os.path.dirname(path)
         if parent:  # "" のとき mkdir しない
             os.makedirs(parent, exist_ok=True)
-        # バイナリ追記・バッファリング無しで落とす
-        f = open(path, "ab", buffering=0)
+        # バイナリ新規作成・バッファリング無しで落とす
+        f = open(path, "wb", buffering=0)
         return f, path
 
     @staticmethod
