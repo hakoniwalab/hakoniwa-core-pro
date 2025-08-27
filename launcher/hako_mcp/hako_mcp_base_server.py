@@ -15,7 +15,7 @@ from hakoniwa_pdu.rpc.codes import SystemControlOpCode
 ASSET_NAME = "HakoMcpServer"
 CLIENT_NAME = "HakoMcpServer"
 SERVICE_NAME = "Service/SystemControl"
-OFFSET_PATH = "tests/config/offset" # This path might need adjustment
+OFFSET_PATH = "/usr/local/share/hakoniwa/offset" # This path might need adjustment
 DELTA_TIME_USEC = 1_000_000
 
 class HakoMcpBaseServer:
