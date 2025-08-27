@@ -1,0 +1,22 @@
+{
+    "pduMetaDataSize": 24,
+    "pdu_config_path": "examples/rpc/hako/pdu_config.json",
+    "services": [
+        {
+            "name": "Service/SystemControl",
+            "type": "hako_srv_msgs/SystemControl",
+            "maxClients": 1,
+            "pduSize": {
+                "server": {
+                    "heapSize": 0,
+                    "baseSize": 272
+                },
+                "client": {
+                    "heapSize": 0,
+                    "baseSize": 400
+                }
+            }
+        }
+    ],
+    "nodes": []
+}

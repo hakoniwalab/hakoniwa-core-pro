@@ -1,10 +1,12 @@
-# launcher/hako_launch/hako_launcher.py
 from __future__ import annotations
 import sys
+import os
 import argparse
 import signal
 import threading
 import time
+import asyncio
+import logging
 from typing import Optional
 
 from .loader import load
@@ -12,13 +14,12 @@ from .hako_monitor import HakoMonitor
 from .hako_cli import HakoCli
 
 class LauncherService:
-    """起動・監視・停止を状態付きで提供。将来のRPCエンドポイント差し替えを想定。"""
+    """起動・監視・停止を状態付きで提供。"""
 
     def __init__(self, *, launch_path: str) -> None:
         self.launcher_spec, self.spec = load(launch_path)  # (LauncherSpec, EffectiveSpec)
         self.defaults_env_ops = None
         if self.launcher_spec.defaults and self.launcher_spec.defaults.env:
-            # pydantic(v2) -> dict にして envmerge に渡す
             self.defaults_env_ops = self.launcher_spec.defaults.env.model_dump(exclude_none=True)
 
         self.monitor = HakoMonitor(self.spec, defaults_env_ops=self.defaults_env_ops)
@@ -35,7 +36,6 @@ class LauncherService:
             return
         print("[INFO] activating all assets...")
         self.monitor.start_all()
-        # 監視スレッド（誰か落ちたら terminate）
         self._stop_watch.clear()
         self._watch_thread = threading.Thread(target=self._watch_loop, daemon=True)
         self._watch_thread.start()
@@ -80,8 +80,6 @@ class LauncherService:
 
     # -------- 内部：監視ループ（非ブロッキング） --------
     def _watch_loop(self):
-        # hako_monitor.watch() はブロックするので、簡易ポーリングで等価動作
-        # 誰か死んだら abort し、状態を遷移させる。
         try:
             while not self._stop_watch.is_set() and self.monitor.procs:
                 for rp in list(self.monitor.procs):
@@ -109,7 +107,7 @@ def _install_sigint(service: LauncherService):
             sys.exit(1)
     signal.signal(signal.SIGINT, _sigint_handler)
 
-def main(argv: list[str] | None = None) -> int:
+async def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Hakoniwa Launcher")
     parser.add_argument("launch_file", help="Path to launcher JSON")
     parser.add_argument(
@@ -122,6 +120,18 @@ def main(argv: list[str] | None = None) -> int:
                         help="(immediate時) 監視せず起動だけして終了")
     args = parser.parse_args(argv)
 
+    # Setup logging
+    if os.environ.get('HAKO_PDU_DEBUG') == '1':
+        log_level = logging.DEBUG
+    else:
+        log_level = logging.INFO
+
+    logging.basicConfig(
+        level=log_level,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        stream=sys.stdout
+    )
+
     try:
         service = LauncherService(launch_path=args.launch_file)
     except Exception as e:
@@ -130,18 +140,15 @@ def main(argv: list[str] | None = None) -> int:
 
     _install_sigint(service)
 
-    # ログ：有効アセット一覧
     print("[INFO] HakoLauncher ready. assets:")
     for a in service.spec.assets:
         print(f" - {a.name} (cwd={a.cwd}, cmd={a.command}, args={a.args})")
 
-    # ---- immediate モード：従来互換 ----
     if args.mode == "immediate":
         try:
             service.activate()
             rc = service.cmd("start")
             if not args.no_watch:
-                # 監視スレッドが abort するまで待機
                 while service.status() not in ("TERMINATED",):
                     time.sleep(0.5)
             return 0 if rc == 0 else rc
@@ -150,42 +157,42 @@ def main(argv: list[str] | None = None) -> int:
             service.terminate()
             return 1
 
-    # ---- serve モード：待機（簡易REPL）。将来ここを箱庭RPCに差し替え（TODO） ----
-    print("[INFO] serve mode. commands: activate | start | stop | reset | terminate | status | quit")
-    while True:
-        try:
-            sys.stdout.write("> ")
-            sys.stdout.flush()
-            line = sys.stdin.readline()
-            if not line:
-                break
-            cmd = line.strip().lower()
-            if cmd == "activate":
-                service.activate()
-            elif cmd == "start":
-                service.cmd("start")
-            elif cmd == "stop":
-                service.cmd("stop")
-            elif cmd == "reset":
-                service.cmd("reset")
-            elif cmd == "terminate":
+    elif args.mode == "serve":
+        print("[INFO] serve mode. commands: activate | start | stop | reset | terminate | status | quit")
+        while True:
+            try:
+                sys.stdout.write("> ")
+                sys.stdout.flush()
+                line = sys.stdin.readline()
+                if not line:
+                    break
+                cmd = line.strip().lower()
+                if cmd == "activate":
+                    service.activate()
+                elif cmd == "start":
+                    service.cmd("start")
+                elif cmd == "stop":
+                    service.cmd("stop")
+                elif cmd == "reset":
+                    service.cmd("reset")
+                elif cmd == "terminate":
+                    service.terminate()
+                elif cmd == "status":
+                    print(service.status())
+                elif cmd in ("quit", "exit"):
+                    service.terminate()
+                    break
+                elif cmd == "":
+                    continue
+                else:
+                    print(f"unknown command: {cmd}")
+            except KeyboardInterrupt:
                 service.terminate()
-            elif cmd == "status":
-                print(service.status())
-            elif cmd in ("quit", "exit"):
-                service.terminate()
                 break
-            elif cmd == "":
-                continue
-            else:
-                print(f"unknown command: {cmd}")
-        except KeyboardInterrupt:
-            service.terminate()
-            break
-        except Exception as e:
-            print(f"[serve] error: {e}", file=sys.stderr)
+            except Exception as e:
+                print(f"[serve] error: {e}", file=sys.stderr)
 
     return 0
 
 if __name__ == "__main__":
-    sys.exit(main())
+    asyncio.run(main())
