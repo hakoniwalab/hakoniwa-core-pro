@@ -24,8 +24,8 @@ class HakoMcpBaseServer:
         self.simulator_name = simulator_name
         self.rpc_client = None
         self.rpc_uri = "ws://localhost:8080"
-        self.pdu_config_path = "launcher/config/pdu_config.json"
-        self.service_config_path = "launcher/config/service.json"
+        self.pdu_config_path = "/Users/tmori/project/private/hakoniwa-core-pro/launcher/config/pdu_config.json"
+        self.service_config_path = "/Users/tmori/project/private/hakoniwa-core-pro/launcher/config/service.json"
 
     async def initialize_rpc_client(self):
         logging.info("Initializing RPC client...")
@@ -70,7 +70,7 @@ class HakoMcpBaseServer:
         try:
             req = SystemControlRequest()
             req.opcode = opcode
-            res = await self.rpc_client.call(req, timeout_msec=1000)
+            res = await self.rpc_client.call(req, timeout_msec=-1)
             if res is None:
                 error_msg = f"RPC call failed for opcode: {opcode}"
                 logging.error(error_msg)
@@ -83,38 +83,47 @@ class HakoMcpBaseServer:
             logging.error(error_msg)
             return error_msg
 
+    async def hakoniwa_simulator_activate(self) -> str:
+        await self._send_rpc_command(SystemControlOpCode.ACTIVATE)
+        return "Simulator activated successfully."
+    
     async def hakoniwa_simulator_start(self) -> str:
-        if not await self._send_rpc_command(SystemControlOpCode.ACTIVATE):
-            return "Failed to activate simulator."
-        if not await self._send_rpc_command(SystemControlOpCode.START):
-            return "Failed to start simulator."
+        await self._send_rpc_command(SystemControlOpCode.START)
         return "Simulator started successfully."
 
-    async def hakoniwa_simulator_stop(self) -> str:
-        if not await self._send_rpc_command(SystemControlOpCode.TERMINATE):
-            return "Failed to terminate simulator."
+    async def hakoniwa_simulator_terminate(self) -> str:
+        await self._send_rpc_command(SystemControlOpCode.TERMINATE)
         return "Simulator terminated successfully."
 
     async def list_tools(self) -> list[types.Tool]:
         return [
             types.Tool(
-                name="hakoniwa_simulator_start",
-                description=f"Starts the Hakoniwa {self.simulator_name}",
+                name="hakoniwa_simulator_activate",
+                description=f"Activate the Hakoniwa {self.simulator_name}",
                 inputSchema={"type": "object", "properties": {}, "required": []}
             ),
             types.Tool(
-                name="hakoniwa_simulator_stop",
-                description=f"Stops the Hakoniwa {self.simulator_name}",
+                name="hakoniwa_simulator_start",
+                description=f"Start the Hakoniwa {self.simulator_name}",
+                inputSchema={"type": "object", "properties": {}, "required": []}
+            ),
+            types.Tool(
+                name="hakoniwa_simulator_terminate",
+                description=f"Terminate the Hakoniwa {self.simulator_name}",
                 inputSchema={"type": "object", "properties": {}, "required": []}
             ),
         ]
 
     async def call_tool(self, name: str, arguments: dict | None) -> list[types.TextContent]:
-        if name == "hakoniwa_simulator_start":
+        logging.info(f"Calling tool: {name} with arguments: {arguments}")
+        if name == "hakoniwa_simulator_activate":
+            result = await self.hakoniwa_simulator_activate()
+            return [types.TextContent(type="text", text=result)]
+        elif name == "hakoniwa_simulator_start":
             result = await self.hakoniwa_simulator_start()
             return [types.TextContent(type="text", text=result)]
-        elif name == "hakoniwa_simulator_stop":
-            result = await self.hakoniwa_simulator_stop()
+        elif name == "hakoniwa_simulator_terminate":
+            result = await self.hakoniwa_simulator_terminate()
             return [types.TextContent(type="text", text=result)]
         else:
             raise ValueError(f"Unknown tool: {name}")

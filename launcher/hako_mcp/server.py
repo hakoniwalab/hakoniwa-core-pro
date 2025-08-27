@@ -3,6 +3,16 @@ import mcp.server.stdio
 from .hako_mcp_base_server import HakoMcpBaseServer
 import mcp.types as types
 from pydantic import AnyUrl
+import logging
+
+#logging.basicConfig(
+#    level=logging.DEBUG,
+#    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+#    handlers=[
+#        logging.FileHandler("/Users/tmori/project/private/hakoniwa-core-pro/mcp_server.log", mode="w"),
+#        logging.StreamHandler()  # ← 残すならコンソールも
+#    ]
+#)
 
 base_server_instance = HakoMcpBaseServer(server_name="hakoniwa")
 # 2. Get the mcp.Server object from the instance

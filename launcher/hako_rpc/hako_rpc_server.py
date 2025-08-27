@@ -64,11 +64,10 @@ class HakoRpcServer:
             """システム制御サービスの実装。LauncherServiceを呼び出す。"""
             res = SystemControlResponse()
             try:
-                # activateはRPCからは不要かもしれないが、念のため
-                if self.launcher_service.status() == "IDLE":
-                    self.launcher_service.activate()
-
                 match req.opcode:
+                    case SystemControlOpCode.ACTIVATE:
+                        logging.info("RPC: ACTIVATE")
+                        self.launcher_service.activate()
                     case SystemControlOpCode.START:
                         logging.info("RPC: START an asset simulation")
                         self.launcher_service.cmd('start')
@@ -87,7 +86,7 @@ class HakoRpcServer:
                         res.message = f"Status: {status}"
                     case _:
                         logging.warning(f"Unknown opcode: {req.opcode}")
-                        res.status_code = SystemControlStatusCode.INVALID_ARGUMENT
+                        res.status_code = SystemControlStatusCode.ERROR
                         res.message = f"Unknown opcode: {req.opcode}"
                         return res
 
@@ -99,7 +98,7 @@ class HakoRpcServer:
                 logging.error(f"RPC handler error: {e}")
                 res.status_code = SystemControlStatusCode.INTERNAL
                 res.message = str(e)
-
+            logging.info(f"RPC Response: {res.status_code}, {res.message}")
             return res
 
         logging.info(f"RPC Server started at {self.args.uri}")
