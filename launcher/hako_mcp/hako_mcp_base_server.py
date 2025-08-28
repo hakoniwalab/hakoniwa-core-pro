@@ -26,9 +26,10 @@ class HakoMcpBaseServer:
         self.pdu_config_path = "/Users/tmori/project/private/hakoniwa-core-pro/launcher/config/pdu_config.json"
         self.service_config_path = "/Users/tmori/project/private/hakoniwa-core-pro/launcher/config/service.json"
 
-    def add_rpc_service(self, service_name: str, srv_type: str, client_name: str = CLIENT_NAME_DEFAULT):
+    def add_rpc_service(self, service_name: str, srv_pkg: str, srv_type: str, client_name: str = CLIENT_NAME_DEFAULT):
         self.rpc_service_specs.append({
             "service_name": service_name,
+            "pkg": srv_pkg,
             "srv": srv_type,
             "client_name": client_name
         })
@@ -36,7 +37,7 @@ class HakoMcpBaseServer:
 
     async def initialize_rpc_clients(self):
         logging.info("Initializing RPC clients...")
-        self.add_rpc_service(SYSTEM_CONTROL_SERVICE_NAME, "SystemControl")
+        self.add_rpc_service(SYSTEM_CONTROL_SERVICE_NAME, "hakoniwa_pdu.pdu_msgs.hako_srv_msgs", "SystemControl")
         
         try:
             comm = WebSocketCommunicationService(version="v2")

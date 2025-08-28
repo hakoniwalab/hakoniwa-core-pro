@@ -45,10 +45,11 @@ class HakoRpcServer:
         self.services = []
         self.handlers = {}
 
-    def add_service(self, name: str, srv_type: str, handler, max_clients: int = 1):
+    def add_service(self, name: str, srv_pkg: str, srv_type: str, handler, max_clients: int = 1):
         self.services.append({
             "service_name": name,
             "srv": srv_type,
+            "pkg": srv_pkg,
             "max_clients": max_clients
         })
         self.handlers[name] = handler
@@ -63,7 +64,7 @@ class HakoRpcServer:
                 logging.info(f" - {a.name} (cwd={a.cwd}, cmd={a.command}, args={a.args})")
             
             # デフォルトのサービスを登録
-            self.add_service(SYSTEM_CONTROL_SERVICE_NAME, "SystemControl", self._system_control_handler)
+            self.add_service(SYSTEM_CONTROL_SERVICE_NAME, "hakoniwa_pdu.pdu_msgs.hako_srv_msgs", "SystemControl", self._system_control_handler)
             return True
         except Exception as e:
             logging.error(f"Failed to load spec: {e}")

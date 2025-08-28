@@ -5,7 +5,6 @@ import json
 from .hako_rpc_server import HakoRpcServer
 from hako_drone.hako_drone_service import HakoDroneService
 from hakoniwa_pdu.rpc.codes import SystemControlStatusCode
-
 try:
     from hakoniwa_pdu.pdu_msgs.drone_srv_msgs.pdu_pytype_DroneSetReadyRequest import DroneSetReadyRequest
     from hakoniwa_pdu.pdu_msgs.drone_srv_msgs.pdu_pytype_DroneSetReadyResponse import DroneSetReadyResponse
@@ -56,7 +55,7 @@ class HakoDroneRpcServer(HakoRpcServer):
             
             handler_map = {
                 "DroneService/DroneSetReady": self._set_ready_handler,
-                "DroneService/DroneTakeoff": self._takeoff_handler,
+                "DroneService/DroneTakeOff": self._takeoff_handler,
                 "DroneService/DroneGoTo": self._go_to_handler,
                 "DroneService/DroneGetState": self._get_state_handler,
                 "DroneService/DroneLand": self._land_handler,
@@ -71,7 +70,8 @@ class HakoDroneRpcServer(HakoRpcServer):
                 if service_name in handler_map:
                     srv_type = service_def["type"].split('/')[-1]
                     handler = handler_map[service_name]
-                    self.add_service(service_name, srv_type, handler)
+                    print(f"Registering drone service: {service_name} srv_type: {srv_type} with handler {handler.__name__}")
+                    self.add_service(service_name, "hakoniwa_pdu.pdu_msgs.drone_srv_msgs", srv_type, handler)
 
         except FileNotFoundError:
             logging.error(f"Drone service config not found: {self.drone_service_config_path}")
@@ -86,9 +86,9 @@ class HakoDroneRpcServer(HakoRpcServer):
         res.body.message = message
         return res
 
-    async def _takeoff_handler(self, req: DroneTakeoffRequest) -> DroneTakeoffResponse:
+    async def _takeoff_handler(self, req: DroneTakeOffRequest) -> DroneTakeOffResponse:
         ok, message = self.drone_service.takeoff(req.body.drone_name, req.body.alt_m)
-        res = DroneTakeoffResponse()
+        res = DroneTakeOffResponse()
         res.body.ok = ok
         res.body.message = message
         return res

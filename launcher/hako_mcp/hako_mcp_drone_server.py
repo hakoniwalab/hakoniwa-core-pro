@@ -42,7 +42,7 @@ class HakoMcpDroneServer(HakoMcpBaseServer):
                 service_name = service_def["name"]
                 if service_name.startswith("DroneService/"):
                     srv_type = service_def["type"].split('/')[-1]
-                    self.add_rpc_service(service_name, srv_type)
+                    self.add_rpc_service(service_name, "hakoniwa_pdu.pdu_msgs.drone_srv_msgs", srv_type)
         except FileNotFoundError:
             logging.error(f"Drone service config not found: {self.drone_service_config_path}")
         except Exception as e:
