@@ -84,7 +84,7 @@ drone_get_state_output_schema = {
 class HakoMcpDroneServer(HakoMcpBaseServer):
     def __init__(self, server_name="hakoniwa_drone"):
         super().__init__(server_name, simulator_name="Drone")
-        self.drone_service_config_path = "launcher/config/drone_service.json"
+        self.drone_service_config_path = "/Users/tmori/project/private/hakoniwa-core-pro/launcher/config/drone_service.json"
         self._register_drone_rpc_services()
 
     def _register_drone_rpc_services(self):
@@ -146,7 +146,12 @@ class HakoMcpDroneServer(HakoMcpBaseServer):
             ),
             types.Tool(
                 name="camera_capture_image",
-                description="Capture an image from the drone's camera. The default value for drone_name is 'Drone'.",
+                description=(
+                    "Capture an image from the drone's camera. "
+                    "The response contains a base64-encoded PNG image string under the 'data' field. "
+                    "The default value for 'drone_name' is 'Drone'."
+                    "The default value for 'image_type' is 'png'."
+                ),
                 inputSchema={"type": "object", "properties": {"drone_name": {"type": "string"}, "image_type": {"type": "string", "description": "e.g., 'png' or 'jpeg'."}}, "required": ["drone_name", "image_type"]}
                 #outputSchema={
                 #    "type": "object",
@@ -203,7 +208,7 @@ class HakoMcpDroneServer(HakoMcpBaseServer):
                 req = DroneGoToRequest(); req.drone_name = drone_name; req.target_pose = Vector3(); req.target_pose.x = arguments["x"]; req.target_pose.y = arguments["y"]; req.target_pose.z = arguments["z"]; req.speed_m_s = arguments.get("speed", 1.0); req.yaw_deg = arguments.get("yaw", 0.0); req.tolerance_m = arguments.get("tolerance", 0.5); req.timeout_sec = -1
                 result_pdu = await self._send_rpc_command("DroneService/DroneGoTo", req)
             elif name == "camera_capture_image":
-                req = CameraCaptureImageRequest(); req.drone_name = drone_name; req.image_type = arguments["image_type"]
+                req = CameraCaptureImageRequest(); req.drone_name = drone_name; req.image_type = arguments.get("image_type", "png")
                 result_pdu = await self._send_rpc_command("DroneService/CameraCaptureImage", req)
                 if result_pdu and result_pdu.ok:
                     res_dict = result_pdu.to_dict()

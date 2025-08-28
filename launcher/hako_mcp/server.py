@@ -157,6 +157,31 @@ async def manual_main():
         except Exception as e:
             print(f"An error occurred: {e}")
 
+import sys
+import atexit
+import os
+import socket
+_lock_socket = None
+
+def ensure_single_instance():
+    global _lock_socket
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        # ポート番号は適当。通信には使わない
+        sock.bind(("127.0.0.1", 49251))
+    except OSError:
+        # stdout は触らないこと！Claude 側が混乱する
+        #print("Another instance already running, exiting.", file=sys.stderr)
+        sys.exit(0)
+    # グローバルに保持して GC されないようにする
+    _lock_socket = sock
+
+
+# main()の最初に追加
+def main_entry():
+    ensure_single_instance()
+    asyncio.run(main())
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--manual", action="store_true", help="Run in manual interactive mode.")
@@ -165,4 +190,5 @@ if __name__ == "__main__":
     if args.manual:
         asyncio.run(manual_main())
     else:
-        asyncio.run(main())
+        #asyncio.run(main())
+        main_entry()
