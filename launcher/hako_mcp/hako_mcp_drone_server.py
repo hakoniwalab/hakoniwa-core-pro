@@ -29,6 +29,48 @@ try:
 except ImportError:
     logging.error("PDU types not found, using dummy classes.")
 
+drone_get_state_output_schema = {
+    "type": "object",
+    "properties": {
+        "ok": {"type": "boolean"},
+        "is_ready": {"type": "boolean"},
+        "current_pose": {
+            "type": "object",
+            "properties": {
+                "position": {
+                    "type": "object",
+                    "properties": {
+                        "x": {"type": "number"},
+                        "y": {"type": "number"},
+                        "z": {"type": "number"}
+                    }
+                },
+                "orientation": {
+                    "type": "object",
+                    "properties": {
+                        "x": {"type": "number"},
+                        "y": {"type": "number"},
+                        "z": {"type": "number"},
+                        "w": {"type": "number"}
+                    }
+                }
+            }
+        },
+        "battery_status": {
+            "type": "object",
+            "properties": {
+                "full_voltage": {"type": "number"},
+                "curr_voltage": {"type": "number"},
+                "curr_temp": {"type": "number"},
+                "status": {"type": "number"},
+                "cycles": {"type": "number"}
+            }
+        },
+        "mode": {"type": "string"},
+        "message": {"type": "string"}
+    }
+}
+
 class HakoMcpDroneServer(HakoMcpBaseServer):
     def __init__(self, server_name="hakoniwa_drone"):
         super().__init__(server_name, simulator_name="Drone")
@@ -50,6 +92,7 @@ class HakoMcpDroneServer(HakoMcpBaseServer):
             logging.error(f"Error registering drone RPC services: {e}")
 
     async def list_tools(self) -> list[types.Tool]:
+        global drone_get_state_output_schema
         base_tools = await super().list_tools()
         drone_tools = [
             types.Tool(
@@ -71,7 +114,7 @@ class HakoMcpDroneServer(HakoMcpBaseServer):
                 name="drone_get_state",
                 description="Get the drone's current state. The default value for drone_name is 'Drone'.",
                 inputSchema={"type": "object", "properties": {"drone_name": {"type": "string"}}, "required": ["drone_name"]},
-                outputSchema={"type": "object", "properties": {"ok": {"type": "boolean"}, "is_ready": {"type": "boolean"}, "current_pose": {"type": "object"}, "mode": {"type": "string"}, "message": {"type": "string"}}}
+                outputSchema=drone_get_state_output_schema
             ),
             types.Tool(
                 name="drone_go_to",
