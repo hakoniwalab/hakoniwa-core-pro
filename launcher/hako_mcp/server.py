@@ -50,20 +50,21 @@ async def main():
 
 async def manual_main():
     await server_instance.initialize_rpc_clients()
-    print("Manual mode: type 'list_tools' or 'call_tool <tool_name> key1=value1 key2=value2 ...'")
+    print("Manual mode: type 'list' or 'call <tool_name> key1=value1 key2=value2 ...'")
+    loop = asyncio.get_event_loop()
     while True:
         try:
-            cmd_input = input("> ")
+            cmd_input = await loop.run_in_executor(None, input, "> ")
             parts = cmd_input.split()
             command = parts[0]
 
-            if command == "list_tools":
+            if command == "list":
                 tools = await server_instance.list_tools()
                 for tool in tools:
                     print(f"- {tool.name}: {tool.description}")
-            elif command == "call_tool":
+            elif command == "call":
                 if len(parts) < 2:
-                    print("Usage: call_tool <tool_name> key1=value1 key2=value2 ...")
+                    print("Usage: call <tool_name> key1=value1 key2=value2 ...")
                     continue
                 tool_name = parts[1]
                 args = {}

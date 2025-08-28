@@ -29,7 +29,7 @@ class HakoDroneService:
 
     def _get_or_create_client_state(self, drone_name: str) -> tuple[hakosim.MultirotorClient, DroneState]:
         if drone_name not in self.clients:
-            logging.info(f"Creating new client and state for {drone_name}")
+            logging.info(f"Creating new client and state for {drone_name} config_path: {self.config_path}")
             client = hakosim.MultirotorClient(self.config_path, drone_name)
             client.confirmConnection()
             client.enableApiControl(True)

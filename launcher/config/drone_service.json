@@ -33,8 +33,8 @@
             }
         },
         {
-            "name": "DroneService/DroneTakeoff",
-            "type": "drone_srv_msgs/DroneTakeoff",
+            "name": "DroneService/DroneTakeOff",
+            "type": "drone_srv_msgs/DroneTakeOff",
             "maxClients": 1,
             "pduSize": {
                 "server": {

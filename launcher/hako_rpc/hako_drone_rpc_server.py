@@ -43,7 +43,7 @@ class HakoDroneRpcServer(HakoRpcServer):
             return False
         
         if self.launcher_service:
-            self.drone_service = HakoDroneService(self.launcher_service, self.args.launch_file)
+            self.drone_service = HakoDroneService(self.launcher_service, self.args.pdu_config)
             self._register_drone_services()
             return True
         return False
@@ -80,80 +80,80 @@ class HakoDroneRpcServer(HakoRpcServer):
 
     # --- Handlers ---
     async def _set_ready_handler(self, req: DroneSetReadyRequest) -> DroneSetReadyResponse:
-        ok, message = self.drone_service.set_ready(req.body.drone_name)
+        ok, message = self.drone_service.set_ready(req.drone_name)
         res = DroneSetReadyResponse()
-        res.body.ok = ok
-        res.body.message = message
+        res.ok = ok
+        res.message = message
         return res
 
     async def _takeoff_handler(self, req: DroneTakeOffRequest) -> DroneTakeOffResponse:
-        ok, message = self.drone_service.takeoff(req.body.drone_name, req.body.alt_m)
+        ok, message = self.drone_service.takeoff(req.drone_name, req.alt_m)
         res = DroneTakeOffResponse()
-        res.body.ok = ok
-        res.body.message = message
+        res.ok = ok
+        res.message = message
         return res
 
     async def _land_handler(self, req: DroneLandRequest) -> DroneLandResponse:
-        ok, message = self.drone_service.land(req.body.drone_name)
+        ok, message = self.drone_service.land(req.drone_name)
         res = DroneLandResponse()
-        res.body.ok = ok
-        res.body.message = message
+        res.ok = ok
+        res.message = message
         return res
 
     async def _go_to_handler(self, req: DroneGoToRequest) -> DroneGoToResponse:
         ok, message = self.drone_service.go_to(
-            req.body.drone_name, req.body.target_pose, req.body.speed_m_s, 
-            req.body.yaw_deg, req.body.tolerance_m, req.body.timeout_sec
+            req.drone_name, req.target_pose, req.speed_m_s, 
+            req.yaw_deg, req.tolerance_m, req.timeout_sec
         )
         res = DroneGoToResponse()
-        res.body.ok = ok
-        res.body.message = message
+        res.ok = ok
+        res.message = message
         return res
 
     async def _get_state_handler(self, req: DroneGetStateRequest) -> DroneGetStateResponse:
-        state = self.drone_service.get_state(req.body.drone_name)
+        state = self.drone_service.get_state(req.drone_name)
         res = DroneGetStateResponse()
-        res.body.ok = state["ok"]
-        if res.body.ok and hasattr(res.body, 'is_ready'):
-            res.body.is_ready = state["is_ready"]
-            res.body.current_pose = state["current_pose"]
-            res.body.battery_status = state["battery_status"]
-            res.body.mode = state["mode"]
-        res.body.message = state["message"]
+        res.ok = state["ok"]
+        if res.ok and hasattr(res, 'is_ready'):
+            res.is_ready = state["is_ready"]
+            res.current_pose = state["current_pose"]
+            res.battery_status = state["battery_status"]
+            res.mode = state["mode"]
+        res.message = state["message"]
         return res
 
     async def _capture_image_handler(self, req: CameraCaptureImageRequest) -> CameraCaptureImageResponse:
-        result = self.drone_service.capture_image(req.body.drone_name, req.body.image_type)
+        result = self.drone_service.capture_image(req.drone_name, req.image_type)
         res = CameraCaptureImageResponse()
-        res.body.ok = result["ok"]
-        if res.body.ok and hasattr(res.body, 'image'):
-            res.body.image = result["image"]
-        res.body.message = result["message"]
+        res.ok = result["ok"]
+        if res.ok and hasattr(res, 'image'):
+            res.image = result["image"]
+        res.message = result["message"]
         return res
 
     async def _set_tilt_handler(self, req: CameraSetTiltRequest) -> CameraSetTiltResponse:
-        ok, message = self.drone_service.set_tilt(req.body.drone_name, req.body.tilt_angle_deg)
+        ok, message = self.drone_service.set_tilt(req.drone_name, req.tilt_angle_deg)
         res = CameraSetTiltResponse()
-        res.body.ok = ok
-        res.body.message = message
+        res.ok = ok
+        res.message = message
         return res
 
     async def _scan_lidar_handler(self, req: LiDARScanRequest) -> LiDARScanResponse:
-        result = self.drone_service.scan_lidar(req.body.drone_name)
+        result = self.drone_service.scan_lidar(req.drone_name)
         res = LiDARScanResponse()
-        res.body.ok = result["ok"]
-        if res.body.ok and hasattr(res.body, 'point_cloud'):
-            res.body.point_cloud = result["point_cloud"]
-            res.body.lidar_pose = result["lidar_pose"]
-        res.body.message = result["message"]
+        res.ok = result["ok"]
+        if res.ok and hasattr(res, 'point_cloud'):
+            res.point_cloud = result["point_cloud"]
+            res.lidar_pose = result["lidar_pose"]
+        res.message = result["message"]
         return res
 
     async def _grab_magnet_handler(self, req: MagnetGrabRequest) -> MagnetGrabResponse:
-        result = self.drone_service.grab_magnet(req.body.drone_name, req.body.grab_on, req.body.timeout_sec)
+        result = self.drone_service.grab_magnet(req.drone_name, req.grab_on, req.timeout_sec)
         res = MagnetGrabResponse()
-        res.body.ok = result["ok"]
-        if res.body.ok and hasattr(res.body, 'magnet_on'):
-            res.body.magnet_on = result["magnet_on"]
-            res.body.contact_on = result["contact_on"]
-        res.body.message = result["message"]
+        res.ok = result["ok"]
+        if res.ok and hasattr(res, 'magnet_on'):
+            res.magnet_on = result["magnet_on"]
+            res.contact_on = result["contact_on"]
+        res.message = result["message"]
         return res

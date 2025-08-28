@@ -56,9 +56,9 @@ class HakoMcpBaseServer:
                 ProtocolClientClass=ProtocolClientBlocking,
             )
 
+            if not await manager.start_service(self.rpc_uri):
+                raise ConnectionError(f"Failed to start RPC service for {name}")
             for name, client in self.rpc_clients.items():
-                if not await client.start_service(self.rpc_uri):
-                    raise ConnectionError(f"Failed to start RPC service for {name}")
                 if not await client.register():
                     raise ConnectionError(f"Failed to register RPC client for {name}")
             
@@ -79,7 +79,7 @@ class HakoMcpBaseServer:
                 logging.error(f"RPC call failed for service: {service_name}")
                 return None
             
-            logging.info(f"RPC Response from {service_name}: {res.body.message}")
+            logging.info(f"RPC Response from {service_name}: {res.message}")
             return res
         except Exception as e:
             logging.error(f"An error occurred during RPC call to {service_name}: {e}")
@@ -89,19 +89,19 @@ class HakoMcpBaseServer:
         req = SystemControlRequest()
         req.opcode = SystemControlOpCode.ACTIVATE
         res = await self._send_rpc_command(SYSTEM_CONTROL_SERVICE_NAME, req)
-        return res.body.message if res else "RPC failed"
+        return res.message if res else "RPC failed"
     
     async def hakoniwa_simulator_start(self) -> str:
         req = SystemControlRequest()
         req.opcode = SystemControlOpCode.START
         res = await self._send_rpc_command(SYSTEM_CONTROL_SERVICE_NAME, req)
-        return res.body.message if res else "RPC failed"
+        return res.message if res else "RPC failed"
 
     async def hakoniwa_simulator_terminate(self) -> str:
         req = SystemControlRequest()
         req.opcode = SystemControlOpCode.TERMINATE
         res = await self._send_rpc_command(SYSTEM_CONTROL_SERVICE_NAME, req)
-        return res.body.message if res else "RPC failed"
+        return res.message if res else "RPC failed"
 
     async def list_tools(self) -> list[types.Tool]:
         return [

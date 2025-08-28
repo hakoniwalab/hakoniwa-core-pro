@@ -25,6 +25,7 @@ try:
     from hakoniwa_pdu.pdu_msgs.drone_srv_msgs.pdu_pytype_LiDARScanResponse import LiDARScanResponse
     from hakoniwa_pdu.pdu_msgs.drone_srv_msgs.pdu_pytype_MagnetGrabRequest import MagnetGrabRequest
     from hakoniwa_pdu.pdu_msgs.drone_srv_msgs.pdu_pytype_MagnetGrabResponse import MagnetGrabResponse
+    from hakoniwa_pdu.pdu_msgs.geometry_msgs.pdu_pytype_Vector3 import Vector3
 except ImportError:
     logging.error("PDU types not found, using dummy classes.")
 
@@ -136,42 +137,42 @@ class HakoMcpDroneServer(HakoMcpBaseServer):
 
             result_pdu = None
             if name == "drone_set_ready":
-                req = DroneSetReadyRequest(); req.body.drone_name = drone_name
+                req = DroneSetReadyRequest(); req.drone_name = drone_name
                 result_pdu = await self._send_rpc_command("DroneService/DroneSetReady", req)
             elif name == "drone_takeoff":
-                req = DroneTakeOffRequest(); req.body.drone_name = drone_name; req.body.alt_m = arguments["height"]
+                req = DroneTakeOffRequest(); req.drone_name = drone_name; req.alt_m = arguments["height"]
                 result_pdu = await self._send_rpc_command("DroneService/DroneTakeOff", req)
             elif name == "drone_land":
-                req = DroneLandRequest(); req.body.drone_name = drone_name
+                req = DroneLandRequest(); req.drone_name = drone_name
                 result_pdu = await self._send_rpc_command("DroneService/DroneLand", req)
             elif name == "drone_get_state":
-                req = DroneGetStateRequest(); req.body.drone_name = drone_name
+                req = DroneGetStateRequest(); req.drone_name = drone_name
                 result_pdu = await self._send_rpc_command("DroneService/DroneGetState", req)
             elif name == "drone_go_to":
-                req = DroneGoToRequest(); req.body.drone_name = drone_name; req.body.target_pose = Vector3(); req.body.target_pose.x = arguments["x"]; req.body.target_pose.y = arguments["y"]; req.body.target_pose.z = arguments["z"]; req.body.speed_m_s = arguments["speed"]; req.body.yaw_deg = arguments["yaw"]; req.body.tolerance_m = arguments["tolerance"]; req.body.timeout_sec = arguments["timeout"]
+                req = DroneGoToRequest(); req.drone_name = drone_name; req.target_pose = Vector3(); req.target_pose.x = arguments["x"]; req.target_pose.y = arguments["y"]; req.target_pose.z = arguments["z"]; req.speed_m_s = arguments["speed"]; req.yaw_deg = arguments["yaw"]; req.tolerance_m = arguments["tolerance"]; req.timeout_sec = arguments["timeout"]
                 result_pdu = await self._send_rpc_command("DroneService/DroneGoTo", req)
             elif name == "camera_capture_image":
-                req = CameraCaptureImageRequest(); req.body.drone_name = drone_name; req.body.image_type = arguments["image_type"]
+                req = CameraCaptureImageRequest(); req.drone_name = drone_name; req.image_type = arguments["image_type"]
                 result_pdu = await self._send_rpc_command("DroneService/CameraCaptureImage", req)
-                if result_pdu and result_pdu.body.ok:
-                    res_dict = result_pdu.body.to_dict()
+                if result_pdu and result_pdu.ok:
+                    res_dict = result_pdu.to_dict()
                     if 'image' in res_dict and 'data' in res_dict['image']:
                         byte_data = bytes(res_dict['image']['data'])
                         res_dict['image']['data'] = base64.b64encode(byte_data).decode('utf-8')
                     return [types.TextContent(type="text", text=json.dumps(res_dict, indent=2))]
             elif name == "camera_set_tilt":
-                req = CameraSetTiltRequest(); req.body.drone_name = drone_name; req.body.tilt_angle_deg = arguments["angle"]
+                req = CameraSetTiltRequest(); req.drone_name = drone_name; req.tilt_angle_deg = arguments["angle"]
                 result_pdu = await self._send_rpc_command("DroneService/CameraSetTilt", req)
             elif name == "lidar_scan":
-                req = LiDARScanRequest(); req.body.drone_name = drone_name
+                req = LiDARScanRequest(); req.drone_name = drone_name
                 result_pdu = await self._send_rpc_command("DroneService/LiDARScan", req)
             elif name == "magnet_grab":
-                req = MagnetGrabRequest(); req.body.drone_name = drone_name; req.body.grab_on = arguments["grab"]; req.body.timeout_sec = arguments["timeout"]
+                req = MagnetGrabRequest(); req.drone_name = drone_name; req.grab_on = arguments["grab"]; req.timeout_sec = arguments["timeout"]
                 result_pdu = await self._send_rpc_command("DroneService/MagnetGrab", req)
             else:
                 raise ValueError(f"Unknown tool: {name}")
             
             if result_pdu:
-                return [types.TextContent(type="text", text=result_pdu.body.to_json())]
+                return [types.TextContent(type="text", text=result_pdu.to_json())]
             else:
                 return [types.TextContent(type="text", text=json.dumps({"ok": False, "message": "RPC call failed."}))]
