@@ -45,17 +45,14 @@ class HakoRpcServer:
         self.services = []
         self.handlers = {}
 
-    def add_service(self, service_name: str, srv: str, max_clients: int = 1):
+    def add_service(self, name: str, srv_type: str, handler, max_clients: int = 1):
         self.services.append({
-            "service_name": service_name,
-            "srv": srv,
+            "service_name": name,
+            "srv": srv_type,
             "max_clients": max_clients
         })
-        logging.info(f"Service added: {service_name}")
-
-    def add_handler(self, service_name: str, handler):
-        self.handlers[service_name] = handler
-        logging.info(f"Handler added for: {service_name}")
+        self.handlers[name] = handler
+        logging.info(f"Service '{name}' with handler '{handler.__name__}' added.")
 
     def _initialize_launcher(self):
         try:
@@ -65,9 +62,8 @@ class HakoRpcServer:
             for a in self.launcher_service.spec.assets:
                 logging.info(f" - {a.name} (cwd={a.cwd}, cmd={a.command}, args={a.args})")
             
-            # デフォルトのサービスとハンドラを登録
-            self.add_service(SYSTEM_CONTROL_SERVICE_NAME, "SystemControl")
-            self.add_handler(SYSTEM_CONTROL_SERVICE_NAME, self._system_control_handler)
+            # デフォルトのサービスを登録
+            self.add_service(SYSTEM_CONTROL_SERVICE_NAME, "SystemControl", self._system_control_handler)
             return True
         except Exception as e:
             logging.error(f"Failed to load spec: {e}")
