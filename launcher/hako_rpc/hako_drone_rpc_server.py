@@ -6,8 +6,6 @@ from .hako_rpc_server import HakoRpcServer
 from hako_drone.hako_drone_service import HakoDroneService
 from hakoniwa_pdu.rpc.codes import SystemControlStatusCode
 
-# PDUの型定義をインポート
-# 存在しない場合は、仮のクラスで代替
 try:
     from hakoniwa_pdu.pdu_msgs.drone_srv_msgs.pdu_pytype_DroneSetReadyRequest import DroneSetReadyRequest
     from hakoniwa_pdu.pdu_msgs.drone_srv_msgs.pdu_pytype_DroneSetReadyResponse import DroneSetReadyResponse

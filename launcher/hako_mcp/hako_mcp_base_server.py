@@ -3,32 +3,42 @@ from mcp.server import Server
 from pydantic import AnyUrl
 import logging
 
-# Imports from launch_client.py
 from hakoniwa_pdu.impl.websocket_communication_service import WebSocketCommunicationService
 from hakoniwa_pdu.rpc.remote.remote_pdu_service_client_manager import RemotePduServiceClientManager
-from hakoniwa_pdu.rpc.auto_wire import make_protocol_client
+from hakoniwa_pdu.rpc.auto_wire import make_protocol_clients
 from hakoniwa_pdu.rpc.protocol_client import ProtocolClientBlocking
 from hakoniwa_pdu.pdu_msgs.hako_srv_msgs.pdu_pytype_SystemControlRequest import SystemControlRequest
 from hakoniwa_pdu.rpc.codes import SystemControlOpCode
 
-# Constants from launch_client.py (adjusted for server context)
 ASSET_NAME = "HakoMcpServer"
-CLIENT_NAME = "HakoMcpServer"
-SERVICE_NAME = "Service/SystemControl"
-OFFSET_PATH = "/usr/local/share/hakoniwa/offset" # This path might need adjustment
+CLIENT_NAME_DEFAULT = "HakoMcpServerClient"
+SYSTEM_CONTROL_SERVICE_NAME = "Service/SystemControl"
+OFFSET_PATH = "/usr/local/share/hakoniwa/offset"
 DELTA_TIME_USEC = 1_000_000
 
 class HakoMcpBaseServer:
     def __init__(self, server_name, simulator_name="Simulator"):
         self.server = Server(server_name)
         self.simulator_name = simulator_name
-        self.rpc_client = None
+        self.rpc_clients = {}
+        self.rpc_service_specs = []
         self.rpc_uri = "ws://localhost:8080"
         self.pdu_config_path = "/Users/tmori/project/private/hakoniwa-core-pro/launcher/config/pdu_config.json"
         self.service_config_path = "/Users/tmori/project/private/hakoniwa-core-pro/launcher/config/service.json"
 
-    async def initialize_rpc_client(self):
-        logging.info("Initializing RPC client...")
+    def add_rpc_service(self, service_name: str, srv_type: str, client_name: str = CLIENT_NAME_DEFAULT):
+        self.rpc_service_specs.append({
+            "service_name": service_name,
+            "srv": srv_type,
+            "client_name": client_name
+        })
+        logging.info(f"RPC service spec added: {service_name}")
+
+    async def initialize_rpc_clients(self):
+        logging.info("Initializing RPC clients...")
+        # Add default system control service
+        self.add_rpc_service(SYSTEM_CONTROL_SERVICE_NAME, "SystemControl")
+        
         try:
             comm = WebSocketCommunicationService(version="v2")
             manager = RemotePduServiceClientManager(
@@ -40,59 +50,60 @@ class HakoMcpBaseServer:
             )
             manager.initialize_services(self.service_config_path, DELTA_TIME_USEC)
 
-            client = make_protocol_client(
+            self.rpc_clients = make_protocol_clients(
                 pdu_manager=manager,
-                service_name=SERVICE_NAME,
-                client_name=CLIENT_NAME,
-                srv="SystemControl",
+                services=self.rpc_service_specs,
                 ProtocolClientClass=ProtocolClientBlocking,
             )
 
-            if not await client.start_service(self.rpc_uri):
-                logging.error("Failed to start RPC communication service")
-                return
-            if not await client.register():
-                logging.error("Failed to register RPC client")
-                return
+            for name, client in self.rpc_clients.items():
+                if not await client.start_service(self.rpc_uri):
+                    raise ConnectionError(f"Failed to start RPC service for {name}")
+                if not await client.register():
+                    raise ConnectionError(f"Failed to register RPC client for {name}")
             
-            self.rpc_client = client
-            logging.info("RPC client initialized and registered successfully.")
+            logging.info(f"RPC clients initialized and registered successfully for {len(self.rpc_clients)} services.")
         except Exception as e:
-            logging.error(f"Failed to initialize RPC client: {e}")
-            self.rpc_client = None
+            logging.error(f"Failed to initialize RPC clients: {e}")
+            self.rpc_clients = {}
 
-    async def _send_rpc_command(self, opcode):
-        if not self.rpc_client:
-            error_msg = "RPC client is not initialized."
+    async def _send_rpc_command(self, service_name: str, req_pdu):
+        if service_name not in self.rpc_clients:
+            error_msg = f"RPC client for service '{service_name}' is not initialized."
             logging.error(error_msg)
             return error_msg
         
+        client = self.rpc_clients[service_name]
         try:
-            req = SystemControlRequest()
-            req.opcode = opcode
-            res = await self.rpc_client.call(req, timeout_msec=-1)
+            res = await client.call(req_pdu, timeout_msec=-1)
             if res is None:
-                error_msg = f"RPC call failed for opcode: {opcode}"
+                error_msg = f"RPC call failed for service: {service_name}"
                 logging.error(error_msg)
                 return error_msg
             
-            logging.info(f"RPC Response for opcode {opcode}: {res.message}")
-            return f"RPC Response: {res.message}"
+            logging.info(f"RPC Response from {service_name}: {res.body.message}")
+            return f"RPC Response: {res.body.message}"
         except Exception as e:
-            error_msg = f"An error occurred during RPC call for opcode {opcode}: {e}"
+            error_msg = f"An error occurred during RPC call to {service_name}: {e}"
             logging.error(error_msg)
             return error_msg
 
     async def hakoniwa_simulator_activate(self) -> str:
-        await self._send_rpc_command(SystemControlOpCode.ACTIVATE)
+        req = SystemControlRequest()
+        req.opcode = SystemControlOpCode.ACTIVATE
+        await self._send_rpc_command(SYSTEM_CONTROL_SERVICE_NAME, req)
         return "Simulator activated successfully."
     
     async def hakoniwa_simulator_start(self) -> str:
-        await self._send_rpc_command(SystemControlOpCode.START)
+        req = SystemControlRequest()
+        req.opcode = SystemControlOpCode.START
+        await self._send_rpc_command(SYSTEM_CONTROL_SERVICE_NAME, req)
         return "Simulator started successfully."
 
     async def hakoniwa_simulator_terminate(self) -> str:
-        await self._send_rpc_command(SystemControlOpCode.TERMINATE)
+        req = SystemControlRequest()
+        req.opcode = SystemControlOpCode.TERMINATE
+        await self._send_rpc_command(SYSTEM_CONTROL_SERVICE_NAME, req)
         return "Simulator terminated successfully."
 
     async def list_tools(self) -> list[types.Tool]:
