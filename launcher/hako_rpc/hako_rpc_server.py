@@ -21,6 +21,7 @@ from hakoniwa_pdu.pdu_msgs.hako_srv_msgs.pdu_pytype_SystemControlRequest import 
 from hakoniwa_pdu.pdu_msgs.hako_srv_msgs.pdu_pytype_SystemControlResponse import (
     SystemControlResponse,
 )
+from hakoniwa_pdu.rpc.service_config import patch_service_base_size
 
 # 親ディレクトリからLauncherServiceをインポート
 from hako_launch.hako_launcher import LauncherService
@@ -46,6 +47,7 @@ class HakoRpcServer:
             comm_service=comm,
             uri=self.args.uri,
         )
+        patch_service_base_size(self.args.service_config, OFFSET_PATH, None)
         manager.initialize_services(self.args.service_config, DELTA_TIME_USEC)
 
         server = make_protocol_server(
