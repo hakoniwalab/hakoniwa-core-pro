@@ -54,28 +54,28 @@ class HakoMcpDroneServer(HakoMcpBaseServer):
         drone_tools = [
             types.Tool(
                 name="drone_set_ready",
-                description="Prepare the drone for mission.",
+                description="Prepare the drone for mission. The default value for drone_name is 'Drone'.",
                 inputSchema={"type": "object", "properties": {"drone_name": {"type": "string"}}, "required": ["drone_name"]}
             ),
             types.Tool(
                 name="drone_takeoff",
-                description="Executes a takeoff command.",
+                description="Executes a takeoff command. The default value for drone_name is 'Drone'.",
                 inputSchema={"type": "object", "properties": {"drone_name": {"type": "string"}, "height": {"type": "number", "description": "Target height in meters."}}, "required": ["drone_name", "height"]}
             ),
             types.Tool(
                 name="drone_land",
-                description="Executes a land command.",
+                description="Executes a land command. The default value for drone_name is 'Drone'.",
                 inputSchema={"type": "object", "properties": {"drone_name": {"type": "string"}}, "required": ["drone_name"]}
             ),
             types.Tool(
                 name="drone_get_state",
-                description="Get the drone's current state.",
+                description="Get the drone's current state. The default value for drone_name is 'Drone'.",
                 inputSchema={"type": "object", "properties": {"drone_name": {"type": "string"}}, "required": ["drone_name"]},
                 outputSchema={"type": "object", "properties": {"ok": {"type": "boolean"}, "is_ready": {"type": "boolean"}, "current_pose": {"type": "object"}, "mode": {"type": "string"}, "message": {"type": "string"}}}
             ),
             types.Tool(
                 name="drone_go_to",
-                description="Move drone to a specified position in the ROS coordinate system.",
+                description="Move drone to a specified position in the ROS coordinate system. The default value for drone_name is 'Drone'.",
                 inputSchema={
                     "type": "object",
                     "properties": {
@@ -83,17 +83,17 @@ class HakoMcpDroneServer(HakoMcpBaseServer):
                         "x": {"type": "number", "description": "Target X in meters."},
                         "y": {"type": "number", "description": "Target Y in meters."},
                         "z": {"type": "number", "description": "Target Z in meters."},
-                        "speed": {"type": "number", "description": "Speed in meters/second."},
-                        "yaw": {"type": "number", "description": "Yaw angle in degrees."},
-                        "tolerance": {"type": "number", "description": "Position tolerance in meters."},
-                        "timeout": {"type": "number", "description": "Timeout in seconds."}
+                        "speed": {"type": "number", "description": "Speed in meters/second. Default is 1.0."},
+                        "yaw": {"type": "number", "description": "Yaw angle in degrees. Default is 0.0."},
+                        "tolerance": {"type": "number", "description": "Position tolerance in meters. Default is 0.5."},
+                        "timeout": {"type": "number", "description": "Unsupported. Please always use -1."}
                     },
-                    "required": ["drone_name", "x", "y", "z", "speed", "yaw", "tolerance", "timeout"]
+                    "required": ["drone_name", "x", "y", "z"]
                 }
             ),
             types.Tool(
                 name="camera_capture_image",
-                description="Capture an image from the drone's camera.",
+                description="Capture an image from the drone's camera. The default value for drone_name is 'Drone'.",
                 inputSchema={"type": "object", "properties": {"drone_name": {"type": "string"}, "image_type": {"type": "string", "description": "e.g., 'png' or 'jpeg'."}}, "required": ["drone_name", "image_type"]},
                 outputSchema={
                     "type": "object",
@@ -106,19 +106,19 @@ class HakoMcpDroneServer(HakoMcpBaseServer):
             ),
             types.Tool(
                 name="camera_set_tilt",
-                description="Set the tilt angle of the drone's camera.",
+                description="Set the tilt angle of the drone's camera. The default value for drone_name is 'Drone'.",
                 inputSchema={"type": "object", "properties": {"drone_name": {"type": "string"}, "angle": {"type": "number", "description": "Tilt angle in degrees."}}, "required": ["drone_name", "angle"]}
             ),
             types.Tool(
                 name="lidar_scan",
-                description="Perform a LiDAR scan.",
+                description="Perform a LiDAR scan. The default value for drone_name is 'Drone'.",
                 inputSchema={"type": "object", "properties": {"drone_name": {"type": "string"}}, "required": ["drone_name"]},
                 outputSchema={"type": "object", "properties": {"ok": {"type": "boolean"}, "message": {"type": "string"}, "point_cloud": {"type": "object"}, "lidar_pose": {"type": "object"}}}
             ),
             types.Tool(
                 name="magnet_grab",
-                description="Control the drone's magnet.",
-                inputSchema={"type": "object", "properties": {"drone_name": {"type": "string"}, "grab": {"type": "boolean"}, "timeout": {"type": "number"}}, "required": ["drone_name", "grab", "timeout"]},
+                description="Control the drone's magnet. The default value for drone_name is 'Drone'.",
+                inputSchema={"type": "object", "properties": {"drone_name": {"type": "string"}, "grab": {"type": "boolean"}, "timeout": {"type": "number", "description": "Unsupported. Please always use -1."}}, "required": ["drone_name", "grab"]},
                 outputSchema={"type": "object", "properties": {"ok": {"type": "boolean"}, "message": {"type": "string"}, "magnet_on": {"type": "boolean"}, "contact_on": {"type": "boolean"}}}
             )
         ]
@@ -129,11 +129,9 @@ class HakoMcpDroneServer(HakoMcpBaseServer):
             return await super().call_tool(name, arguments)
         except ValueError:
             if arguments is None:
-                raise ValueError(f"Arguments required for tool: {name}")
+                arguments = {}
             
-            drone_name = arguments.get("drone_name")
-            if not drone_name:
-                raise ValueError("'drone_name' is a required argument.")
+            drone_name = arguments.get("drone_name", "Drone")
 
             result_pdu = None
             if name == "drone_set_ready":
@@ -149,7 +147,7 @@ class HakoMcpDroneServer(HakoMcpBaseServer):
                 req = DroneGetStateRequest(); req.drone_name = drone_name
                 result_pdu = await self._send_rpc_command("DroneService/DroneGetState", req)
             elif name == "drone_go_to":
-                req = DroneGoToRequest(); req.drone_name = drone_name; req.target_pose = Vector3(); req.target_pose.x = arguments["x"]; req.target_pose.y = arguments["y"]; req.target_pose.z = arguments["z"]; req.speed_m_s = arguments["speed"]; req.yaw_deg = arguments["yaw"]; req.tolerance_m = arguments["tolerance"]; req.timeout_sec = arguments["timeout"]
+                req = DroneGoToRequest(); req.drone_name = drone_name; req.target_pose = Vector3(); req.target_pose.x = arguments["x"]; req.target_pose.y = arguments["y"]; req.target_pose.z = arguments["z"]; req.speed_m_s = arguments.get("speed", 1.0); req.yaw_deg = arguments.get("yaw", 0.0); req.tolerance_m = arguments.get("tolerance", 0.5); req.timeout_sec = -1
                 result_pdu = await self._send_rpc_command("DroneService/DroneGoTo", req)
             elif name == "camera_capture_image":
                 req = CameraCaptureImageRequest(); req.drone_name = drone_name; req.image_type = arguments["image_type"]
@@ -167,7 +165,7 @@ class HakoMcpDroneServer(HakoMcpBaseServer):
                 req = LiDARScanRequest(); req.drone_name = drone_name
                 result_pdu = await self._send_rpc_command("DroneService/LiDARScan", req)
             elif name == "magnet_grab":
-                req = MagnetGrabRequest(); req.drone_name = drone_name; req.grab_on = arguments["grab"]; req.timeout_sec = arguments["timeout"]
+                req = MagnetGrabRequest(); req.drone_name = drone_name; req.grab_on = arguments["grab"]; req.timeout_sec = -1
                 result_pdu = await self._send_rpc_command("DroneService/MagnetGrab", req)
             else:
                 raise ValueError(f"Unknown tool: {name}")

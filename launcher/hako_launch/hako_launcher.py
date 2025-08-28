@@ -31,9 +31,13 @@ class LauncherService:
 
     # -------- 状態遷移API --------
     def activate(self) -> None:
-        if self.state not in ("IDLE",):
+        if self.state not in ("IDLE", "TERMINATED"):
             print(f"[launcher] activate: invalid state={self.state}", file=sys.stderr)
             return
+        # activate()は冪等ではない。再実行の場合はモニターを再生成する
+        if self.state == "TERMINATED":
+            self.monitor = HakoMonitor(self.spec, defaults_env_ops=self.defaults_env_ops)
+
         print("[INFO] activating all assets...")
         self.monitor.start_all()
         self._stop_watch.clear()

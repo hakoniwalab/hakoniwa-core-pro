@@ -7,6 +7,7 @@ from pydantic import AnyUrl
 import logging
 import argparse
 import json
+import readline
 
 #logging.basicConfig(
 #    level=logging.DEBUG,
@@ -50,18 +51,79 @@ async def main():
 
 async def manual_main():
     await server_instance.initialize_rpc_clients()
+
+    # Setup for tab completion
+    tools = await server_instance.list_tools()
+    tool_names = [tool.name for tool in tools]
+    commands = ['list', 'call', 'exit']
+    
+    # Create a map of tool names to their arguments for completion
+    tools_map = {}
+    for tool in tools:
+        try:
+            if hasattr(tool, 'inputSchema') and 'properties' in tool.inputSchema:
+                tools_map[tool.name] = list(tool.inputSchema['properties'].keys())
+            else:
+                tools_map[tool.name] = []
+        except Exception:
+            tools_map[tool.name] = []
+
+    def completer(text, state):
+        line = readline.get_line_buffer()
+        parts = line.lstrip().split()
+        
+        options = []
+
+        # Case 1: Completing the command itself
+        if len(parts) == 0 or (len(parts) == 1 and not line.endswith(' ')):
+            options = [cmd for cmd in commands if cmd.startswith(text)]
+        
+        # Case 2: Completing a tool name for 'call'
+        elif parts and parts[0] == 'call' and (len(parts) == 1 or (len(parts) == 2 and not line.endswith(' '))):
+            if len(parts) == 1 and line.endswith(' '): # after "call "
+                 options = [name for name in tool_names if name.startswith(text)]
+            else: # completing second word
+                 options = [name for name in tool_names if name.startswith(text)]
+
+        # Case 3: Completing arguments for a tool
+        elif parts and parts[0] == 'call' and len(parts) >= 2:
+            tool_name = parts[1]
+            if tool_name in tools_map:
+                # Do not complete if we are typing a value (after '=')
+                if not line.endswith(' ') and '=' in parts[-1]:
+                    options = []
+                else:
+                    used_args = {p.split('=')[0] for p in parts[2:]}
+                    available_args = [arg for arg in tools_map[tool_name] if arg not in used_args]
+                    options = [arg + '=' for arg in available_args if arg.startswith(text)]
+
+        if state < len(options):
+            return options[state]
+        else:
+            return None
+
+    readline.set_completer(completer)
+    readline.parse_and_bind("tab: complete")
+
     print("Manual mode: type 'list' or 'call <tool_name> key1=value1 key2=value2 ...'")
     loop = asyncio.get_event_loop()
     while True:
         try:
             cmd_input = await loop.run_in_executor(None, input, "> ")
+            if not cmd_input:
+                continue
             parts = cmd_input.split()
             command = parts[0]
 
             if command == "list":
-                tools = await server_instance.list_tools()
-                for tool in tools:
+                # Re-fetch to ensure latest info, though it's likely static
+                current_tools = await server_instance.list_tools()
+                for tool in current_tools:
                     print(f"- {tool.name}: {tool.description}")
+                    # Also print parameters for user convenience
+                    if tool.name in tools_map and tools_map[tool.name]:
+                        print(f"  Args: {', '.join(tools_map[tool.name])}")
+
             elif command == "call":
                 if len(parts) < 2:
                     print("Usage: call <tool_name> key1=value1 key2=value2 ...")
