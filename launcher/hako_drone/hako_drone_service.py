@@ -3,6 +3,8 @@ import logging
 import sys
 import os
 from dataclasses import dataclass, field
+from hakoniwa_pdu.pdu_msgs.geometry_msgs.pdu_pytype_Pose import Pose
+from hakoniwa_pdu.pdu_msgs.hako_msgs.pdu_pytype_HakoBatteryStatus import HakoBatteryStatus
 
 # hakosimをインポートするためにパスを追加
 libs_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'examples', 'drone_sample', 'libs'))
@@ -85,12 +87,27 @@ class HakoDroneService:
     def get_state(self, drone_name: str):
         try:
             client, state = self._get_or_create_client_state(drone_name)
-            pose = client.simGetVehiclePose()
+            sim_pose = client.simGetVehiclePose()
+            #print(f"POS  : {pose.position.x_val} {pose.position.y_val} {pose.position.z_val}")
+            #roll, pitch, yaw = client.hakosim_types.Quaternionr.quaternion_to_euler(sim_pose.orientation)
+            #print(f"ANGLE: {math.degrees(roll)} {math.degrees(pitch)} {math.degrees(yaw)}")
+            pose = Pose()
+            pose.position.x = sim_pose.position.x_val
+            pose.position.y = sim_pose.position.y_val
+            pose.position.z = sim_pose.position.z_val
+            pose.orientation.x = sim_pose.orientation.x_val
+            pose.orientation.y = sim_pose.orientation.y_val
+            pose.orientation.z = sim_pose.orientation.z_val
+            pose.orientation.w = sim_pose.orientation.w_val
+            battery_status: HakoBatteryStatus = HakoBatteryStatus()
+            battery_status.full_voltage = 12.4
+            battery_status.curr_voltage = 12.0
+            battery_status.curr_temp = 20.0
             full_state = {
                 "ok": True,
                 "is_ready": True,
                 "current_pose": pose,
-                "battery_status": None, # hakosimに未実装
+                "battery_status": battery_status,
                 "mode": state.mode,
                 "magnet_on": state.magnet_on,
                 "contact_on": state.contact_on,
