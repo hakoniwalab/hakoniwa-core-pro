@@ -1,10 +1,8 @@
 from __future__ import annotations
 import logging
 import asyncio
-import argparse
-import sys
 import signal
-import os
+import sys
 
 from hakoniwa_pdu.rpc.codes import SystemControlOpCode, SystemControlStatusCode
 from hakoniwa_pdu.impl.websocket_server_communication_service import (
@@ -23,7 +21,6 @@ from hakoniwa_pdu.pdu_msgs.hako_srv_msgs.pdu_pytype_SystemControlResponse import
 )
 from hakoniwa_pdu.rpc.service_config import patch_service_base_size
 
-# 親ディレクトリからLauncherServiceをインポート
 from hako_launch.hako_launcher import LauncherService
 
 # 定数
@@ -32,13 +29,37 @@ SERVICE_NAME = "Service/SystemControl"
 OFFSET_PATH = "/Users/tmori/project/oss/hakoniwa-pdu-python/tests/config/offset"
 DELTA_TIME_USEC = 1_000_000
 
+def _install_sigint(service: LauncherService):
+    def _sigint_handler(signum, frame):
+        print("[rpc_server] SIGINT received -> aborting...", file=sys.stderr)
+        try:
+            service.terminate()
+        finally:
+            sys.exit(1)
+    signal.signal(signal.SIGINT, _sigint_handler)
+
 class HakoRpcServer:
-    def __init__(self, launcher_service: LauncherService, args):
-        self.launcher_service = launcher_service
+    def __init__(self, args):
         self.args = args
+        self.launcher_service = None
+
+    def _initialize_launcher(self):
+        try:
+            self.launcher_service = LauncherService(launch_path=self.args.launch_file)
+            _install_sigint(self.launcher_service)
+            logging.info("HakoRPCServer ready. assets:")
+            for a in self.launcher_service.spec.assets:
+                logging.info(f" - {a.name} (cwd={a.cwd}, cmd={a.command}, args={a.args})")
+            return True
+        except Exception as e:
+            logging.error(f"Failed to load spec: {e}")
+            return False
 
     async def start(self):
         """RPCサーバーを起動し、リクエストを待ち受けます。"""
+        if not self._initialize_launcher():
+            return
+
         comm = WebSocketServerCommunicationService(version="v2")
         manager = RemotePduServiceServerManager(
             asset_name=ASSET_NAME,
@@ -65,6 +86,10 @@ class HakoRpcServer:
         async def system_control_handler(req: SystemControlRequest) -> SystemControlResponse:
             """システム制御サービスの実装。LauncherServiceを呼び出す。"""
             res = SystemControlResponse()
+            if self.launcher_service is None:
+                res.status_code = SystemControlStatusCode.FATAL
+                res.message = "Launcher service not initialized"
+                return res
             try:
                 match req.opcode:
                     case SystemControlOpCode.ACTIVATE:
@@ -105,57 +130,3 @@ class HakoRpcServer:
 
         logging.info(f"RPC Server started at {self.args.uri}")
         await server.serve(system_control_handler)
-
-def _install_sigint(service: LauncherService):
-    def _sigint_handler(signum, frame):
-        print("[rpc_server] SIGINT received → aborting...")
-        try:
-            service.terminate()
-        finally:
-            sys.exit(1)
-    signal.signal(signal.SIGINT, _sigint_handler)
-
-async def main() -> int:
-    parser = argparse.ArgumentParser(description="Hakoniwa RPC Server")
-    parser.add_argument("launch_file", help="Path to launcher JSON")
-    parser.add_argument("--uri", default="ws://localhost:8080", help="WebSocketサーバのURI")
-    parser.add_argument("--pdu-config", default="launcher/config/pdu_config.json")
-    parser.add_argument("--service-config", default="launcher/config/service.json")
-    args = parser.parse_args()
-
-    # Setup logging
-    if os.environ.get('HAKO_PDU_DEBUG') == '1':
-        log_level = logging.DEBUG
-    else:
-        log_level = logging.INFO
-
-    logging.basicConfig(
-        level=log_level,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        stream=sys.stdout
-    )
-
-    try:
-        service = LauncherService(launch_path=args.launch_file)
-    except Exception as e:
-        print(f"[rpc_server] Failed to load spec: {e}", file=sys.stderr)
-        return 1
-
-    _install_sigint(service)
-
-    print("[INFO] HakoRPCServer ready. assets:")
-    for a in service.spec.assets:
-        print(f" - {a.name} (cwd={a.cwd}, cmd={a.command}, args={a.args})")
-
-    try:
-        server = HakoRpcServer(service, args)
-        await server.start()
-    except Exception as e:
-        print(f"[rpc_server] Server failed: {e}", file=sys.stderr)
-        service.terminate()
-        return 1
-    
-    return 0
-
-if __name__ == "__main__":
-    asyncio.run(main())
