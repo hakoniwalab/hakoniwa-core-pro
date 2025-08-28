@@ -207,9 +207,9 @@ class HakoMcpDroneServer(HakoMcpBaseServer):
                 result_pdu = await self._send_rpc_command("DroneService/CameraCaptureImage", req)
                 if result_pdu and result_pdu.ok:
                     res_dict = result_pdu.to_dict()
-                    if 'image' in res_dict and 'data' in res_dict['image']:
-                        byte_data = bytes(res_dict['image']['data'])
-                        res_dict['image']['data'] = base64.b64encode(byte_data).decode('utf-8')
+                    if 'data' in res_dict:
+                        byte_data = bytes(res_dict['data'])
+                        res_dict['data'] = base64.b64encode(byte_data).decode('utf-8')
                     return [types.TextContent(type="text", text=json.dumps(res_dict, indent=2))]
             elif name == "camera_set_tilt":
                 req = CameraSetTiltRequest(); req.drone_name = drone_name; req.tilt_angle_deg = arguments["angle"]

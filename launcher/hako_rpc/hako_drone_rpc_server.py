@@ -126,8 +126,8 @@ class HakoDroneRpcServer(HakoRpcServer):
         result = self.drone_service.capture_image(req.drone_name, req.image_type)
         res = CameraCaptureImageResponse()
         res.ok = result["ok"]
-        if res.ok and hasattr(res, 'image'):
-            res.image = result["image"]
+        if res.ok and hasattr(res, 'data'):
+            res.data = result["data"]
         res.message = result["message"]
         return res
 

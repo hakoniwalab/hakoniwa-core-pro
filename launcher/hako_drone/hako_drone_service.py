@@ -122,15 +122,16 @@ class HakoDroneService:
     def capture_image(self, drone_name: str, image_type: str):
         try:
             client, _ = self._get_or_create_client_state(drone_name)
-            image_data = client.simGetImage("0", image_type)
+            image_data = client.simGetImage("0", hakosim.ImageType.Scene)
+            print(f"INFO: captured image data len={len(image_data)}")
             return {
                 "ok": image_data is not None,
-                "image": image_data,
+                "data": image_data,
                 "message": "OK" if image_data is not None else "Failed"
             }
         except Exception as e:
             logging.error(f"CaptureImage failed for {drone_name}: {e}")
-            return {"ok": False, "image": None, "message": str(e)}
+            return {"ok": False, "data": None, "message": str(e)}
 
     def set_tilt(self, drone_name: str, tilt_angle_deg: float):
         try:
