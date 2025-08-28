@@ -3,7 +3,7 @@ import mcp.types as types
 #from mcp.types import CallToolResult
 import json
 import logging
-import base64
+import os
 
 try:
     from hakoniwa_pdu.pdu_msgs.drone_srv_msgs.pdu_pytype_DroneSetReadyRequest import DroneSetReadyRequest
@@ -147,12 +147,27 @@ class HakoMcpDroneServer(HakoMcpBaseServer):
             types.Tool(
                 name="camera_capture_image",
                 description=(
-                    "Capture an image from the drone's camera. "
-                    "The response contains a base64-encoded PNG image string under the 'data' field. "
-                    "The default value for 'drone_name' is 'Drone'."
+                    "Capture an image from the drone's camera and save it to the given filepath. "
+                    "The 'filepath' must be specified by the caller and should end with '.png'. "
+                    "The default value for 'drone_name' is 'Drone'. "
                     "The default value for 'image_type' is 'png'."
                 ),
-                inputSchema={"type": "object", "properties": {"drone_name": {"type": "string"}, "image_type": {"type": "string", "description": "e.g., 'png' or 'jpeg'."}}, "required": ["drone_name", "image_type"]}
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "drone_name": {"type": "string"},
+                        "filepath": {
+                            "type": "string",
+                            "description": "Destination file path (must end with '.png')."
+                        },
+                        "image_type": {
+                            "type": "string",
+                            "enum": ["png"],
+                            "description": "Image format (currently only 'png' is supported)."
+                        }
+                    },
+                    "required": ["filepath"]
+                }
                 #outputSchema={
                 #    "type": "object",
                 #    "properties": {
@@ -209,12 +224,22 @@ class HakoMcpDroneServer(HakoMcpBaseServer):
                 result_pdu = await self._send_rpc_command("DroneService/DroneGoTo", req)
             elif name == "camera_capture_image":
                 req = CameraCaptureImageRequest(); req.drone_name = drone_name; req.image_type = arguments.get("image_type", "png")
+                filepath: str | None = arguments.get("filepath")
+                if not filepath:
+                    raise ValueError("`filepath` is required.")
+                if not filepath.lower().endswith(".png"):
+                    raise ValueError("`filepath` must end with '.png'.")
+
+                os.makedirs(os.path.dirname(filepath) or ".", exist_ok=True)
+
                 result_pdu = await self._send_rpc_command("DroneService/CameraCaptureImage", req)
                 if result_pdu and result_pdu.ok:
                     res_dict = result_pdu.to_dict()
-                    if 'data' in res_dict:
+                    if 'data' in res_dict and filepath is not None:
                         byte_data = bytes(res_dict['data'])
-                        res_dict['data'] = base64.b64encode(byte_data).decode('utf-8')
+                        with open(filepath, 'wb') as img_file:
+                            img_file.write(byte_data)
+                        res_dict['data'] = None
                     return [types.TextContent(type="text", text=json.dumps(res_dict, indent=2))]
             elif name == "camera_set_tilt":
                 req = CameraSetTiltRequest(); req.drone_name = drone_name; req.tilt_angle_deg = arguments["angle"]
