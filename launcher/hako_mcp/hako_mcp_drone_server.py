@@ -1,5 +1,6 @@
 from .hako_mcp_base_server import HakoMcpBaseServer
 import mcp.types as types
+#from mcp.types import CallToolResult
 import json
 import logging
 import base64
@@ -28,47 +29,56 @@ try:
     from hakoniwa_pdu.pdu_msgs.geometry_msgs.pdu_pytype_Vector3 import Vector3
 except ImportError:
     logging.error("PDU types not found, using dummy classes.")
-
 drone_get_state_output_schema = {
     "type": "object",
+    "additionalProperties": False,
     "properties": {
         "ok": {"type": "boolean"},
         "is_ready": {"type": "boolean"},
         "current_pose": {
             "type": "object",
+            "additionalProperties": False,
             "properties": {
                 "position": {
                     "type": "object",
+                    "additionalProperties": False,
                     "properties": {
                         "x": {"type": "number"},
                         "y": {"type": "number"},
                         "z": {"type": "number"}
-                    }
+                    },
+                    "required": ["x", "y", "z"]
                 },
                 "orientation": {
                     "type": "object",
+                    "additionalProperties": False,
                     "properties": {
                         "x": {"type": "number"},
                         "y": {"type": "number"},
                         "z": {"type": "number"},
                         "w": {"type": "number"}
-                    }
+                    },
+                    "required": ["x", "y", "z", "w"]
                 }
-            }
+            },
+            "required": ["position", "orientation"]
         },
         "battery_status": {
             "type": "object",
+            "additionalProperties": False,
             "properties": {
                 "full_voltage": {"type": "number"},
                 "curr_voltage": {"type": "number"},
                 "curr_temp": {"type": "number"},
                 "status": {"type": "number"},
                 "cycles": {"type": "number"}
-            }
+            },
+            "required": ["full_voltage", "curr_voltage", "curr_temp", "status", "cycles"]
         },
         "mode": {"type": "string"},
         "message": {"type": "string"}
-    }
+    },
+    "required": ["ok", "is_ready", "current_pose", "battery_status", "mode", "message"]
 }
 
 class HakoMcpDroneServer(HakoMcpBaseServer):
@@ -114,7 +124,7 @@ class HakoMcpDroneServer(HakoMcpBaseServer):
                 name="drone_get_state",
                 description="Get the drone's current state. The default value for drone_name is 'Drone'.",
                 inputSchema={"type": "object", "properties": {"drone_name": {"type": "string"}}, "required": ["drone_name"]},
-                outputSchema=drone_get_state_output_schema
+                #outputSchema=drone_get_state_output_schema
             ),
             types.Tool(
                 name="drone_go_to",
@@ -137,15 +147,15 @@ class HakoMcpDroneServer(HakoMcpBaseServer):
             types.Tool(
                 name="camera_capture_image",
                 description="Capture an image from the drone's camera. The default value for drone_name is 'Drone'.",
-                inputSchema={"type": "object", "properties": {"drone_name": {"type": "string"}, "image_type": {"type": "string", "description": "e.g., 'png' or 'jpeg'."}}, "required": ["drone_name", "image_type"]},
-                outputSchema={
-                    "type": "object",
-                    "properties": {
-                        "ok": {"type": "boolean"},
-                        "message": {"type": "string"},
-                        "image": {"type": "object", "properties": {"format": {"type": "string"}, "data": {"type": "string", "contentEncoding": "base64"}}}
-                    }
-                }
+                inputSchema={"type": "object", "properties": {"drone_name": {"type": "string"}, "image_type": {"type": "string", "description": "e.g., 'png' or 'jpeg'."}}, "required": ["drone_name", "image_type"]}
+                #outputSchema={
+                #    "type": "object",
+                #    "properties": {
+                #        "ok": {"type": "boolean"},
+                #        "message": {"type": "string"},
+                #        "image": {"type": "object", "properties": {"format": {"type": "string"}, "data": {"type": "string", "contentEncoding": "base64"}}}
+                #    }
+                #}
             ),
             types.Tool(
                 name="camera_set_tilt",
@@ -156,13 +166,13 @@ class HakoMcpDroneServer(HakoMcpBaseServer):
                 name="lidar_scan",
                 description="Perform a LiDAR scan. The default value for drone_name is 'Drone'.",
                 inputSchema={"type": "object", "properties": {"drone_name": {"type": "string"}}, "required": ["drone_name"]},
-                outputSchema={"type": "object", "properties": {"ok": {"type": "boolean"}, "message": {"type": "string"}, "point_cloud": {"type": "object"}, "lidar_pose": {"type": "object"}}}
+                #outputSchema={"type": "object", "properties": {"ok": {"type": "boolean"}, "message": {"type": "string"}, "point_cloud": {"type": "object"}, "lidar_pose": {"type": "object"}}}
             ),
             types.Tool(
                 name="magnet_grab",
                 description="Control the drone's magnet. The default value for drone_name is 'Drone'.",
                 inputSchema={"type": "object", "properties": {"drone_name": {"type": "string"}, "grab": {"type": "boolean"}, "timeout": {"type": "number", "description": "Unsupported. Please always use -1."}}, "required": ["drone_name", "grab"]},
-                outputSchema={"type": "object", "properties": {"ok": {"type": "boolean"}, "message": {"type": "string"}, "magnet_on": {"type": "boolean"}, "contact_on": {"type": "boolean"}}}
+                #outputSchema={"type": "object", "properties": {"ok": {"type": "boolean"}, "message": {"type": "string"}, "magnet_on": {"type": "boolean"}, "contact_on": {"type": "boolean"}}}
             )
         ]
         return base_tools + drone_tools
