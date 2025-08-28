@@ -36,7 +36,6 @@ class HakoMcpBaseServer:
 
     async def initialize_rpc_clients(self):
         logging.info("Initializing RPC clients...")
-        # Add default system control service
         self.add_rpc_service(SYSTEM_CONTROL_SERVICE_NAME, "SystemControl")
         
         try:
@@ -69,42 +68,39 @@ class HakoMcpBaseServer:
 
     async def _send_rpc_command(self, service_name: str, req_pdu):
         if service_name not in self.rpc_clients:
-            error_msg = f"RPC client for service '{service_name}' is not initialized."
-            logging.error(error_msg)
-            return error_msg
+            logging.error(f"RPC client for service '{service_name}' is not initialized.")
+            return None
         
         client = self.rpc_clients[service_name]
         try:
             res = await client.call(req_pdu, timeout_msec=-1)
             if res is None:
-                error_msg = f"RPC call failed for service: {service_name}"
-                logging.error(error_msg)
-                return error_msg
+                logging.error(f"RPC call failed for service: {service_name}")
+                return None
             
             logging.info(f"RPC Response from {service_name}: {res.body.message}")
-            return f"RPC Response: {res.body.message}"
+            return res
         except Exception as e:
-            error_msg = f"An error occurred during RPC call to {service_name}: {e}"
-            logging.error(error_msg)
-            return error_msg
+            logging.error(f"An error occurred during RPC call to {service_name}: {e}")
+            return None
 
     async def hakoniwa_simulator_activate(self) -> str:
         req = SystemControlRequest()
         req.opcode = SystemControlOpCode.ACTIVATE
-        await self._send_rpc_command(SYSTEM_CONTROL_SERVICE_NAME, req)
-        return "Simulator activated successfully."
+        res = await self._send_rpc_command(SYSTEM_CONTROL_SERVICE_NAME, req)
+        return res.body.message if res else "RPC failed"
     
     async def hakoniwa_simulator_start(self) -> str:
         req = SystemControlRequest()
         req.opcode = SystemControlOpCode.START
-        await self._send_rpc_command(SYSTEM_CONTROL_SERVICE_NAME, req)
-        return "Simulator started successfully."
+        res = await self._send_rpc_command(SYSTEM_CONTROL_SERVICE_NAME, req)
+        return res.body.message if res else "RPC failed"
 
     async def hakoniwa_simulator_terminate(self) -> str:
         req = SystemControlRequest()
         req.opcode = SystemControlOpCode.TERMINATE
-        await self._send_rpc_command(SYSTEM_CONTROL_SERVICE_NAME, req)
-        return "Simulator terminated successfully."
+        res = await self._send_rpc_command(SYSTEM_CONTROL_SERVICE_NAME, req)
+        return res.body.message if res else "RPC failed"
 
     async def list_tools(self) -> list[types.Tool]:
         return [
