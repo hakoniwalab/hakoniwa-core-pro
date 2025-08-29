@@ -186,7 +186,7 @@ class HakoMcpDroneServer(HakoMcpBaseServer):
             types.Tool(
                 name="lidar_scan",
                 description=(
-                    "Perform a LiDAR scan and return filtered point cloud data. "
+                    "Perform a LiDAR scan and return lidar_pose and filtered point cloud data. "
                     "The default value for drone_name is 'Drone'. "
                     "Filtering parameters can be specified: "
                     "x_size, y_size (grid cell size in meters, default 0.4), "
@@ -333,7 +333,7 @@ class HakoMcpDroneServer(HakoMcpBaseServer):
                     )
 
                     # フィルタリング結果をJSONで返す
-                    return [types.TextContent(type="text", text=json.dumps({"ok": True, "filtered_points": filtered_points}))]
+                    return [types.TextContent(type="text", text=json.dumps({"ok": True, "lidar_pose": result_pdu.lidar_pose.to_dict(), "filtered_points": filtered_points}))]
                 else:
                     return [types.TextContent(type="text", text=json.dumps({"ok": False, "message": "LiDAR scan failed."}))]
             elif name == "magnet_grab":
