@@ -4,6 +4,7 @@ import mcp.types as types
 import json
 import logging
 import os
+from examples.drone_sample.libs.hakosim_lidar import LidarData, LiDARFilter
 
 try:
     from hakoniwa_pdu.pdu_msgs.drone_srv_msgs.pdu_pytype_DroneSetReadyRequest import DroneSetReadyRequest
@@ -113,7 +114,7 @@ class HakoMcpDroneServer(HakoMcpBaseServer):
             types.Tool(
                 name="drone_takeoff",
                 description="Executes a takeoff command. The default value for drone_name is 'Drone'.",
-                inputSchema={"type": "object", "properties": {"drone_name": {"type": "string"}, "height": {"type": "number", "description": "Target height in meters."}}, "required": ["drone_name", "height"]}
+                inputSchema={"type": "object", "properties": {"drone_name": {"type": "string"}, "height": {"type": "number", "description": "Target height in meters."}}, "required": [ "height"]}
             ),
             types.Tool(
                 name="drone_land",
@@ -184,8 +185,37 @@ class HakoMcpDroneServer(HakoMcpBaseServer):
             ),
             types.Tool(
                 name="lidar_scan",
-                description="Perform a LiDAR scan. The default value for drone_name is 'Drone'.",
-                inputSchema={"type": "object", "properties": {"drone_name": {"type": "string"}}, "required": ["drone_name"]},
+                description=(
+                    "Perform a LiDAR scan and return filtered point cloud data. "
+                    "The default value for drone_name is 'Drone'. "
+                    "Filtering parameters can be specified: "
+                    "x_size, y_size (grid cell size in meters, default 0.4), "
+                    "min_r, max_r (min/max distance from LiDAR in meters, default 0.3/10.0), "
+                    "z_band (min/max Z-coordinate in meters, default -0.2/2.5), "
+                    "top_k (Number of closest candidates to return, default 10), "
+                    "with_stats (boolean to include detailed statistics, default false)."
+                ),
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "drone_name": {"type": "string"},
+                        "x_size": {"type": "number", "default": 0.4, "description": "Grid cell X size in meters."},
+                        "y_size": {"type": "number", "default": 0.4, "description": "Grid cell Y size in meters."},
+                        "min_r": {"type": "number", "default": 0.3, "description": "Minimum distance from LiDAR in meters."},
+                        "max_r": {"type": "number", "default": 10.0, "description": "Maximum distance from LiDAR in meters."},
+                        "z_band": {
+                            "type": "array",
+                            "items": {"type": "number"},
+                            "minItems": 2,
+                            "maxItems": 2,
+                            "default": [-0.2, 2.5],
+                            "description": "Min and max Z-coordinate in meters [min_z, max_z]."
+                        },
+                        "top_k": {"type": "integer", "default": 10, "description": "Number of closest points to return per cell."},
+                        "with_stats": {"type": "boolean", "default": False, "description": "Include detailed statistics for each point."}
+                    },
+                    "required": ["drone_name"]
+                },
                 #outputSchema={"type": "object", "properties": {"ok": {"type": "boolean"}, "message": {"type": "string"}, "point_cloud": {"type": "object"}, "lidar_pose": {"type": "object"}}}
             ),
             types.Tool(
@@ -247,6 +277,65 @@ class HakoMcpDroneServer(HakoMcpBaseServer):
             elif name == "lidar_scan":
                 req = LiDARScanRequest(); req.drone_name = drone_name
                 result_pdu = await self._send_rpc_command("DroneService/LiDARScan", req)
+                if result_pdu and result_pdu.ok:
+                    # PointCloud2からフラットなXYZリストを抽出
+                    point_cloud_bytes = result_pdu.point_cloud.data
+                    row_step = result_pdu.point_cloud.row_step
+                    height = result_pdu.point_cloud.height
+                    total_data_bytes = height * row_step
+                    flat_xyz_list = LidarData.extract_xyz_from_point_cloud(point_cloud_bytes, total_data_bytes)
+
+                    # LiDARの姿勢を(x, y, z)タプルに変換
+                    lidar_pose_tuple = (
+                        result_pdu.lidar_pose.position.x,
+                        result_pdu.lidar_pose.position.y,
+                        result_pdu.lidar_pose.position.z
+                    )
+
+                    # LidarDataインスタンスを作成
+                    # time_stampはheaderから取得
+                    time_stamp = result_pdu.point_cloud.header.stamp.sec + result_pdu.point_cloud.header.stamp.nanosec / 1e9
+                    lidar_data = LidarData(
+                        point_cloud=flat_xyz_list,
+                        time_stamp=time_stamp,
+                        pose=lidar_pose_tuple,
+                        data_frame='VehicleInertialFrame'
+                    )
+
+                    # LiDARFilterを適用
+                    lidar_filter = LiDARFilter(lidar_data)
+
+                    # フィルタリングパラメータをargumentsから取得、デフォルト値を考慮
+                    x_size = arguments.get("x_size", 0.4)
+                    y_size = arguments.get("y_size", 0.4)
+                    min_r = arguments.get("min_r", 0.3)
+                    max_r = arguments.get("max_r", 10.0)
+                    z_band_list = arguments.get("z_band", [-0.2, 2.5])
+                    if (not isinstance(z_band_list, (list, tuple))) or len(z_band_list) != 2:
+                        return [types.TextContent(type="text", text=json.dumps(
+                            {"ok": False, "message": "z_band must be [min_z, max_z]"}
+                        ))]
+                    z0, z1 = float(z_band_list[0]), float(z_band_list[1])
+                    if z0 > z1:
+                        z0, z1 = z1, z0
+                    z_band = (z0, z1)                    
+                    top_k = arguments.get("top_k", 10)
+                    with_stats = arguments.get("with_stats", False)
+
+                    filtered_points = lidar_filter.filter(
+                        x_size=x_size,
+                        y_size=y_size,
+                        min_r=min_r,
+                        max_r=max_r,
+                        z_band=z_band,
+                        top_k=top_k,
+                        with_stats=with_stats
+                    )
+
+                    # フィルタリング結果をJSONで返す
+                    return [types.TextContent(type="text", text=json.dumps({"ok": True, "filtered_points": filtered_points}))]
+                else:
+                    return [types.TextContent(type="text", text=json.dumps({"ok": False, "message": "LiDAR scan failed."}))]
             elif name == "magnet_grab":
                 req = MagnetGrabRequest(); req.drone_name = drone_name; req.grab_on = arguments["grab"]; req.timeout_sec = -1
                 result_pdu = await self._send_rpc_command("DroneService/MagnetGrab", req)

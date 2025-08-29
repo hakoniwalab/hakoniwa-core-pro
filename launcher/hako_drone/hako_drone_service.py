@@ -146,12 +146,19 @@ class HakoDroneService:
     def scan_lidar(self, drone_name: str):
         try:
             client, _ = self._get_or_create_client_state(drone_name)
-            lidar_data = client.getLidarData()
+            lidar_pdu_data, lidar_poser = client.getLidarData(return_point_cloud=True)
+            lidar_pose: Pose = Pose()
+            lidar_pose.position.x = lidar_poser.position.x_val
+            lidar_pose.position.y = lidar_poser.position.y_val
+            lidar_pose.position.z = lidar_poser.position.z_val
+            lidar_pose.orientation.x = lidar_poser.orientation.x_val
+            lidar_pose.orientation.y = lidar_poser.orientation.y_val
+            lidar_pose.orientation.z = lidar_poser.orientation.z_val
             return {
-                "ok": lidar_data is not None,
-                "point_cloud": lidar_data.point_cloud if lidar_data else None,
-                "lidar_pose": lidar_data.pose if lidar_data else None,
-                "message": "OK" if lidar_data is not None else "Failed"
+                "ok": lidar_pdu_data is not None,
+                "point_cloud": lidar_pdu_data if lidar_pdu_data else None,
+                "lidar_pose": lidar_pose if lidar_pose else None,
+                "message": "OK" if lidar_pdu_data is not None else "Failed"
             }
         except Exception as e:
             logging.error(f"ScanLidar failed for {drone_name}: {e}")
