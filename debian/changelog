@@ -1,3 +1,9 @@
+hakoniwa-core (1.1.1-1) noble; urgency=medium
+
+  * rpc msgs are added  1.1.1
+
+ -- Takashi Mori <tmori@hakoniwa-lab.net>  Sat, 30 Aug 2025 07:05:01 +0900
+
 hakoniwa-core (1.1.0-1) noble; urgency=medium
 
   * New upstream release 1.1.0
