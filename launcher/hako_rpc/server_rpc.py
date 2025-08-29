@@ -4,12 +4,7 @@ import argparse
 import sys
 import os
 
-# 親ディレクトリのモジュールをインポートするためにパスを追加
-# server_rpc.pyがlauncher/hako_rpcにあるので、2つ上の階層をパスに追加
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-sys.path.insert(0, project_root)
-
-from hako_rpc.hako_rpc_server import HakoRpcServer
+from launcher.hako_rpc.hako_base_rpc_server import HakoBaseRpcServer
 from hako_rpc.hako_drone_rpc_server import HakoDroneRpcServer
 
 async def main() -> int:
@@ -18,7 +13,9 @@ async def main() -> int:
     parser.add_argument("--uri", default="ws://localhost:8080", help="WebSocketサーバのURI")
     parser.add_argument("--pdu-config", default="launcher/config/pdu_config.json")
     parser.add_argument("--service-config", default="launcher/config/service.json")
+    parser.add_argument("--offset-path", default="/usr/local/share/hakoniwa/offset")
     parser.add_argument("--server-type", default="base", choices=['base', 'drone'], help="Type of RPC server to run")
+    parser.add_argument("--delta-time-usec", default=1000000, type=int, help="Delta time in microseconds")
     args = parser.parse_args()
 
     # Setup logging
@@ -35,8 +32,8 @@ async def main() -> int:
             logging.info("Starting HakoDroneRpcServer...")
             server = HakoDroneRpcServer(args)
         else:
-            logging.info("Starting HakoRpcServer...")
-            server = HakoRpcServer(args)
+            logging.info("Starting HakoBaseRpcServer...")
+            server = HakoBaseRpcServer(args)
 
         await server.start()
 

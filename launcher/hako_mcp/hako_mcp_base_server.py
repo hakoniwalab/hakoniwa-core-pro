@@ -17,14 +17,14 @@ OFFSET_PATH = "/usr/local/share/hakoniwa/offset"
 DELTA_TIME_USEC = 1_000_000
 
 class HakoMcpBaseServer:
-    def __init__(self, server_name, simulator_name="Simulator"):
+    def __init__(self, server_name, pdu_config_path: str, service_config_path: str, simulator_name="Simulator"):
         self.server = Server(server_name)
         self.simulator_name = simulator_name
         self.rpc_clients = {}
         self.rpc_service_specs = []
         self.rpc_uri = "ws://localhost:8080"
-        self.pdu_config_path = "/Users/tmori/project/private/hakoniwa-core-pro/launcher/config/pdu_config.json"
-        self.service_config_path = "/Users/tmori/project/private/hakoniwa-core-pro/launcher/config/service.json"
+        self.pdu_config_path = pdu_config_path
+        self.service_config_path = service_config_path
 
     def add_rpc_service(self, service_name: str, srv_pkg: str, srv_type: str, client_name: str = CLIENT_NAME_DEFAULT):
         self.rpc_service_specs.append({

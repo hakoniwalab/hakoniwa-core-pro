@@ -83,14 +83,13 @@ drone_get_state_output_schema = {
 }
 
 class HakoMcpDroneServer(HakoMcpBaseServer):
-    def __init__(self, server_name="hakoniwa_drone"):
-        super().__init__(server_name, simulator_name="Drone")
-        self.drone_service_config_path = "/Users/tmori/project/private/hakoniwa-core-pro/launcher/config/drone_service.json"
+    def __init__(self, pdu_config_path: str, service_config_path: str, server_name="hakoniwa_drone"):
+        super().__init__(server_name, pdu_config_path, service_config_path, simulator_name="Drone")
         self._register_drone_rpc_services()
 
     def _register_drone_rpc_services(self):
         try:
-            with open(self.drone_service_config_path, 'r') as f:
+            with open(self.service_config_path, 'r') as f:
                 config = json.load(f)
             for service_def in config["services"]:
                 service_name = service_def["name"]
@@ -98,7 +97,7 @@ class HakoMcpDroneServer(HakoMcpBaseServer):
                     srv_type = service_def["type"].split('/')[-1]
                     self.add_rpc_service(service_name, "hakoniwa_pdu.pdu_msgs.drone_srv_msgs", srv_type)
         except FileNotFoundError:
-            logging.error(f"Drone service config not found: {self.drone_service_config_path}")
+            logging.error(f"Service config not found: {self.service_config_path}")
         except Exception as e:
             logging.error(f"Error registering drone RPC services: {e}")
 

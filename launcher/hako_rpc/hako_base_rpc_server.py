@@ -26,8 +26,6 @@ from hako_launch.hako_launcher import LauncherService
 # 定数
 ASSET_NAME = "HakoRpcBaseServer"
 SYSTEM_CONTROL_SERVICE_NAME = "Service/SystemControl"
-OFFSET_PATH = "/Users/tmori/project/oss/hakoniwa-pdu-python/tests/config/offset"
-DELTA_TIME_USEC = 1_000_000
 
 def _install_sigint(service: LauncherService):
     def _sigint_handler(signum, frame):
@@ -38,7 +36,7 @@ def _install_sigint(service: LauncherService):
             sys.exit(1)
     signal.signal(signal.SIGINT, _sigint_handler)
 
-class HakoRpcServer:
+class HakoBaseRpcServer:
     def __init__(self, args):
         self.args = args
         self.launcher_service = None
@@ -110,12 +108,12 @@ class HakoRpcServer:
         manager = RemotePduServiceServerManager(
             asset_name=ASSET_NAME,
             pdu_config_path=self.args.pdu_config,
-            offset_path=OFFSET_PATH,
+            offset_path=self.args.offset_path,
             comm_service=comm,
             uri=self.args.uri,
         )
-        patch_service_base_size(self.args.service_config, OFFSET_PATH, None)
-        manager.initialize_services(self.args.service_config, DELTA_TIME_USEC)
+        patch_service_base_size(self.args.service_config, self.args.offset_path, None)
+        manager.initialize_services(self.args.service_config, self.args.delta_time_usec)
 
         server = make_protocol_servers(
             pdu_manager=manager,

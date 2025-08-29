@@ -2,7 +2,7 @@ from __future__ import annotations
 import logging
 import json
 
-from .hako_rpc_server import HakoRpcServer
+from .hako_base_rpc_server import HakoBaseRpcServer
 from hako_drone.hako_drone_service import HakoDroneService
 from hakoniwa_pdu.rpc.codes import SystemControlStatusCode
 try:
@@ -31,7 +31,7 @@ except ImportError:
 
 
 
-class HakoDroneRpcServer(HakoRpcServer):
+class HakoDroneRpcServer(HakoBaseRpcServer):
     def __init__(self, args):
         super().__init__(args)
         self.drone_service = None

@@ -8,6 +8,7 @@ import logging
 import argparse
 import json
 import readline
+import os
 
 #logging.basicConfig(
 #    level=logging.DEBUG,
@@ -18,7 +19,14 @@ import readline
 #    ]
 #)
 
-server_instance = HakoMcpDroneServer(server_name="hakoniwa")
+pdu_config_path = os.getenv("PDU_CONFIG_PATH", "launcher/config/drone_pdu_config.json")
+service_config_path = os.getenv("SERVICE_CONFIG_PATH", "launcher/config/drone_service.json")
+
+server_instance = HakoMcpDroneServer(
+    pdu_config_path=pdu_config_path,
+    service_config_path=service_config_path,
+    server_name="hakoniwa_drone"
+)
 # 2. Get the mcp.Server object from the instance
 server = server_instance.server
 
