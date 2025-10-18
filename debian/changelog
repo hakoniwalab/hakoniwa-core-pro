@@ -1,3 +1,9 @@
+hakoniwa-core (1.1.1-2) noble; urgency=medium
+
+  * Added PDU message definitions (no code changes).
+
+ -- Takashi Mori <tmori@hakoniwa-lab.net>  Sat, 18 Oct 2025 08:30:25 +0900
+
 hakoniwa-core (1.1.1-1) noble; urgency=medium
 
   * rpc msgs are added  1.1.1
