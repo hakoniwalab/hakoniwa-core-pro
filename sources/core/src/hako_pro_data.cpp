@@ -18,7 +18,8 @@ bool pro::HakoProData::on_pdu_data_create()
     this->set_recv_event_table(reinterpret_cast<HakoRecvEventTableType*>(&datap[OFFSET_HAKO_RECV_EVENT_TABLE]));
     this->set_service_table(reinterpret_cast<HakoServiceTableType*>(&datap[OFFSET_HAKO_SERVICE_TABLE]));
     {
-        memset(datap, 0, sizeof(HakoRecvEventTableType));
+        memset(&datap[OFFSET_HAKO_RECV_EVENT_TABLE], 0, sizeof(HakoRecvEventTableType));
+        memset(&datap[OFFSET_HAKO_SERVICE_TABLE], 0, sizeof(HakoServiceTableType));
         //this->set_service_data();
         this->service_table_->entry_num = 0;
     }
