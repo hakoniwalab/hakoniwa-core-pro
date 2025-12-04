@@ -1,3 +1,10 @@
+hakoniwa-core (1.1.1-3) noble; urgency=medium
+
+  [ Takashi Mori ]
+  * Added PDU message member (no code changes)
+
+ -- Code <tmori@WinHako.>  Thu, 04 Dec 2025 09:16:44 +0900
+
 hakoniwa-core (1.1.1-2) noble; urgency=medium
 
   * Added PDU message definitions (no code changes).
