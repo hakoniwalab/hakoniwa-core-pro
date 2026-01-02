@@ -12,18 +12,29 @@ else
 fi
 echo "ASSET_NUM is ${ASSET_NUM}"
 
+# ----------------------------------------
+# Detect OS type
+# ----------------------------------------
+
 OS_TYPE="posix"
 OS=`uname`
 if [ "$OS" = "Linux" -o "$OS" = "Darwin"  ]
 then
-	:
+    echo $OS_TYPE
 else
     OS_TYPE="win"
 fi
 
+# ----------------------------------------
+# Build or Clean
+# ----------------------------------------
+
+BUILD_DIR="cmake-build"
+
 if [ $# -eq 0 ]
 then
-    cd cmake-build
+    mkdir -p "${BUILD_DIR}"
+    cd "${BUILD_DIR}"
     if [ ${OS_TYPE} = "posix" ]
     then
         cmake .. -DCMAKE_INSTALL_PREFIX=/usr $ENABLE_HAKO_TIME_MEASURE_FLAG -DHAKO_DATA_MAX_ASSET_NUM=${ASSET_NUM} $BUILD_C_FLAGS
@@ -33,6 +44,7 @@ then
         cmake --build . --target ALL_BUILD --config Release
     fi
 else
-	rm -rf ./cmake-build/*
+    # ---- Clean mode ----
+    echo "Cleaning build directory..."
+    rm -rf "${BUILD_DIR:?}"/*
 fi
-
