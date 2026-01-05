@@ -6,7 +6,7 @@ case "$1" in
 
     # ディレクトリ作成と権限（setgid で中のファイルのGID固定）
     install -d -o root -g hakoniwa -m 2775 /var/lib/hakoniwa
-    install -d -o root -g hakoniwa -m 2770 /var/lib/hakoniwa/mmap
+    install -d -o root -g hakoniwa -m 2777 /var/lib/hakoniwa/mmap
   ;;
 esac
 exit 0
