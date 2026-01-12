@@ -9,6 +9,11 @@ extern "C" {
 #include "hako_asset_service.h"
 
 /*
+ * Deprecated API: kept only for backward compatibility and will be removed
+ * in a future release. Please migrate to the newer interfaces.
+ */
+
+/*
  * for master
  */
 	HAKO_API bool hako_master_init();

@@ -39,6 +39,42 @@ graph TD
 
 ## 主な機能
 
+## C API (Polling)
+
+新しいC向けAPIは `include/hakoniwa_asset_polling.h` に集約しています。
+戻り値は `0=成功 / 非0=失敗` です（`is_*` 系は `1=true / 0=false`）。
+
+```c
+#include "hakoniwa_asset_polling.h"
+
+int main(void)
+{
+    if (hakoniwa_asset_init() != 0) {
+        return 1;
+    }
+    if (hakoniwa_asset_register_polling("asset") != 0) {
+        return 1;
+    }
+    for (;;) {
+        int event = hakoniwa_asset_get_event("asset");
+        if (event < 0) {
+            break;
+        }
+        /* handle event */
+    }
+    return 0;
+}
+```
+
+### 旧APIからの移行
+
+旧 `include/hako_capi.h` は互換性のため残していますが、将来的に削除予定です。
+移行時は以下の置き換えを行ってください。
+
+- `hako_*` -> `hakoniwa_*` にリネーム
+- 戻り値を `bool` から `int` に変更（`0=成功 / 非0=失敗`）
+- `is_*` 系の戻り値は `1/0` で判定
+
 ### データ受信イベント
 
 hakoniwa-core-pro では、PDU チャンネルのデータ受信を検知する

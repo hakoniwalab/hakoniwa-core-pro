@@ -19,6 +19,7 @@ FetchContent_MakeAvailable(json)
 # ベースとなるソースファイルリスト
 set(SHARED_SRC
     src/hako_capi.cpp
+    src/hakoniwa_asset_polling.cpp
     ${HAKO_CORE_SOURCE_DIR}/src/hako/hako_asset_impl.cpp
     ${HAKO_CORE_SOURCE_DIR}/src/hako/hako_simevent_impl.cpp
     ${HAKO_CORE_SOURCE_DIR}/src/hako/hako_master_impl.cpp
