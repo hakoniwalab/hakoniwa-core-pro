@@ -99,7 +99,7 @@ bool hako_asset_init()
     }
 }
 
-bool hako_asset_register(const char* name, hako_asset_callback_t *callbacks)
+bool hako_capi_asset_register(const char* name, hako_asset_callback_t *callbacks)
 {
     try {
 #ifdef ENABLE_HAKO_TIME_MEASURE
@@ -125,7 +125,7 @@ bool hako_asset_register(const char* name, hako_asset_callback_t *callbacks)
 }
 bool hako_asset_register_polling(const char* name)
 {
-    return hako_asset_register(name, nullptr);
+    return hako_capi_asset_register(name, nullptr);
 }
 int  hako_asset_get_event(const char* name)
 {
@@ -356,7 +356,7 @@ bool hako_asset_is_pdu_created()
         return false;
     }
 }
-bool hako_asset_register_data_recv_event(const char *robo_name, HakoPduChannelIdType lchannel)
+bool hako_capi_asset_register_data_recv_event(const char *robo_name, HakoPduChannelIdType lchannel)
 {
     try {
         auto pro_data = hako::data::pro::hako_pro_get_data();
@@ -370,7 +370,7 @@ bool hako_asset_register_data_recv_event(const char *robo_name, HakoPduChannelId
         return false;
     }
 }
-bool hako_asset_check_data_recv_event(const char* asset_name, const char *robo_name, HakoPduChannelIdType lchannel)
+bool hako_capi_asset_check_data_recv_event(const char* asset_name, const char *robo_name, HakoPduChannelIdType lchannel)
 {
     try {
         auto pro_data = hako::data::pro::hako_pro_get_data();

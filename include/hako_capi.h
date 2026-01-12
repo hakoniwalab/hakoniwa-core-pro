@@ -21,7 +21,7 @@ extern "C" {
  * for asset
  */
 	HAKO_API bool hako_asset_init();
-	HAKO_API bool hako_asset_register(const char* name, hako_asset_callback_t *callbacks);
+	HAKO_API bool hako_capi_asset_register(const char* name, hako_asset_callback_t *callbacks);
 
 	HAKO_API bool hako_asset_register_polling(const char* name);
 	HAKO_API int  hako_asset_get_event(const char* name);
@@ -50,8 +50,8 @@ extern "C" {
 	HAKO_API bool hako_asset_is_pdu_created();
 
 
-	HAKO_API bool hako_asset_register_data_recv_event(const char *robo_name, HakoPduChannelIdType lchannel);
-	HAKO_API bool hako_asset_check_data_recv_event(const char* asset_name, const char *robo_name, HakoPduChannelIdType lchannel);
+	HAKO_API bool hako_capi_asset_register_data_recv_event(const char *robo_name, HakoPduChannelIdType lchannel);
+	HAKO_API bool hako_capi_asset_check_data_recv_event(const char* asset_name, const char *robo_name, HakoPduChannelIdType lchannel);
 
 /*
  * for simevent
@@ -65,4 +65,3 @@ extern "C" {
 #ifdef __cplusplus
 }
 #endif
-
