@@ -17,11 +17,13 @@ static int recv_event_id = -1;
 static int my_on_initialize(hako_asset_context_t* context)
 {
     (void)context;
+    printf("INFO: my_on_initialize enter\n");
     int ret = hako_asset_register_data_recv_event(robot_name, PDU_POS_CHANNEL_ID, on_recv, &recv_event_id);
     if (ret != 0) {
         printf("ERORR: hako_asset_register_data_recv_event() returns %d.", ret);
         return 1;
     }
+    printf("INFO: my_on_initialize exit\n");
     return 0;
 }
 static int my_on_reset(hako_asset_context_t* context)
@@ -52,6 +54,7 @@ static int my_on_manual_timing_control(hako_asset_context_t* context)
         motor.linear.x = count + 1001;
         motor.linear.y = count + 1002;
         motor.linear.z = count + 1003;
+        printf("INFO: write motor data(%f, %f, %f)\n", motor.linear.x, motor.linear.y, motor.linear.z);
         int ret = hako_asset_pdu_write("Robot", PDU_MOTOR_CHANNEL_ID, (const char*)(&motor), sizeof(motor));
         if (ret != 0) {
             printf("ERROR: hako_asset_pdu_write erro: %d\n", ret);
@@ -63,10 +66,10 @@ static int my_on_manual_timing_control(hako_asset_context_t* context)
         }
 #endif
         result = hako_asset_usleep(1000);
-        usleep(1000000);
         if (result != 0) {
             break;
         }
+        usleep(1000000);
         count++;
     }
     printf("INFO: on_manual_timing_control exit\n");
@@ -94,8 +97,10 @@ int main(int argc, const char* argv[])
         printf("ERORR: hako_asset_register() returns %d.", ret);
         return 1;
     }
-    ret = hako_asset_start();
-    printf("INFO: hako_asset_start() returns %d\n", ret);
+    while (1) {
+        ret = hako_asset_start();
+        printf("INFO: hako_asset_start() returns %d\n", ret);
+    }
 
     return 0;
 }

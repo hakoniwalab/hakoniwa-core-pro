@@ -18,7 +18,7 @@ static void on_recv(int recv_event_id)
     Hako_Twist motor;
     int ret = hako_asset_pdu_read("Robot", PDU_MOTOR_CHANNEL_ID, (char*)(&motor), sizeof(motor));
     if (ret != 0) {
-        printf("ERROR: hako_asset_pdu_read erro: %d\n", ret);
+        printf("ERROR: hako_asset_pdu_read error: %d\n", ret);
     }
     printf("%llu: motor data(%f, %f, %f)\n", hako_asset_simulation_time(), motor.linear.x, motor.linear.y, motor.linear.z);
 }
@@ -26,12 +26,14 @@ static int recv_event_id = -1;
 static int my_on_initialize(hako_asset_context_t* context)
 {
     (void)context;
+    printf("INFO: my_on_initialize enter\n");
     const char* robot_name = "Robot";
-    int ret = hako_asset_register_data_recv_event(robot_name, PDU_MOTOR_CHANNEL_ID, on_recv, &recv_event_id);
+    int ret = hako_asset_register_data_recv_event(robot_name, PDU_MOTOR_CHANNEL_ID, NULL, &recv_event_id);
     if (ret != 0) {
-        printf("ERORR: hako_asset_register_data_recv_event() returns %d.", ret);
+        printf("ERROR: hako_asset_register_data_recv_event() returns %d.", ret);
         return 1;
     }
+    printf("INFO: my_on_initialize exit\n");
     return 0;
 }
 static int my_on_reset(hako_asset_context_t* context)
@@ -52,9 +54,14 @@ static int my_on_manual_timing_control(hako_asset_context_t* context)
         pos.linear.x = count + 1;
         pos.linear.y = count + 2;
         pos.linear.z = count + 3;
+        printf("INFO: write pos data(%f, %f, %f)\n", pos.linear.x, pos.linear.y, pos.linear.z);
         int ret = hako_asset_pdu_write("Robot", PDU_POS_CHANNEL_ID, (const char*)(&pos), sizeof(pos));
         if (ret != 0) {
-            printf("ERROR: hako_asset_pdu_read erro: %d\n", ret);
+            printf("ERROR: hako_asset_pdu_write error: %d\n", ret);
+        }
+        if (hako_asset_check_data_recv_event("Robot", PDU_MOTOR_CHANNEL_ID) == 0) {
+            printf("event occured\n");
+            on_recv(recv_event_id);
         }
         result = hako_asset_usleep(1000);
         usleep(1000000);
@@ -86,11 +93,13 @@ int main(int argc, const char* argv[])
     hako_conductor_start(delta_time_usec, delta_time_usec);
     int ret = hako_asset_register(asset_name, config_path, &my_callback, delta_time_usec, HAKO_ASSET_MODEL_PLANT);
     if (ret != 0) {
-        printf("ERORR: hako_asset_register() returns %d.", ret);
+        printf("ERROR: hako_asset_register() returns %d.", ret);
         return 1;
     }
-    ret = hako_asset_start();
-    printf("INFO: hako_asset_start() returns %d\n", ret);
+    while (1) {
+        ret = hako_asset_start();
+        printf("INFO: hako_asset_start() returns %d\n", ret);
+    }
 
     hako_conductor_stop();
     return 0;

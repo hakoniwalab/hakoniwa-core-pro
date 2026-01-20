@@ -80,8 +80,10 @@ int main(int argc, const char* argv[])
         printf("ERORR: hako_asset_register() returns %d.", ret);
         return 1;
     }
-    ret = hako_asset_start();
-    printf("INFO: hako_asset_start() returns %d\n", ret);
+    while (1) {
+        ret = hako_asset_start();
+        printf("INFO: hako_asset_start() returns %d\n", ret);
+    }
 
     hako_conductor_stop();
     return 0;
