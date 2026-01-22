@@ -34,6 +34,7 @@ extern "C" {
 	HAKO_API bool hako_asset_unregister(const char* name);
 	HAKO_API void hako_asset_notify_simtime(const char* name, hako_time_t simtime);
 	HAKO_API hako_time_t hako_asset_get_worldtime();
+	HAKO_API hako_time_t hako_asset_get_min_asset_time();
 
 	HAKO_API bool hako_asset_start_feedback(const char* asset_name, bool isOk);
 	HAKO_API bool hako_asset_stop_feedback(const char* asset_name, bool isOk);

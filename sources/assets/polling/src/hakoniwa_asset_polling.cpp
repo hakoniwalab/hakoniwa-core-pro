@@ -71,6 +71,10 @@ hako_time_t hakoniwa_asset_get_worldtime(void)
 {
     return hako_asset_get_worldtime();
 }
+hako_time_t hakoniwa_asset_get_min_asset_time(void)
+{
+    return hako_asset_get_min_asset_time();
+}
 
 int hakoniwa_asset_start_feedback(const char* asset_name, bool isOk)
 {
@@ -85,6 +89,21 @@ int hakoniwa_asset_stop_feedback(const char* asset_name, bool isOk)
 int hakoniwa_asset_reset_feedback(const char* asset_name, bool isOk)
 {
     return hako_status_from_bool(hako_asset_reset_feedback(asset_name, isOk));
+}
+
+int hakoniwa_asset_start_feedback_ok(const char* asset_name)
+{
+    return hako_status_from_bool(hako_asset_start_feedback(asset_name, true));
+}
+
+int hakoniwa_asset_stop_feedback_ok(const char* asset_name)
+{
+    return hako_status_from_bool(hako_asset_stop_feedback(asset_name, true));
+}
+
+int hakoniwa_asset_reset_feedback_ok(const char* asset_name)
+{
+    return hako_status_from_bool(hako_asset_reset_feedback(asset_name, true));
 }
 
 int hakoniwa_asset_create_pdu_channel(HakoPduChannelIdType channel_id, size_t pdu_size)

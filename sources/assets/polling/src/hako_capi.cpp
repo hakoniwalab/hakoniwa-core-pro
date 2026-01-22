@@ -175,6 +175,15 @@ hako_time_t hako_asset_get_worldtime()
         return 0;
     }
 }
+hako_time_t hako_asset_get_min_asset_time()
+{
+    try {
+        return (hako_time_t)hako_asset->get_min_asset_time();
+    } catch (std::exception *) {
+        //hako::logger::get("core")->error(e->what());
+        return 0;
+    }
+}
 
 
 bool hako_asset_start_feedback(const char* asset_name, bool isOk)

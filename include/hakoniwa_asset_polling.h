@@ -34,10 +34,17 @@ HAKO_API int hakoniwa_asset_get_event(const char* name);
 HAKO_API int hakoniwa_asset_unregister(const char* name);
 HAKO_API void hakoniwa_asset_notify_simtime(const char* name, hako_time_t simtime);
 HAKO_API hako_time_t hakoniwa_asset_get_worldtime(void);
+HAKO_API hako_time_t hakoniwa_asset_get_min_asset_time(void);
 
+/* Deprecated: bool in C API. Use *_feedback_ok() instead. */
 HAKO_API int hakoniwa_asset_start_feedback(const char* asset_name, bool isOk);
 HAKO_API int hakoniwa_asset_stop_feedback(const char* asset_name, bool isOk);
 HAKO_API int hakoniwa_asset_reset_feedback(const char* asset_name, bool isOk);
+
+/* New API: always uses isOk=true internally. */
+HAKO_API int hakoniwa_asset_start_feedback_ok(const char* asset_name);
+HAKO_API int hakoniwa_asset_stop_feedback_ok(const char* asset_name);
+HAKO_API int hakoniwa_asset_reset_feedback_ok(const char* asset_name);
 
 HAKO_API int hakoniwa_asset_create_pdu_channel(HakoPduChannelIdType channel_id, size_t pdu_size);
 HAKO_API int hakoniwa_asset_create_pdu_lchannel(const char* robo_name, HakoPduChannelIdType channel_id, size_t pdu_size);
