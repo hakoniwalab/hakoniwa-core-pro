@@ -99,13 +99,13 @@ bool pro::HakoProAssetExtension::on_pdu_data_before_write(int real_channel_id)
         std::cout << "ERROR: HakoProAssetExtension::on_pdu_data_before_write() table is null" << std::endl;
         return false;
     }
-    auto now = get_timestamp();
+    //auto now = get_timestamp();
     //process lock is not needed because upper layer is already locked
     for (int i = 0; i < table->entry_num; ++i) {
         if (table->entries[i].enabled && (table->entries[i].real_channel_id == real_channel_id)
             && (table->entries[i].recv_flag)) {
                 //busy
-                std::cout << now << ": HakoProAssetExtension::on_pdu_data_before_write() busy... real_channel_id: " << real_channel_id << std::endl;
+                //std::cout << now << ": HakoProAssetExtension::on_pdu_data_before_write() busy... real_channel_id: " << real_channel_id << std::endl;
                 return false;
         }
     }
