@@ -59,6 +59,7 @@ HAKO_API void hakoniwa_asset_notify_write_pdu_done(const char* asset_name);
 HAKO_API int hakoniwa_asset_is_pdu_sync_mode(const char* asset_name);
 HAKO_API int hakoniwa_asset_is_simulation_mode(void);
 HAKO_API int hakoniwa_asset_is_pdu_created(void);
+HAKO_API void hakoniwa_asset_load_pdu_data(void);
 
 HAKO_API int hakoniwa_asset_register_data_recv_event(const char *robo_name, HakoPduChannelIdType lchannel);
 HAKO_API int hakoniwa_asset_check_data_recv_event(const char* asset_name, const char *robo_name, HakoPduChannelIdType lchannel);

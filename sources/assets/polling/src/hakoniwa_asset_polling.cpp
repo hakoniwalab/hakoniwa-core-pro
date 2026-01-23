@@ -170,6 +170,10 @@ int hakoniwa_asset_is_pdu_created(void)
 {
     return hako_asset_is_pdu_created() ? 1 : 0;
 }
+void hakoniwa_asset_load_pdu_data(void)
+{
+    (void)hakoniwa_asset_is_pdu_created();
+}
 
 int hakoniwa_asset_register_data_recv_event(const char *robo_name, HakoPduChannelIdType lchannel)
 {
