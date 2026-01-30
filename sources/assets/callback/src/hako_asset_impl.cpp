@@ -483,6 +483,10 @@ hako_time_t hako_asset_impl_get_world_time()
 {
     return hako_asset_instance.hako_asset->get_worldtime();
 }
+hako_time_t hako_asset_impl_get_current_time()
+{
+    return hako_asset_instance.current_usec;
+}
 hako_time_t hako_asset_impl_get_min_asset_time()
 {
     return hako_asset_instance.hako_asset->get_min_asset_time();

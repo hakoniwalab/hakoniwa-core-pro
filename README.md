@@ -125,6 +125,16 @@ resume 後の最初の通知で 1 回だけイベントが上がります。
         - `lchannel`: 確認対象の論理チャンネルID。
     - **戻り値:** データ受信があれば `true` 、なければ `false` を返します。
 
+### 時刻取得API
+
+- `hako_asset_simulation_time()`
+    - **説明:** シミュレーションのワールド時間（usec）を返します。
+- `hako_asset_current_time()`
+    - **説明:** アセットの内部時間（usec）を返します（`hako_asset_instance.current_usec`）。
+- **Python binding**
+    - `simulation_time()`
+    - `asset_current_time()`
+
 ### RPCサービス
 
 hakoniwa-core-pro では、PDU を介したリクエスト／レスポンス通信を実現する

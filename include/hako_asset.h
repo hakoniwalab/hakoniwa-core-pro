@@ -29,6 +29,7 @@ static inline int hako_asset_start(void) {
 extern int hako_asset_pdu_read(const char *robo_name, HakoPduChannelIdType lchannel, char *buffer, size_t buffer_len);
 extern int hako_asset_pdu_write(const char *robo_name, HakoPduChannelIdType lchannel, const char *buffer, size_t buffer_len);
 extern hako_time_t hako_asset_simulation_time(void);
+extern hako_time_t hako_asset_current_time(void);
 extern hako_time_t hako_asset_min_asset_time(void);
 extern int hako_asset_usleep_no_wait(hako_time_t sleep_time_usec, int (*is_force_stop)(void));
 static inline int hako_asset_usleep(hako_time_t sleep_time_usec) {

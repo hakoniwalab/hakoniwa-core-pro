@@ -125,6 +125,9 @@ int hako_asset_pdu_write(const char *robo_name, HakoPduChannelIdType lchannel, c
 hako_time_t hako_asset_simulation_time(void) {
     return hako_asset_impl_get_world_time();
 }
+hako_time_t hako_asset_current_time(void) {
+    return hako_asset_impl_get_current_time();
+}
 hako_time_t hako_asset_min_asset_time(void) {
     return hako_asset_impl_get_min_asset_time();
 }
