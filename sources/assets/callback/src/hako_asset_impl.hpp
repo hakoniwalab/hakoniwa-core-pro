@@ -76,6 +76,7 @@ extern bool hako_asset_impl_register_data_recv_event(const char *robo_name, Hako
  * @return true if a receive event was detected, false otherwise.
  */
 extern bool hako_asset_impl_check_data_recv_event(const char *robo_name, HakoPduChannelIdType lchannel);
+extern bool hako_asset_impl_set_data_recv_event_pending(int recv_event_id, bool pending);
 
 
 /*

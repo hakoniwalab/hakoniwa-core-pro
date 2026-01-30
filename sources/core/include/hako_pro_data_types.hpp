@@ -21,6 +21,7 @@ typedef enum {
 typedef struct {
     bool enabled;
     bool recv_flag;
+    bool pending_flag;
     pid_type proc_id;
     int real_channel_id;
     HakoRecvEventType type;

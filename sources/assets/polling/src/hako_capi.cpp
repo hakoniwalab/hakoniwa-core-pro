@@ -394,6 +394,34 @@ bool hako_capi_asset_check_data_recv_event(const char* asset_name, const char *r
     }
 }
 
+bool hako_capi_asset_set_data_recv_event_pending(const char* robo_name, HakoPduChannelIdType lchannel)
+{
+    try {
+        auto pro_data = hako::data::pro::hako_pro_get_data();
+        if (!pro_data) {
+            return false;
+        }
+        return pro_data->set_recv_event_pending(robo_name, lchannel, true);
+    } catch (std::exception *) {
+        //hako::logger::get("core")->error(e->what());
+        return false;
+    }
+}
+
+bool hako_capi_asset_set_data_recv_event_resume(const char* robo_name, HakoPduChannelIdType lchannel)
+{
+    try {
+        auto pro_data = hako::data::pro::hako_pro_get_data();
+        if (!pro_data) {
+            return false;
+        }
+        return pro_data->set_recv_event_pending(robo_name, lchannel, false);
+    } catch (std::exception *) {
+        //hako::logger::get("core")->error(e->what());
+        return false;
+    }
+}
+
 
 
 /*

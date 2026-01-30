@@ -58,6 +58,8 @@ extern "C" {
 
 	HAKO_API bool hako_capi_asset_register_data_recv_event(const char *robo_name, HakoPduChannelIdType lchannel);
 	HAKO_API bool hako_capi_asset_check_data_recv_event(const char* asset_name, const char *robo_name, HakoPduChannelIdType lchannel);
+	HAKO_API bool hako_capi_asset_set_data_recv_event_pending(const char* robo_name, HakoPduChannelIdType lchannel);
+	HAKO_API bool hako_capi_asset_set_data_recv_event_resume(const char* robo_name, HakoPduChannelIdType lchannel);
 
 /*
  * for simevent

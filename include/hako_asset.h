@@ -57,6 +57,8 @@ extern int hako_asset_register_data_recv_event(const char *robo_name, HakoPduCha
  * @return true if a receive event was detected, false otherwise.
  */
 extern int hako_asset_check_data_recv_event(const char *robo_name, HakoPduChannelIdType lchannel);
+extern int hako_asset_set_data_recv_event_pending(int recv_event_id);
+extern int hako_asset_set_data_recv_event_resume(int recv_event_id);
 
 
 #define HAKO_TRIGGER_EVENT_ID_START 0

@@ -126,6 +126,8 @@ class HakoProData : public std::enable_shared_from_this<HakoProData>, public hak
         bool get_recv_event(int asset_id, int channel_id, int& recv_event_id);
         bool call_recv_event_callbacks(const char* asset_name);
         bool call_recv_event_callback(int recv_event_id);
+        bool set_recv_event_pending(int recv_event_id, bool pending);
+        bool set_recv_event_pending(const std::string& robot_name, int channel_id, bool pending);
 
         /*
          * Service API

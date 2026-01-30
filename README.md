@@ -86,6 +86,22 @@ hakoniwa-core-pro では、PDU チャンネルのデータ受信を検知する
 受信の有無を確認できます。詳細な使い方は
 `examples/pdu_communication` 以下のサンプルを参考にしてください。
 
+#### pending/resume（通知ゲート）
+
+受信イベントの登録は維持したまま、通知だけを抑止/再開する
+pending/resume を提供しています。pending 中は `recv_flag` を保持し、
+resume 後の最初の通知で 1 回だけイベントが上がります。
+
+- **callback API（event_id ベース）**
+    - `hako_asset_set_data_recv_event_pending(recv_event_id)`
+    - `hako_asset_set_data_recv_event_resume(recv_event_id)`
+- **polling API（robo_name + lchannel ベース）**
+    - `hakoniwa_asset_set_data_recv_event_pending(robo_name, lchannel)`
+    - `hakoniwa_asset_set_data_recv_event_resume(robo_name, lchannel)`
+- **Python binding（event_id ベース）**
+    - `set_data_recv_event_pending(event_id)`
+    - `set_data_recv_event_resume(event_id)`
+
 #### ユースケース
 
 - **センサデータの非同期受信**: カメラやLiDARなどのセンサデータを、データが到着したタイミングで即座に処理したい場合に利用します。これにより、ポーリングによる無駄なCPU消費を抑えることができます。
@@ -94,17 +110,19 @@ hakoniwa-core-pro では、PDU チャンネルのデータ受信を検知する
 
 #### 主要API
 
-- `hako_asset_register_data_recv_event(channel_id, callback)`
+- `hako_asset_register_data_recv_event(robo_name, lchannel, callback)`
     - **説明:** 指定したPDUチャンネルにデータ受信時のコールバック関数を登録します。
     - **引数:**
-        - `channel_id`: 監視対象のチャンネルID。
+        - `robo_name`: 監視対象ロボット名。
+        - `lchannel`: 監視対象の論理チャンネルID。
         - `callback`: データ受信時に呼び出されるコールバック関数へのポインタ。
     - **戻り値:** 成功すれば `HAKO_SUCCESS` 、失敗すればエラーコードを返します。
 
-- `hako_asset_check_data_recv_event(channel_id)`
+- `hako_asset_check_data_recv_event(robo_name, lchannel)`
     - **説明:** (コールバックを登録しない場合) 指定したPDUチャンネルでデータ受信があったかどうかを確認します（フラグ方式）。
     - **引数:**
-        - `channel_id`: 確認対象のチャンネルID。
+        - `robo_name`: 監視対象ロボット名。
+        - `lchannel`: 確認対象の論理チャンネルID。
     - **戻り値:** データ受信があれば `true` 、なければ `false` を返します。
 
 ### RPCサービス

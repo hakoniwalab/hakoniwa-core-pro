@@ -185,6 +185,40 @@ int hako_asset_check_data_recv_event(const char *robo_name, HakoPduChannelIdType
     return 0;
 }
 
+int hako_asset_set_data_recv_event_pending(int recv_event_id)
+{
+    if (hako_asset_instance.is_initialized == false) {
+        std::cerr << "Error: not initialized." << std::endl;
+        return EINVAL;
+    }
+    if (recv_event_id < 0) {
+        std::cerr << "Error: recv_event_id is invalid." << std::endl;
+        return EINVAL;
+    }
+    bool result = hako_asset_impl_set_data_recv_event_pending(recv_event_id, true);
+    if (!result) {
+        return ENOENT;
+    }
+    return 0;
+}
+
+int hako_asset_set_data_recv_event_resume(int recv_event_id)
+{
+    if (hako_asset_instance.is_initialized == false) {
+        std::cerr << "Error: not initialized." << std::endl;
+        return EINVAL;
+    }
+    if (recv_event_id < 0) {
+        std::cerr << "Error: recv_event_id is invalid." << std::endl;
+        return EINVAL;
+    }
+    bool result = hako_asset_impl_set_data_recv_event_pending(recv_event_id, false);
+    if (!result) {
+        return ENOENT;
+    }
+    return 0;
+}
+
 int hako_trigger_event(int event)
 {
     if (hako_asset_instance.is_initialized == false) {

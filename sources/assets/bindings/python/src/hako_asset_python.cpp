@@ -354,6 +354,36 @@ static PyObject* py_hako_asset_check_data_recv_event(PyObject*, PyObject* args) 
     }
 }
 
+static PyObject* py_hako_asset_set_data_recv_event_pending(PyObject*, PyObject* args) {
+    int recv_event_id;
+
+    if (!PyArg_ParseTuple(args, "i", &recv_event_id)) {
+        return NULL;
+    }
+
+    int result = hako_asset_set_data_recv_event_pending(recv_event_id);
+    if (result == 0) {
+        Py_RETURN_TRUE;
+    } else {
+        Py_RETURN_FALSE;
+    }
+}
+
+static PyObject* py_hako_asset_set_data_recv_event_resume(PyObject*, PyObject* args) {
+    int recv_event_id;
+
+    if (!PyArg_ParseTuple(args, "i", &recv_event_id)) {
+        return NULL;
+    }
+
+    int result = hako_asset_set_data_recv_event_resume(recv_event_id);
+    if (result == 0) {
+        Py_RETURN_TRUE;
+    } else {
+        Py_RETURN_FALSE;
+    }
+}
+
 static PyObject* py_hako_conductor_stop(PyObject*, PyObject*) {
     hako_conductor_stop();
     Py_RETURN_NONE;
@@ -888,6 +918,8 @@ static PyMethodDef hako_asset_python_methods[] = {
     {"pdu_write", py_hako_asset_pdu_write, METH_VARARGS, "Write PDU data for the specified robot name and channel ID."},
     {"register_data_recv_event", py_hako_asset_register_data_recv_event, METH_VARARGS, "Register data receive event callback."},
     {"check_data_recv_event", py_hako_asset_check_data_recv_event, METH_VARARGS, "Check if data was received for a given channel (flag-based)."},
+    {"set_data_recv_event_pending", py_hako_asset_set_data_recv_event_pending, METH_VARARGS, "Set data receive event to pending mode."},
+    {"set_data_recv_event_resume", py_hako_asset_set_data_recv_event_resume, METH_VARARGS, "Resume data receive event notifications."},
     {"conductor_start", py_hako_conductor_start, METH_VARARGS, "Start the conductor with specified delta and max delay usec."},
     {"conductor_stop", py_hako_conductor_stop, METH_NOARGS, "Stop the conductor."},
     {"service_initialize", py_hako_asset_service_initialize, METH_VARARGS, "Initialize asset service."},

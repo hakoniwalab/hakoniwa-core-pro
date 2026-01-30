@@ -185,6 +185,16 @@ int hakoniwa_asset_check_data_recv_event(const char* asset_name, const char *rob
     return hako_status_from_bool(hako_capi_asset_check_data_recv_event(asset_name, robo_name, lchannel));
 }
 
+int hakoniwa_asset_set_data_recv_event_pending(const char* robo_name, HakoPduChannelIdType lchannel)
+{
+    return hako_status_from_bool(hako_capi_asset_set_data_recv_event_pending(robo_name, lchannel));
+}
+
+int hakoniwa_asset_set_data_recv_event_resume(const char* robo_name, HakoPduChannelIdType lchannel)
+{
+    return hako_status_from_bool(hako_capi_asset_set_data_recv_event_resume(robo_name, lchannel));
+}
+
 /*
  * for simevent
  */

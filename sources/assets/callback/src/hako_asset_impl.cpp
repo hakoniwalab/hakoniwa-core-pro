@@ -532,3 +532,23 @@ bool hako_asset_impl_check_data_recv_event(const char *robo_name, HakoPduChannel
     int recv_event_id;
     return pro_data->get_recv_event(asset_name, robo_name, lchannel, recv_event_id);
 }
+
+bool hako_asset_impl_set_data_recv_event_pending(int recv_event_id, bool pending)
+{
+    if (!hako_asset_instance.is_initialized) {
+        std::cerr << "ERROR: hako_asset_impl_set_data_recv_event_pending(): asset not initialized" << std::endl;
+        return false;
+    }
+
+    if (!hako_asset_instance.hako_asset) {
+        std::cerr << "ERROR: hako_asset_impl_set_data_recv_event_pending(): hako_asset controller not available" << std::endl;
+        return false;
+    }
+
+    auto pro_data = hako::data::pro::hako_pro_get_data();
+    if (!pro_data) {
+        std::cerr << "ERROR: hako_asset_impl_set_data_recv_event_pending(): pro_data is null" << std::endl;
+        return false;
+    }
+    return pro_data->set_recv_event_pending(recv_event_id, pending);
+}

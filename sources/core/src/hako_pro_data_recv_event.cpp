@@ -30,6 +30,7 @@ bool hako::data::pro::HakoProData::register_data_recv_event(const std::string& r
             hako::core::context::HakoContext context;
             recv_event_table_->entries[i].enabled = true;
             recv_event_table_->entries[i].recv_flag = false;
+            recv_event_table_->entries[i].pending_flag = false;
             recv_event_table_->entries[i].proc_id = context.get_pid();
             recv_event_table_->entries[i].real_channel_id = real_id;
             if (on_recv != nullptr) {
@@ -150,13 +151,17 @@ bool hako::data::pro::HakoProData::get_recv_event(int asset_id, int channel_id, 
         }
         this->master_data_->get_pdu_data()->read_pdu_spin_lock(asset_id, channel_id);
         bool recv_flag = recv_event_table_->entries[i].recv_flag;
+        bool pending_flag = recv_event_table_->entries[i].pending_flag;
         //std::cout << "INFO: get_recv_event() recv_flag: " << recv_flag << std::endl;
-        if (recv_flag) {
+        if (recv_flag && !pending_flag) {
             recv_event_table_->entries[i].recv_flag = false;
             recv_event_id = i;
         }
         this->master_data_->get_pdu_data()->read_pdu_spin_unlock(asset_id, channel_id);
         //std::cout << "INFO: get_recv_event() asset_id: " << asset_id << " channel_id: " << channel_id << " recv_event_id: " << recv_event_id << std::endl;
+        if (pending_flag) {
+            return false;
+        }
         return recv_flag;
     }
     return false;
@@ -196,12 +201,13 @@ bool hako::data::pro::HakoProData::call_recv_event_callbacks(const char* asset_n
         }
         this->master_data_->get_pdu_data()->read_pdu_spin_lock(asset_id, recv_event_table_->entries[i].real_channel_id);
         bool recv_flag = recv_event_table_->entries[i].recv_flag;
-        if (recv_flag) {
+        bool pending_flag = recv_event_table_->entries[i].pending_flag;
+        if (recv_flag && !pending_flag) {
             recv_event_table_->entries[i].recv_flag = false;
             //std::cout << "INFO: call_recv_event_callbacks() recv_flag: " << recv_flag << std::endl;
         }
         this->master_data_->get_pdu_data()->read_pdu_spin_unlock(asset_id, recv_event_table_->entries[i].real_channel_id);
-        if (recv_flag && (recv_event_table_->entries[i].on_recv != nullptr)) {
+        if (recv_flag && !pending_flag && (recv_event_table_->entries[i].on_recv != nullptr)) {
             recv_event_table_->entries[i].on_recv(i);
         }
     }
@@ -222,9 +228,66 @@ bool hako::data::pro::HakoProData::call_recv_event_callback(int recv_event_id)
     if (recv_event_table_->entries[recv_event_id].type != HAKO_RECV_EVENT_TYPE_CALLBACK) {
         return false;
     }
+    if (recv_event_table_->entries[recv_event_id].pending_flag) {
+        return false;
+    }
     if (recv_event_table_->entries[recv_event_id].on_recv == nullptr) {
         return false;
     }
     recv_event_table_->entries[recv_event_id].on_recv(recv_event_id);
     return true;
+}
+
+bool hako::data::pro::HakoProData::set_recv_event_pending(int recv_event_id, bool pending)
+{
+    if (recv_event_table_ == nullptr) {
+        return false;
+    }
+    if (recv_event_id < 0 || recv_event_id >= HAKO_RECV_EVENT_MAX) {
+        return false;
+    }
+    hako::core::context::HakoContext context;
+    auto pid = context.get_pid();
+    this->lock_memory();
+    if ((recv_event_table_->entries[recv_event_id].enabled == false)
+        || (recv_event_table_->entries[recv_event_id].proc_id != pid)) {
+        this->unlock_memory();
+        return false;
+    }
+    recv_event_table_->entries[recv_event_id].pending_flag = pending;
+    this->unlock_memory();
+    return true;
+}
+
+bool hako::data::pro::HakoProData::set_recv_event_pending(const std::string& robot_name, int channel_id, bool pending)
+{
+    if (recv_event_table_ == nullptr) {
+        return false;
+    }
+    HakoPduChannelIdType real_id = this->master_data_->get_pdu_data()->get_pdu_channel(robot_name, channel_id);
+    if (real_id < 0) {
+        return false;
+    }
+    if (recv_event_table_->entry_num == 0) {
+        return false;
+    }
+    hako::core::context::HakoContext context;
+    auto pid = context.get_pid();
+    this->lock_memory();
+    for (int i = 0; i < recv_event_table_->entry_num; i++) {
+        if (recv_event_table_->entries[i].enabled == false) {
+            continue;
+        }
+        if (recv_event_table_->entries[i].proc_id != pid) {
+            continue;
+        }
+        if (recv_event_table_->entries[i].real_channel_id != real_id) {
+            continue;
+        }
+        recv_event_table_->entries[i].pending_flag = pending;
+        this->unlock_memory();
+        return true;
+    }
+    this->unlock_memory();
+    return false;
 }
