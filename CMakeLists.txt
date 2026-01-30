@@ -11,7 +11,7 @@ project(hakoniwa-core-pro
 enable_testing()
 
 set(HAKO_CORE_SOURCE_DIR "${PROJECT_SOURCE_DIR}/hakoniwa-core-cpp")
-set(HAKO_PDU_SOURCE_DIR "${PROJECT_SOURCE_DIR}/hakoniwa-ros2pdu/pdu/types")
+set(HAKO_PDU_SOURCE_DIR "${PROJECT_SOURCE_DIR}/hakoniwa-pdu-registry/pdu/types")
 set(HAKO_INC_DIR "${PROJECT_SOURCE_DIR}/include")
 set(HAKO_CORE_PRO_SOURCE_DIR "${PROJECT_SOURCE_DIR}/sources")
 
@@ -91,7 +91,7 @@ install(
 
 # Install PDU header files
 install(
-    DIRECTORY ${PROJECT_SOURCE_DIR}/hakoniwa-ros2pdu/pdu/types/
+    DIRECTORY ${PROJECT_SOURCE_DIR}/hakoniwa-pdu-registry/pdu/types/
     DESTINATION include/hakoniwa/pdu
 )
 
@@ -103,6 +103,6 @@ install(
 
 # Install PDU offset files
 install(
-    DIRECTORY ${PROJECT_SOURCE_DIR}/hakoniwa-ros2pdu/pdu/offset/
+    DIRECTORY ${PROJECT_SOURCE_DIR}/hakoniwa-pdu-registry/pdu/offset/
     DESTINATION share/hakoniwa/offset
 )

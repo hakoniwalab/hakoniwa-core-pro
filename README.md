@@ -336,8 +336,8 @@ debuild -us -uc -b
 |分類|リポジトリ内|インストール先| 説明| 利用者|
 |---|---|---|---|---|
 |ヘッダファイル|include|/usr/include/hakoniwa|箱庭APIのヘッダファイル| C/C++ 開発者|
-|ヘッダファイル|hakoniwa-ros2pdu/pdu/types|/usr/include/hakoniwa/pdu|箱庭PDUバイナリ変換APIのヘッダファイル| C/C++ 開発者|
-|実行時参照ファイル|hakoniwa-ros2pdu/pdu/offset|/usr/share/hakoniwa/offset|箱庭PDUバイナリ変換用オフセットファイル| C/C++ 開発者|
+|ヘッダファイル|hakoniwa-pdu-registry/pdu/types|/usr/include/hakoniwa/pdu|箱庭PDUバイナリ変換APIのヘッダファイル| C/C++ 開発者|
+|実行時参照ファイル|hakoniwa-pdu-registry/pdu/offset|/usr/share/hakoniwa/offset|箱庭PDUバイナリ変換用オフセットファイル| C/C++ 開発者|
 |MMAPファイル|なし|/var/lib/hakoniwa/mmap|MMAPファイルを配置するディレクトリ| 箱庭ライブラリ利用者|
 |設定ファイル|hakoniwa-core-cpp/cpp_core_config.json|/etc/hakoniwa/cpp_core_config.json|箱庭コアの設定ファイル| 箱庭ライブラリ利用者|
 |ライブラリ|cmake-build/sources/assets/callback|/usr/local/lib/hakoniwa/|箱庭アセット用ライブラリ(callback)| C++ 開発者|
