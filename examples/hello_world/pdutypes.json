@@ -1,0 +1,3 @@
+[
+  { "channel_id": 0, "pdu_size": 48, "name": "motor", "type": "geometry_msgs/Twist" }
+]

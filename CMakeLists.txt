@@ -46,6 +46,10 @@ add_subdirectory(examples)
 if(NOT "${CMAKE_CXX_FLAGS}" MATCHES "-m32")
 add_subdirectory(sources/assets/bindings/python)
 endif()
+option(HAKO_ENABLE_GTEST "Enable GTest-based tests for hakoniwa-core-pro" ON)
+if(HAKO_ENABLE_GTEST)
+add_subdirectory(tests/cpp)
+endif()
 
 # For pkg-config support
 include(GNUInstallDirs)

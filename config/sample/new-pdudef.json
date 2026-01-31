@@ -1,0 +1,9 @@
+{
+  "paths": [
+    { "id": "default", "path": "new-pdutypes.json" }
+  ],
+  "robots": [
+    { "name": "Drone-1", "pdutypes_id": "default" },
+    { "name": "Drone-2", "pdutypes_id": "default" }
+  ]
+}

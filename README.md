@@ -209,6 +209,7 @@ hakoniwa-core-pro では、PDU を介したリクエスト／レスポンス通�
     - `command/`: コマンドラインツール `hako-cmd` のソースコード。
 - `examples/`: サンプルプログラム
 - `tests/`: Python 版バインディングのテストコード
+- `tests/cpp/`: GTest ベースの C++ テストコード（root プロジェクト）
 
 ## コアライブラリの設計 (`sources/core`)
 
@@ -239,6 +240,18 @@ hakoniwa-core-pro では、PDU を介したリクエスト／レスポンス通�
 
 ```sh
 ./build.bash
+```
+
+## テスト
+
+### C++ (GTest)
+
+GTest テストを有効にしてビルドし、`ctest` を実行します。
+
+```sh
+cmake -S . -B cmake-build -DHAKO_ENABLE_GTEST=ON
+cmake --build cmake-build
+ctest --test-dir cmake-build --verbose
 ```
 
 デフォルトでは `cmake-build` 配下にビルド成果物が生成されます。初回のみ

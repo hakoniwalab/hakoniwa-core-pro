@@ -1,0 +1,136 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Hakoniwa PDU Definition (Legacy or Compact)",
+  "description": "Schema that accepts either the legacy pdudef.json or the compact form that references pdutypes files.",
+  "allOf": [
+    {
+      "if": { "required": ["paths"] },
+      "then": { "$ref": "#/$defs/compact" },
+      "else": { "$ref": "#/$defs/legacy" }
+    }
+  ],
+  "$defs": {
+    "legacy": {
+      "title": "PDU Definition Configuration (Legacy)",
+      "type": "object",
+      "required": ["robots"],
+      "properties": {
+        "robots": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/legacy_robot" }
+        }
+      }
+    },
+    "legacy_robot": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "shm_pdu_readers": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/legacy_pdu_entry" }
+        },
+        "shm_pdu_writers": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/legacy_pdu_entry" }
+        },
+        "rpc_pdu_readers": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/legacy_pdu_entry" }
+        },
+        "rpc_pdu_writers": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/legacy_pdu_entry" }
+        }
+      }
+    },
+    "legacy_pdu_entry": {
+      "type": "object",
+      "required": ["type", "org_name", "channel_id", "pdu_size"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "org_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "channel_id": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "pdu_size": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "write_cycle": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "method_type": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "compact": {
+      "title": "Hakoniwa PDU Definition (Compact)",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["paths", "robots"],
+      "properties": {
+        "paths": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "path"],
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Identifier referenced by robots[].pdutypes_id"
+              },
+              "path": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Relative or absolute path to a pdutypes JSON file"
+              }
+            }
+          }
+        },
+        "robots": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "pdutypes_id"],
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Robot name"
+              },
+              "pdutypes_id": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Reference to paths[].id"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

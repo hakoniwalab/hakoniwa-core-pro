@@ -25,12 +25,26 @@ struct PduWriter {
     int pdu_size;
     std::string method_type;
 };
+struct PduIo {
+    std::string type;
+    int channel_id;
+    int pdu_size;
+};
+struct PduIoEntry {
+    PduIo io;
+    std::string name; // org_name (robot名は含まない)
+};
 struct Robot {
     std::string name;
     std::vector<PduReader> pdu_readers;
     std::vector<PduWriter> pdu_writers;
 };
+struct RobotCompact {
+    std::string name;
+    std::vector<PduIoEntry> pdus;
+};
 extern bool hako_asset_get_pdus(std::vector<Robot> &robots);
+extern bool hako_asset_get_pdus_compact(std::vector<RobotCompact> &robots);
 
 }
 }

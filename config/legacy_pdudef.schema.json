@@ -1,0 +1,76 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PDU Definition Configuration",
+  "description": "Schema for PDU definition files used to resolve names to channel IDs and sizes.",
+  "type": "object",
+  "required": ["robots"],
+  "properties": {
+    "robots": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/robot" }
+    }
+  },
+  "$defs": {
+    "robot": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "shm_pdu_readers": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/pdu_entry" }
+        },
+        "shm_pdu_writers": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/pdu_entry" }
+        },
+        "rpc_pdu_readers": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/pdu_entry" }
+        },
+        "rpc_pdu_writers": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/pdu_entry" }
+        }
+      }
+    },
+    "pdu_entry": {
+      "type": "object",
+      "required": ["type", "org_name", "channel_id", "pdu_size"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "org_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "channel_id": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "pdu_size": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "write_cycle": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "method_type": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

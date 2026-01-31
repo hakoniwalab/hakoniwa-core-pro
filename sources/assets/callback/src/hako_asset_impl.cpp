@@ -7,55 +7,163 @@
 #endif /* ENABLE_HAKO_TIME_MEASURE */
 #endif
 #include "hako_pro.hpp"
+#include <unordered_map>
+#include <unordered_set>
 
 HakoAssetType hako_asset_instance;
 
 /***********************
  * simulation control
  ***********************/
-static hako::asset::PduReader* create_reader(const nlohmann::json &reader_json)
+static std::string hako_get_dirname(const std::string& path)
 {
-    hako::asset::PduReader* reader = new hako::asset::PduReader{
-        reader_json["type"],
-        reader_json["org_name"],
-        reader_json["name"],
-        reader_json["channel_id"],
-        reader_json["pdu_size"],
-        reader_json["write_cycle"],
-    };
-    HAKO_ASSET_ASSERT(reader != nullptr);
-    return reader;
+    size_t pos = path.find_last_of("/\\");
+    if (pos == std::string::npos) {
+        return ".";
+    }
+    return path.substr(0, pos);
 }
-static hako::asset::PduWriter* create_writer(const nlohmann::json &writer_json)
+
+static std::string hako_join_path(const std::string& base_dir, const std::string& path)
 {
-    hako::asset::PduWriter* writer = new hako::asset::PduWriter{
-        writer_json["type"],
-        writer_json["org_name"],
-        writer_json["name"],
-        writer_json["write_cycle"],
-        writer_json["channel_id"],
-        writer_json["pdu_size"],
-        writer_json["method_type"]
-    };
-    HAKO_ASSET_ASSERT(writer != nullptr);
-    return writer;
+#ifdef WIN32
+    if ((path.size() > 1 && path[1] == ':') || (!path.empty() && (path[0] == '\\' || path[0] == '/'))) {
+        return path;
+    }
+#else
+    if (!path.empty() && path[0] == '/') {
+        return path;
+    }
+#endif
+    return base_dir + "/" + path;
 }
-static void hako_asset_impl_parse_robots(bool is_plant)
+
+static hako::asset::PduIoEntry create_io_from_legacy(const nlohmann::json &pdu_json)
 {
+    hako::asset::PduIoEntry entry;
+    entry.io = hako::asset::PduIo{
+        pdu_json["type"],
+        pdu_json["channel_id"],
+        pdu_json["pdu_size"]
+    };
+    entry.name = pdu_json["org_name"];
+    return entry;
+}
+
+static hako::asset::PduIoEntry create_io_compact(const nlohmann::json &pdu_json)
+{
+    hako::asset::PduIoEntry entry;
+    entry.io = hako::asset::PduIo{
+        pdu_json["type"],
+        pdu_json["channel_id"],
+        pdu_json["pdu_size"]
+    };
+    entry.name = pdu_json["name"];
+    return entry;
+}
+
+static std::string hako_full_name_from_entry(const std::string& robot_name, const std::string& org_name)
+{
+    return robot_name + "_" + org_name;
+}
+
+static std::string hako_pdu_key(const hako::asset::RobotCompact& /*robot*/, const hako::asset::PduIoEntry& entry)
+{
+    return entry.name + "|" + std::to_string(entry.io.channel_id) + "|" + entry.io.type;
+}
+
+static void hako_add_pdu_io_unique(hako::asset::RobotCompact& robot, const hako::asset::PduIoEntry& entry, std::unordered_set<std::string>& seen)
+{
+    std::string key = hako_pdu_key(robot, entry);
+    if (seen.insert(key).second) {
+        robot.pdus.push_back(entry);
+    }
+}
+
+static hako::asset::PduReader create_reader_from_io(const std::string& robot_name, const hako::asset::PduIoEntry& entry)
+{
+    return hako::asset::PduReader{
+        entry.io.type,
+        entry.name,
+        hako_full_name_from_entry(robot_name, entry.name),
+        entry.io.channel_id,
+        entry.io.pdu_size,
+        1
+    };
+}
+
+static hako::asset::PduWriter create_writer_from_io(const std::string& robot_name, const hako::asset::PduIoEntry& entry)
+{
+    return hako::asset::PduWriter{
+        entry.io.type,
+        entry.name,
+        hako_full_name_from_entry(robot_name, entry.name),
+        1,
+        entry.io.channel_id,
+        entry.io.pdu_size,
+        "SHM"
+    };
+}
+
+static bool hako_asset_impl_parse_robots_compact(bool /*is_plant*/, const std::string& config_path)
+{
+    const json& paths_json = hako_asset_instance.param["paths"];
     const json& robots_json = hako_asset_instance.param["robots"];
-    
+    std::string base_dir = hako_get_dirname(config_path);
+    std::unordered_map<std::string, json> pdutypes_map;
+
+    for (const auto& path_json : paths_json) {
+        std::string id = path_json["id"];
+        std::string path = path_json["path"];
+        std::string abs_path = hako_join_path(base_dir, path);
+        std::ifstream ifs(abs_path);
+        if (!ifs.is_open()) {
+            std::cerr << "Error: Failed to open pdutypes file: " << abs_path << std::endl;
+            return false;
+        }
+        try {
+            json pdutypes = json::parse(ifs);
+            pdutypes_map.emplace(id, pdutypes);
+        } catch (const json::exception& e) {
+            std::cerr << "JSON parsing error (pdutypes): " << e.what() << std::endl;
+            return false;
+        }
+    }
+
     for (const auto& robot_json : robots_json) {
-        hako::asset::Robot* robot = new hako::asset::Robot;
-        robot->name = robot_json["name"];
+        hako::asset::RobotCompact robot;
+        robot.name = robot_json["name"];
+        std::string pdutypes_id = robot_json["pdutypes_id"];
+        auto it = pdutypes_map.find(pdutypes_id);
+        if (it == pdutypes_map.end()) {
+            std::cerr << "Error: pdutypes_id not found: " << pdutypes_id << std::endl;
+            return false;
+        }
+        const json& pdutypes = it->second;
+        std::unordered_set<std::string> seen;
+        for (const auto& pdu_json : pdutypes) {
+            hako_add_pdu_io_unique(robot, create_io_compact(pdu_json), seen);
+        }
+        hako_asset_instance.robots_compact.push_back(std::move(robot));
+    }
+    return true;
+}
+
+static bool hako_asset_impl_parse_robots(bool is_plant, const std::string& config_path)
+{
+    if (hako_asset_instance.param.contains("paths")) {
+        return hako_asset_impl_parse_robots_compact(is_plant, config_path);
+    }
+
+    const json& robots_json = hako_asset_instance.param["robots"];
+    for (const auto& robot_json : robots_json) {
+        hako::asset::RobotCompact robot;
+        robot.name = robot_json["name"];
+        std::unordered_set<std::string> seen;
         if (robot_json.find("shm_pdu_writers") != robot_json.end()) {
             const json& pdu_readers_json = robot_json["shm_pdu_writers"];
             for (const auto& reader_json : pdu_readers_json) {
-                if (is_plant) {
-                    robot->pdu_writers.push_back(*create_writer(reader_json));
-                }
-                else {
-                    robot->pdu_readers.push_back(*create_reader(reader_json));
-                }
+                hako_add_pdu_io_unique(robot, create_io_from_legacy(reader_json), seen);
             }
         } else {
             // nothing to do
@@ -63,12 +171,7 @@ static void hako_asset_impl_parse_robots(bool is_plant)
         if (robot_json.find("rpc_pdu_writers") != robot_json.end()) {
             const json& pdu_readers_json = robot_json["rpc_pdu_writers"];
             for (const auto& reader_json : pdu_readers_json) {
-                if (is_plant) {
-                    robot->pdu_writers.push_back(*create_writer(reader_json));
-                }
-                else {
-                    robot->pdu_readers.push_back(*create_reader(reader_json));
-                }
+                hako_add_pdu_io_unique(robot, create_io_from_legacy(reader_json), seen);
             }
         } else {
             // nothing to do
@@ -76,12 +179,7 @@ static void hako_asset_impl_parse_robots(bool is_plant)
         if (robot_json.find("shm_pdu_readers") != robot_json.end()) {
             const json& pdu_writers_json = robot_json["shm_pdu_readers"];
             for (const auto& writer_json : pdu_writers_json) {
-                if (is_plant) {
-                    robot->pdu_readers.push_back(*create_reader(writer_json));
-                }
-                else {
-                    robot->pdu_writers.push_back(*create_writer(writer_json));
-                }
+                hako_add_pdu_io_unique(robot, create_io_from_legacy(writer_json), seen);
             }
         } else {
             // nothing to do
@@ -89,18 +187,14 @@ static void hako_asset_impl_parse_robots(bool is_plant)
         if (robot_json.find("rpc_pdu_readers") != robot_json.end()) {
             const json& pdu_writers_json = robot_json["rpc_pdu_readers"];
             for (const auto& writer_json : pdu_writers_json) {
-                if (is_plant) {
-                    robot->pdu_readers.push_back(*create_reader(writer_json));
-                }
-                else {
-                    robot->pdu_writers.push_back(*create_writer(writer_json));
-                }
+                hako_add_pdu_io_unique(robot, create_io_from_legacy(writer_json), seen);
             }
         } else {
             // nothing to do
-        }        
-        hako_asset_instance.robots.push_back(*robot);
+        }
+        hako_asset_instance.robots_compact.push_back(std::move(robot));
     }
+    return true;
 }
 
 bool hako_asset_impl_init(const char* asset_name, const char* config_path, hako_time_t delta_usec, bool is_plant)
@@ -119,7 +213,9 @@ bool hako_asset_impl_init(const char* asset_name, const char* config_path, hako_
     hako_asset_instance.current_usec = 0;
     try {
         hako_asset_instance.param = json::parse(ifs);
-        hako_asset_impl_parse_robots(is_plant);
+        if (!hako_asset_impl_parse_robots(is_plant, config_path)) {
+            return false;
+        }
     } catch (const json::exception& e) {
         std::cerr << "JSON parsing error: " << e.what() << std::endl;
         return false;
@@ -140,32 +236,19 @@ bool hako_asset_impl_init(const char* asset_name, const char* config_path, hako_
         return false;
     }
     // PDUのチャネルを作成する
-    for (const hako::asset::Robot& robot : hako_asset_instance.robots) {
-        for (const hako::asset::PduWriter& writer : robot.pdu_writers) {
-            std::cout << "Robot: " << robot.name << ", PduWriter: " << writer.name << std::endl;
-            std::cout << "channel_id: " << writer.channel_id << " pdu_size: " << writer.pdu_size << std::endl;
+    for (const hako::asset::RobotCompact& robot : hako_asset_instance.robots_compact) {
+        for (const hako::asset::PduIoEntry& entry : robot.pdus) {
+            std::cout << "Robot: " << robot.name << ", PduIO: " << hako_full_name_from_entry(robot.name, entry.name) << std::endl;
+            std::cout << "channel_id: " << entry.io.channel_id << " pdu_size: " << entry.io.pdu_size << std::endl;
             bool err = hako_asset_instance.hako_asset->create_pdu_lchannel(
                 robot.name,
-                writer.channel_id, 
-                writer.pdu_size
+                entry.io.channel_id, 
+                entry.io.pdu_size
             );
             if (err == false) {
                 std::cerr << "ERROR: Can not create_pdu_channel()" << std::endl;
                 return false;
             }            
-        }
-        for (const hako::asset::PduReader& reader : robot.pdu_readers) {
-            std::cout << "Robot: " << robot.name << ", PduReader: " << reader.name << std::endl;
-            std::cout << "channel_id: " << reader.channel_id << " pdu_size: " << reader.pdu_size << std::endl;
-            bool err = hako_asset_instance.hako_asset->create_pdu_lchannel(
-                robot.name,
-                reader.channel_id, 
-                reader.pdu_size
-            );
-            if (err == false) {
-                std::cerr << "ERROR: Can not create_pdu_channel()" << std::endl;
-                return false;
-            }
         }
     }
 #ifdef ENABLE_HAKO_TIME_MEASURE
@@ -183,7 +266,28 @@ bool hako::asset::hako_asset_get_pdus(std::vector<hako::asset::Robot> &robots)
         return false;
     }
 
-    robots = hako_asset_instance.robots;
+    robots.clear();
+    robots.reserve(hako_asset_instance.robots_compact.size());
+    for (const auto& robot_compact : hako_asset_instance.robots_compact) {
+        hako::asset::Robot robot;
+        robot.name = robot_compact.name;
+        for (const auto& entry : robot_compact.pdus) {
+            robot.pdu_readers.push_back(create_reader_from_io(robot_compact.name, entry));
+            robot.pdu_writers.push_back(create_writer_from_io(robot_compact.name, entry));
+        }
+        robots.push_back(std::move(robot));
+    }
+    return true;
+}
+
+bool hako::asset::hako_asset_get_pdus_compact(std::vector<hako::asset::RobotCompact> &robots)
+{
+    if (!hako_asset_instance.is_initialized) {
+        std::cerr << "ERROR: hako_asset_instance is not initialized." << std::endl;
+        return false;
+    }
+
+    robots = hako_asset_instance.robots_compact;
     return true;
 }
 
@@ -385,16 +489,16 @@ static bool hako_asset_impl_execute(void)
 }
 static void hako_asset_impl_pdus_write_done(void)
 {
-    for (const hako::asset::Robot& robot : hako_asset_instance.robots) {
-        for (const hako::asset::PduWriter& writer : robot.pdu_writers) {
-            std::cout << "INFO: hako_asset_impl_pdus_write_done() Robot: " << robot.name << ", PduWriter: " << writer.name << std::endl;
-            std::cout << "channel_id: " << writer.channel_id << " pdu_size: " << writer.pdu_size << std::endl;
+    for (const hako::asset::RobotCompact& robot : hako_asset_instance.robots_compact) {
+        for (const hako::asset::PduIoEntry& entry : robot.pdus) {
+            std::cout << "INFO: hako_asset_impl_pdus_write_done() Robot: " << robot.name << ", PduIO: " << hako_full_name_from_entry(robot.name, entry.name) << std::endl;
+            std::cout << "channel_id: " << entry.io.channel_id << " pdu_size: " << entry.io.pdu_size << std::endl;
             bool is_called = false;
             if (is_called == false) {
-                char * buffer = (char*) malloc(writer.pdu_size);
+                char * buffer = (char*) malloc(entry.io.pdu_size);
                 HAKO_ASSET_ASSERT(buffer != NULL);
-                memset(buffer, 0, writer.pdu_size);
-                auto ret = hako_asset_impl_pdu_write(robot.name.c_str(), writer.channel_id, buffer, writer.pdu_size);
+                memset(buffer, 0, entry.io.pdu_size);
+                auto ret = hako_asset_impl_pdu_write(robot.name.c_str(), entry.io.channel_id, buffer, entry.io.pdu_size);
                 HAKO_ASSET_ASSERT(ret == true);
                 free(buffer);
             }

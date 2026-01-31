@@ -30,7 +30,7 @@ struct HakoAssetType {
     const hako_asset_callbacks_t *callback;
     std::shared_ptr<hako::IHakoAssetController> hako_asset;
     std::shared_ptr<hako::IHakoSimulationEventController> hako_sim;
-    std::vector<hako::asset::Robot> robots;
+    std::vector<hako::asset::RobotCompact> robots_compact;
 
 #ifdef ENABLE_HAKO_TIME_MEASURE
     /*
