@@ -1,3 +1,24 @@
+hakoniwa-core (1.1.2-1) noble; urgency=medium
+
+  [ Takashi Mori ]
+  * New upstream release v1.1.2.
+  * Add new polling-based Hakoniwa C API.
+  * Add APIs to retrieve minimum asset simulation time.
+  * Add on-demand PDU data loading API.
+  * Extend data receive event notification functionality.
+  * Reduce excessive WARNING logs for busy data receive events.
+  * Fix missing data receive events in some cases.
+  * Fix duplicate function names between hako_capi.h and hako_asset.h.
+  * Fix incorrect return type of hako_conductor_start().
+  * Update PDU definition system:
+    - Rename hakoniwa-ros2pdu to hakoniwa-pdu-registry.
+    - Support new PDU definition format compatible with custom.json.
+  * Fix Linux build issue in build.bash.
+  * Fix python3-hakopy package installation (hakopy.so missing).
+  * Add Python API to retrieve asset simulation time.
+
+ -- Code <tmori@hakoniwa-lab.net>  Mon, 02 Feb 2026 08:52:17 +0900
+
 hakoniwa-core (1.1.1-4) noble; urgency=medium
 
   * fix install error for permission error of /var/lib/hakoniwa/mmap
