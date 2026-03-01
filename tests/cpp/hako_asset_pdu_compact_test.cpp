@@ -13,6 +13,15 @@
 
 namespace {
 
+void set_env_var(const char* name, const char* value)
+{
+#ifdef _WIN32
+    ASSERT_EQ(_putenv_s(name, value), 0);
+#else
+    ASSERT_EQ(setenv(name, value, 1), 0);
+#endif
+}
+
 std::filesystem::path test_base_dir(const std::string& suffix)
 {
     auto base_dir = std::filesystem::temp_directory_path() / ("hako_pdu_test_" + suffix);
@@ -136,7 +145,7 @@ TEST(HakoAssetPduConfigTest, CompactConfigBuildsLegacyView)
 {
     std::cerr << "TEST: init" << std::endl;
     auto core_config = write_core_config();
-    setenv("HAKO_CONFIG_PATH", core_config.string().c_str(), 1);
+    set_env_var("HAKO_CONFIG_PATH", core_config.string().c_str());
 
     std::cerr << "TEST: write_test_files" << std::endl;
     auto config_path = write_compact_test_files();
@@ -203,7 +212,7 @@ TEST(HakoAssetPduConfigTest, LegacyConfigBuildsCompactView)
 {
     std::cerr << "TEST: init" << std::endl;
     auto core_config = write_core_config();
-    setenv("HAKO_CONFIG_PATH", core_config.string().c_str(), 1);
+    set_env_var("HAKO_CONFIG_PATH", core_config.string().c_str());
 
     std::cerr << "TEST: write_test_files" << std::endl;
     auto config_path = write_legacy_test_files();
