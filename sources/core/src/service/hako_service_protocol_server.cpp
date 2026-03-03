@@ -95,9 +95,9 @@ hako::service::HakoServiceServerEventType hako::service::HakoServiceServerProtoc
         return HAKO_SERVICE_SERVER_EVENT_NONE;
     }
     else if (data_recv_in == false) {
-        if ((state == HAKO_SERVICE_SERVER_STATE_DOING) && (header.status_poll_interval_msec > 0)) {
+        if ((state == HAKO_SERVICE_SERVER_STATE_DOING) && (request_header_.status_poll_interval_msec > 0)) {
             auto now = pro_data->get_world_time_usec();
-            if ((last_poll_time_ == 0) || (now - last_poll_time_) > header.status_poll_interval_msec * 1000) {
+            if ((last_poll_time_ == 0) || (now - last_poll_time_) > request_header_.status_poll_interval_msec * 1000) {
                 if (send_response(HAKO_SERVICE_STATUS_DOING, HAKO_SERVICE_RESULT_CODE_OK) == false) {
                     std::cerr << "ERROR: send_response() failed" << std::endl;
                 }
