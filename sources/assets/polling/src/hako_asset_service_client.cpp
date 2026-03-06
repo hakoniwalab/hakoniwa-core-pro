@@ -2,10 +2,17 @@
 #include "hako_asset_service.h"
 #include "hako_service_protocol_client.hpp"
 #include "hako_service_impl_client.hpp"
+#include <cstdint>
 #include <vector>
 #include <unordered_map>
 
-static std::unordered_map<int, std::pair<int, std::shared_ptr<hako::service::HakoServiceClientProtocol>>> service_clients;
+static std::unordered_map<std::uint64_t, std::pair<int, std::shared_ptr<hako::service::HakoServiceClientProtocol>>> service_clients;
+
+static std::uint64_t make_service_client_key(int service_id, int client_id)
+{
+    return (static_cast<std::uint64_t>(static_cast<std::uint32_t>(service_id)) << 32)
+         | static_cast<std::uint32_t>(client_id);
+}
 
 int hako_asset_service_client_create(const char* assetName, const char* serviceName, const char* clientName, HakoServiceHandleType* handle)
 {
@@ -34,7 +41,7 @@ int hako_asset_service_client_create(const char* assetName, const char* serviceN
         return -1;
     }
     int client_id = client_protocol->get_client_id();
-    service_clients[client_id] = std::make_pair(service_id, client_protocol);
+    service_clients[make_service_client_key(service_id, client_id)] = std::make_pair(service_id, client_protocol);
     handle->service_id = service_id;
     handle->client_id = client_protocol->get_client_id();
     return 0;
@@ -46,7 +53,7 @@ int hako_asset_service_client_poll(const HakoServiceHandleType* handle)
         std::cerr << "ERROR: hako_asset_service_client_poll(): handle is null" << std::endl;
         return -1;
     }
-    auto it = service_clients.find(handle->client_id);
+    auto it = service_clients.find(make_service_client_key(handle->service_id, handle->client_id));
     if (it == service_clients.end()) {
         std::cerr << "ERROR: hako_asset_service_client_poll(): client not found" << std::endl;
         return -1;
@@ -75,7 +82,13 @@ int hako_asset_service_client_get_channel_id(int service_id, int* request_channe
         std::cerr << "ERROR: hako_asset_service_client_get_current_channel_id(): request_channel_id or response_channel_id is null" << std::endl;
         return -1;
     }
-    auto it = service_clients.find(service_id);
+    auto it = service_clients.end();
+    for (auto itr = service_clients.begin(); itr != service_clients.end(); ++itr) {
+        if (itr->second.first == service_id) {
+            it = itr;
+            break;
+        }
+    }
     if (it == service_clients.end()) {
         std::cerr << "ERROR: hako_asset_service_client_get_current_channel_id(): client not found" << std::endl;
         return -1;
@@ -96,7 +109,7 @@ int hako_asset_service_client_get_request_buffer(const HakoServiceHandleType* ha
         std::cerr << "ERROR: hako_asset_service_client_get_request_buffer(): handle is null" << std::endl;
         return -1;
     }
-    auto it = service_clients.find(handle->client_id);
+    auto it = service_clients.find(make_service_client_key(handle->service_id, handle->client_id));
     if (it == service_clients.end()) {
         std::cerr << "ERROR: hako_asset_service_client_get_request_buffer(): client not found" << std::endl;
         return -1;
@@ -122,7 +135,7 @@ int hako_asset_service_client_get_response(const HakoServiceHandleType* handle, 
         std::cerr << "ERROR: hako_asset_service_client_get_response(): handle is null" << std::endl;
         return -1;
     }
-    auto it = service_clients.find(handle->client_id);
+    auto it = service_clients.find(make_service_client_key(handle->service_id, handle->client_id));
     if (it == service_clients.end()) {
         std::cerr << "ERROR: hako_asset_service_client_get_response(): client not found" << std::endl;
         return -1;
@@ -149,7 +162,7 @@ int hako_asset_service_client_call_request(const HakoServiceHandleType* handle, 
         std::cerr << "ERROR: hako_asset_service_client_call_request(): handle is null" << std::endl;
         return -1;
     }
-    auto it = service_clients.find(handle->client_id);
+    auto it = service_clients.find(make_service_client_key(handle->service_id, handle->client_id));
     if (it == service_clients.end()) {
         std::cerr << "ERROR: hako_asset_service_client_call_request(): client not found" << std::endl;
         return -1;
@@ -174,7 +187,7 @@ int hako_asset_service_client_get_response(const HakoServiceHandleType* handle, 
         std::cerr << "ERROR: hako_asset_service_client_get_response(): handle is null" << std::endl;
         return -1;
     }
-    auto it = service_clients.find(handle->client_id);
+    auto it = service_clients.find(make_service_client_key(handle->service_id, handle->client_id));
     if (it == service_clients.end()) {
         std::cerr << "ERROR: hako_asset_service_client_get_response(): client not found" << std::endl;
         return -1;
@@ -195,7 +208,7 @@ int hako_asset_service_client_cancel_request(const HakoServiceHandleType* handle
         std::cerr << "ERROR: hako_asset_service_client_cancel_request(): handle is null" << std::endl;
         return -1;
     }
-    auto it = service_clients.find(handle->client_id);
+    auto it = service_clients.find(make_service_client_key(handle->service_id, handle->client_id));
     if (it == service_clients.end()) {
         std::cerr << "ERROR: hako_asset_service_client_cancel_request(): client not found" << std::endl;
         return -1;
@@ -217,7 +230,7 @@ int hako_asset_service_client_get_progress(const HakoServiceHandleType* handle)
         std::cerr << "ERROR: hako_asset_service_client_get_progress(): handle is null" << std::endl;
         return -1;
     }
-    auto it = service_clients.find(handle->client_id);
+    auto it = service_clients.find(make_service_client_key(handle->service_id, handle->client_id));
     if (it == service_clients.end()) {
         std::cerr << "ERROR: hako_asset_service_client_get_progress(): client not found" << std::endl;
         return -1;
@@ -236,7 +249,7 @@ int hako_asset_service_client_status(const HakoServiceHandleType* handle, int* s
         std::cerr << "ERROR: hako_asset_service_client_status(): handle or status is null" << std::endl;
         return -1;
     }
-    auto it = service_clients.find(handle->client_id);
+    auto it = service_clients.find(make_service_client_key(handle->service_id, handle->client_id));
     if (it == service_clients.end()) {
         std::cerr << "ERROR: hako_asset_service_client_status(): client not found" << std::endl;
         return -1;
