@@ -186,8 +186,14 @@ int hako::data::pro::HakoProData::create_service(const std::string& serviceName)
         std::cerr << "ERROR: service_table_ is null on create_service()" << std::endl;
         return -1;
     }
-    if (service_table_->entry_num == 0) {
-        this->set_service_data();        
+    // Rebuild service table when SHM still has stale metadata from a previous run.
+    // This avoids service_id lookup failures after fleet size/config changes.
+    if (service_table_->entry_num != static_cast<int>(this->service_impl_.services.size())) {
+        std::cout << "INFO: service_table entry_num mismatch. reload service table: "
+                  << "current=" << service_table_->entry_num
+                  << " expected=" << this->service_impl_.services.size()
+                  << std::endl;
+        this->set_service_data();
     }
     if (service_table_->entry_num >= HAKO_SERVICE_MAX) {
         std::cerr << "ERROR: service_table_ is full on create_service()" << std::endl;
