@@ -5,6 +5,7 @@
 #include <iostream>
 #include <iomanip>
 #include <sstream>
+#include <cstdlib>
 
 std::string hako::data::pro::get_timestamp()
 {
@@ -37,13 +38,29 @@ bool hako::init()
     if (master_data_ptr == nullptr) {
         HakoConfigType config;
         hako_config_load(config);
+        const char* conf_path = std::getenv("HAKO_CONFIG_PATH");
+        std::cout << "INFO: hako::init() config_path="
+                  << ((conf_path != nullptr) ? conf_path : HAKO_CONFIG_DEFAULT_PATH)
+                  << std::endl;
         master_data_ptr = std::make_shared<hako::data::HakoMasterData>();
         if (config.param == nullptr) {
             std::cout << "WARN: hako::init() can not find cpp_core_config.json" << std::endl;
             master_data_ptr->init("shm");
+            std::cout << "INFO: hako::init() asset_timeout_usec=DEFAULT(30000000)" << std::endl;
         }
         else {
             master_data_ptr->init(config.param["shm_type"]);
+            std::cout << "INFO: hako::init() config_has_asset_timeout_usec="
+                      << (config.param.contains("asset_timeout_usec") ? "true" : "false")
+                      << std::endl;
+            if (config.param.contains("asset_timeout_usec") && config.param["asset_timeout_usec"].is_number()) {
+                auto timeout_usec = static_cast<HakoTimeType>(config.param["asset_timeout_usec"]);
+                master_data_ptr->set_asset_timeout_usec(timeout_usec);
+                std::cout << "INFO: hako::init() asset_timeout_usec=" << timeout_usec << std::endl;
+            }
+            else {
+                std::cout << "INFO: hako::init() asset_timeout_usec=DEFAULT(30000000)" << std::endl;
+            }
         }
     }
     if (pro_data_ptr == nullptr) {
@@ -112,6 +129,14 @@ std::shared_ptr<hako::IHakoAssetController> hako::create_asset_controller()
         if (master_data_ptr->load(config.param["shm_type"]) == false) {
             return nullptr;
         }
+        if (config.param.contains("asset_timeout_usec") && config.param["asset_timeout_usec"].is_number()) {
+            auto timeout_usec = static_cast<HakoTimeType>(config.param["asset_timeout_usec"]);
+            master_data_ptr->set_asset_timeout_usec(timeout_usec);
+            std::cout << "INFO: hako::create_asset_controller() asset_timeout_usec=" << timeout_usec << std::endl;
+        }
+        else {
+            std::cout << "INFO: hako::create_asset_controller() asset_timeout_usec=DEFAULT(30000000)" << std::endl;
+        }
         if (pro_data_ptr == nullptr) {
             pro_data_ptr = std::make_shared<hako::data::pro::HakoProData>(master_data_ptr);
             std::cout << "INFO: hako::create_asset_controller() : type: " << master_data_ptr->get_shm_type() << std::endl;
@@ -142,6 +167,14 @@ std::shared_ptr<hako::IHakoSimulationEventController> hako::get_simevent_control
         }
         if (master_data_ptr->load(config.param["shm_type"]) == false) {
             return nullptr;
+        }
+        if (config.param.contains("asset_timeout_usec") && config.param["asset_timeout_usec"].is_number()) {
+            auto timeout_usec = static_cast<HakoTimeType>(config.param["asset_timeout_usec"]);
+            master_data_ptr->set_asset_timeout_usec(timeout_usec);
+            std::cout << "INFO: hako::get_simevent_controller() asset_timeout_usec=" << timeout_usec << std::endl;
+        }
+        else {
+            std::cout << "INFO: hako::get_simevent_controller() asset_timeout_usec=DEFAULT(30000000)" << std::endl;
         }
         if (pro_data_ptr == nullptr) {
             pro_data_ptr = std::make_shared<hako::data::pro::HakoProData>(master_data_ptr);
