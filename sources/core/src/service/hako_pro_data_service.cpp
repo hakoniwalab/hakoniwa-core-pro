@@ -201,8 +201,16 @@ int hako::data::pro::HakoProData::create_service(const std::string& serviceName)
     }
     int service_id = get_service_id(serviceName);
     if (service_id < 0) {
-        std::cerr << "ERROR: service_id is invalid on create_service()" << std::endl;
-        return -1;
+        // entry_num can match while service name set differs across split configs.
+        // Force rebuild and retry once to recover from stale/incompatible table.
+        std::cout << "INFO: service_id lookup failed. reload service table and retry: "
+                  << serviceName << std::endl;
+        this->set_service_data();
+        service_id = get_service_id(serviceName);
+        if (service_id < 0) {
+            std::cerr << "ERROR: service_id is invalid on create_service()" << std::endl;
+            return -1;
+        }
     }
     //std::cout << "INFO: create_service() service_id: " << service_id << std::endl;
     HakoServiceEntryTye& service_entry = service_table_->entries[service_id];
