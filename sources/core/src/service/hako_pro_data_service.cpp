@@ -6,57 +6,42 @@ using namespace hako::data;
 
 bool hako::data::pro::HakoProData::is_exist_service(const std::string& service_name)
 {
-    for (int i = 0; i < HAKO_SERVICE_MAX; i++) {
-        if (service_table_->entries[i].enabled == false) {
-            continue;
-        }
-        if (strcmp(service_table_->entries[i].serviceName, service_name.c_str()) == 0) {
-            return true;
-        }
-    }
-    return false;
+    return service_name_to_id_.find(service_name) != service_name_to_id_.end();
 }
 bool hako::data::pro::HakoProData::is_exist_client_on_service(const std::string& service_name, const std::string& client_name)
 {
-    for (int i = 0; i < HAKO_SERVICE_MAX; i++) {
-        if (service_table_->entries[i].enabled == false) {
+    auto service_it = service_name_to_id_.find(service_name);
+    if (service_it == service_name_to_id_.end()) {
+        return false;
+    }
+    int service_id = service_it->second;
+    this->lock_service_entry(service_id);
+    auto& service_entry = service_table_->entries[service_id];
+    for (int i = 0; i < service_entry.maxClients; i++) {
+        if (service_entry.clientChannelMap[i].enabled == false) {
             continue;
         }
-        if (strcmp(service_table_->entries[i].serviceName, service_name.c_str()) != 0) {
-            continue;
-        }
-        for (int j = 0; j < service_table_->entries[i].maxClients; j++) {
-            if (service_table_->entries[i].clientChannelMap[j].enabled == false) {
-                continue;
-            }
-            if (strcmp(service_table_->entries[i].clientChannelMap[j].clientName, client_name.c_str()) == 0) {
-                return true;
-            }
+        if (client_name == service_entry.clientChannelMap[i].clientName) {
+            this->unlock_service_entry(service_id);
+            return true;
         }
     }
+    this->unlock_service_entry(service_id);
     return false;
 }
 hako::data::pro::HakoServiceEntryTye& hako::data::pro::HakoProData::get_service_entry(const std::string& service_name)
 {
-    for (int i = 0; i < HAKO_SERVICE_MAX; i++) {
-        if (service_table_->entries[i].enabled == false) {
-            continue;
-        }
-        if (strcmp(service_table_->entries[i].serviceName, service_name.c_str()) == 0) {
-            return service_table_->entries[i];
-        }
+    auto service_it = service_name_to_id_.find(service_name);
+    if (service_it != service_name_to_id_.end()) {
+        return service_table_->entries[service_it->second];
     }
     throw std::runtime_error("Service not found");
 }
 int hako::data::pro::HakoProData::get_service_id(const std::string& service_name)
 {
-    for (int i = 0; i < HAKO_SERVICE_MAX; i++) {
-        if (service_table_->entries[i].enabled == false) {
-            continue;
-        }
-        if (strcmp(service_table_->entries[i].serviceName, service_name.c_str()) == 0) {
-            return i;
-        }
+    auto service_it = service_name_to_id_.find(service_name);
+    if (service_it != service_name_to_id_.end()) {
+        return service_it->second;
     }
     return -1;
 }
@@ -139,11 +124,13 @@ int hako::data::pro::HakoProData::get_service_id(const std::string& service_name
      //std::cout << "INFO: service_table_->entry_num: " << service_table_->entry_num << std::endl;
      for (int i = 0; i < service_table_->entry_num; i++) {
         //std::cout << "INFO: service_table_->entries[" << i << "]" << std::endl;
-        auto& service = this->service_impl_.services[i];
-        service_table_->entries[i].enabled = true;
-        service_table_->entries[i].maxClients = service.maxClients;
-        service_table_->entries[i].pdu_size_request = service.server_total_size;
-        service_table_->entries[i].pdu_size_response = service.client_total_size;
+       auto& service = this->service_impl_.services[i];
+       service_table_->entries[i].enabled = true;
+       service_table_->entries[i].maxClients = service.maxClients;
+       service_table_->entries[i].nextClientId = 0;
+       service_table_->entries[i].atomic_is_busy = false;
+       service_table_->entries[i].pdu_size_request = service.server_total_size;
+       service_table_->entries[i].pdu_size_response = service.client_total_size;
         //std::cout << "INFO: service_table_->entries[" << i << "].pdu_size_request: " << service_table_->entries[i].pdu_size_request << std::endl;
         //std::cout << "INFO: service_table_->entries[" << i << "].pdu_size_response: " << service_table_->entries[i].pdu_size_response << std::endl;
         if (service.name.length() >= HAKO_SERVICE_NAMELEN_MAX) {
@@ -160,6 +147,7 @@ int hako::data::pro::HakoProData::get_service_id(const std::string& service_name
             service_table_->entries[i].clientChannelMap[j].responseChannelId = HAKO_SERVICE_CLIENT_CHANNEL_ID + (HAKO_SERVICE_SERVER_CHANNEL_ID_MAX * j);
         }
     }
+    this->rebuild_service_name_indexes();
     //debug
 #if false
     for (int i = 0; i < service_table_->entry_num; i++) {
@@ -327,6 +315,11 @@ int hako::data::pro::HakoProData::put_response(int asset_id, int service_id, int
  */
 int hako::data::pro::HakoProData::create_service_client(const std::string& serviceName, const std::string& clientName, int& client_id)
 {
+    // Profiling example:
+    // hako::profile::ScopedTimer _prof(
+    //     std::string("HakoProData::create_service_client service=") + serviceName
+    //     + " client=" + clientName
+    // );
     client_id = -1;
     if (service_table_ == nullptr) {
         std::cerr << "ERROR: service_table_ is null on create_service_client()" << std::endl;
@@ -360,57 +353,87 @@ int hako::data::pro::HakoProData::create_service_client(const std::string& servi
         return -1;
     }
     HakoServiceEntryTye& service_entry = this->get_service_entry(serviceName);
-    if (this->is_exist_client_on_service(serviceName, clientName)) {
-        for (int i = 0; i < service_entry.maxClients; i++) {
-            if (service_entry.clientChannelMap[i].enabled == false) {
-                continue;
+    {
+        // Profiling example:
+        // hako::profile::ScopedTimer _prof_lock(
+        //     std::string("HakoProData::create_service_client.lock service=") + serviceName
+        // );
+        this->lock_service_entry(service_id);
+    }
+    int existing_client_id = -1;
+    {
+        // Profiling example:
+        // hako::profile::ScopedTimer _prof_find(
+        //     std::string("HakoProData::create_service_client.find_existing service=") + serviceName
+        // );
+        for (int i = 0; i < service_entry.nextClientId; i++) {
+            auto& client_entry = service_entry.clientChannelMap[i];
+            if (client_entry.enabled) {
+                if (clientName == client_entry.clientName) {
+                    existing_client_id = i;
+                    break;
+                }
             }
-            if (strcmp(service_entry.clientChannelMap[i].clientName, clientName.c_str()) != 0) {
-                continue;
-            }
-            int recv_event_id = -1;
-            int client_channel_id = service_entry.clientChannelMap[i].responseChannelId;
-            bool ret = this->update_data_recv_event(serviceName, client_channel_id, nullptr, recv_event_id);
-            if (ret == false) {
-                std::cerr << "ERROR: Failed to register data receive event for service client" << std::endl;
-                return -1;
-            }
-            client_id = i;
-            std::cout << "INFO: client_id: " << client_id << " clientName: " << service_entry.clientChannelMap[i].clientName << std::endl;
-            break;
-        }
-        if (client_id < 0) {
-            std::cerr << "ERROR: client_id is invalid" << std::endl;
-            return -1;
         }
     }
-    else {
-        for (int i = 0; i < service_entry.maxClients; i++) {
-            if (service_entry.clientChannelMap[i].enabled == true) {
-                continue;
-            }
-            int recv_event_id = -1;
-            int client_channel_id = service_entry.clientChannelMap[i].responseChannelId;
-            bool ret = this->register_data_recv_event(serviceName, client_channel_id, nullptr, recv_event_id);
-            if (ret == false) {
-                std::cerr << "ERROR: Failed to register data receive event for service client" << std::endl;
-                return -1;
-            }
-            service_entry.clientChannelMap[i].responseRecvEventId = recv_event_id;
-            service_entry.clientChannelMap[i].enabled = true;
-            memcpy(service_entry.clientChannelMap[i].clientName, clientName.c_str(), clientName.length());
-            service_entry.clientChannelMap[i].clientName[clientName.length()] = '\0';
-            std::cout << "INFO: register_data_recv_event() serviceName: "
-                << serviceName << " channel_id: " << client_channel_id
-                << " recv_event_id: " << recv_event_id << std::endl;
-            client_id = i;
-            std::cout << "INFO: client_id: " << client_id << " clientName: " << service_entry.clientChannelMap[i].clientName << std::endl;
-            break;
+    if (existing_client_id >= 0) {
+        int recv_event_id = -1;
+        client_id = existing_client_id;
+        int client_channel_id = service_entry.clientChannelMap[client_id].responseChannelId;
+        bool ret = false;
+        {
+            // Profiling example:
+            // hako::profile::ScopedTimer _prof_update(
+            //     std::string("HakoProData::create_service_client.update_recv_event service=") + serviceName
+            // );
+            ret = this->update_data_recv_event(serviceName, client_channel_id, nullptr, recv_event_id);
         }
-        if (client_id < 0) {
+        this->unlock_service_entry(service_id);
+        if (ret == false) {
+            std::cerr << "ERROR: Failed to register data receive event for service client" << std::endl;
+            return -1;
+        }
+        std::cout << "INFO: client_id: " << client_id << " clientName: " << service_entry.clientChannelMap[client_id].clientName << std::endl;
+    }
+    else {
+        if (service_entry.nextClientId >= service_entry.maxClients) {
+            this->unlock_service_entry(service_id);
             std::cerr << "ERROR: client_id is invalid" << std::endl;
             return -1;
         }
+        int recv_event_id = -1;
+        client_id = service_entry.nextClientId;
+        int client_channel_id = service_entry.clientChannelMap[client_id].responseChannelId;
+        bool ret = false;
+        {
+            // Profiling example:
+            // hako::profile::ScopedTimer _prof_register(
+            //     std::string("HakoProData::create_service_client.register_recv_event service=") + serviceName
+            // );
+            ret = this->register_data_recv_event(serviceName, client_channel_id, nullptr, recv_event_id);
+        }
+        if (ret == false) {
+            this->unlock_service_entry(service_id);
+            std::cerr << "ERROR: Failed to register data receive event for service client" << std::endl;
+            client_id = -1;
+            return -1;
+        }
+        {
+            // Profiling example:
+            // hako::profile::ScopedTimer _prof_assign(
+            //     std::string("HakoProData::create_service_client.assign_slot service=") + serviceName
+            // );
+            service_entry.clientChannelMap[client_id].responseRecvEventId = recv_event_id;
+            service_entry.clientChannelMap[client_id].enabled = true;
+            memcpy(service_entry.clientChannelMap[client_id].clientName, clientName.c_str(), clientName.length());
+            service_entry.clientChannelMap[client_id].clientName[clientName.length()] = '\0';
+            service_entry.nextClientId++;
+        }
+        this->unlock_service_entry(service_id);
+        std::cout << "INFO: register_data_recv_event() serviceName: "
+            << serviceName << " channel_id: " << client_channel_id
+            << " recv_event_id: " << recv_event_id << std::endl;
+        std::cout << "INFO: client_id: " << client_id << " clientName: " << service_entry.clientChannelMap[client_id].clientName << std::endl;
     }
     return service_id;
 }

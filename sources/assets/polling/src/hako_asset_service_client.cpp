@@ -7,6 +7,7 @@
 #include <unordered_map>
 
 static std::unordered_map<std::uint64_t, std::pair<int, std::shared_ptr<hako::service::HakoServiceClientProtocol>>> service_clients;
+static std::unordered_map<int, std::shared_ptr<hako::service::HakoServiceClientProtocol>> service_protocols_by_service_id;
 
 static std::uint64_t make_service_client_key(int service_id, int client_id)
 {
@@ -16,6 +17,11 @@ static std::uint64_t make_service_client_key(int service_id, int client_id)
 
 int hako_asset_service_client_create(const char* assetName, const char* serviceName, const char* clientName, HakoServiceHandleType* handle)
 {
+    // Profiling example:
+    // hako::profile::ScopedTimer _prof(
+    //     std::string("hako_asset_service_client_create service=") + (serviceName ? serviceName : "(null)")
+    //     + " client=" + (clientName ? clientName : "(null)")
+    // );
     if (serviceName == nullptr || clientName == nullptr || handle == nullptr) {
         std::cerr << "ERROR: hako_asset_service_client_create(): serviceName or clientName or handle is null" << std::endl;
         return -1;
@@ -42,6 +48,7 @@ int hako_asset_service_client_create(const char* assetName, const char* serviceN
     }
     int client_id = client_protocol->get_client_id();
     service_clients[make_service_client_key(service_id, client_id)] = std::make_pair(service_id, client_protocol);
+    service_protocols_by_service_id[service_id] = client_protocol;
     handle->service_id = service_id;
     handle->client_id = client_protocol->get_client_id();
     return 0;
@@ -82,18 +89,12 @@ int hako_asset_service_client_get_channel_id(int service_id, int* request_channe
         std::cerr << "ERROR: hako_asset_service_client_get_current_channel_id(): request_channel_id or response_channel_id is null" << std::endl;
         return -1;
     }
-    auto it = service_clients.end();
-    for (auto itr = service_clients.begin(); itr != service_clients.end(); ++itr) {
-        if (itr->second.first == service_id) {
-            it = itr;
-            break;
-        }
-    }
-    if (it == service_clients.end()) {
+    auto it = service_protocols_by_service_id.find(service_id);
+    if (it == service_protocols_by_service_id.end()) {
         std::cerr << "ERROR: hako_asset_service_client_get_current_channel_id(): client not found" << std::endl;
         return -1;
     }
-    auto client_protocol = it->second.second;
+    auto client_protocol = it->second;
     if (!client_protocol) {
         std::cerr << "ERROR: hako_asset_service_client_get_current_channel_id(): client_protocol is null" << std::endl;
         return -1;

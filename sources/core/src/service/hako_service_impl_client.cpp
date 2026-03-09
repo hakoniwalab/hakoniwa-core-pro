@@ -8,6 +8,11 @@
  */
 bool hako::service::impl::HakoServiceClient::initialize(const char* serviceName, const char* clientName, const char* assetName)
 {
+    // Profiling example:
+    // hako::profile::ScopedTimer _prof(
+    //     std::string("HakoServiceClient::initialize service=") + (serviceName ? serviceName : "(null)")
+    //     + " client=" + (clientName ? clientName : "(null)")
+    // );
     if (serviceName == nullptr || *serviceName == '\0') {
         std::cerr << "Error: serviceName is not set." << std::endl;
         return false;
@@ -37,9 +42,7 @@ bool hako::service::impl::HakoServiceClient::initialize(const char* serviceName,
     else {
         asset_id_ = -1; //external
     }
-    //pro_data->lock_memory();
     service_id_ = pro_data->create_service_client(serviceName, clientName, client_id_);
-    //pro_data->unlock_memory();
     if (service_id_ < 0) {
         std::cerr << "ERROR: service_id_ is invalid on HakoServiceClient::initialize()" << std::endl;
         return false;

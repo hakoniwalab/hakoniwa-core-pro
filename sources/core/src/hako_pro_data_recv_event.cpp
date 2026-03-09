@@ -22,38 +22,31 @@ bool hako::data::pro::HakoProData::register_data_recv_event(const std::string& r
         std::cout << "ERROR: recv_event_table_ is full" << std::endl;
         return false;
     }
-    bool ret = false;
-    //this->shmp_->lock_memory(HAKO_SHARED_MEMORY_ID_2);
-    this->lock_memory();
-    for (int i = 0; i < HAKO_RECV_EVENT_MAX; i++) {
-        if (recv_event_table_->entries[i].enabled == false) {
-            hako::core::context::HakoContext context;
-            recv_event_table_->entries[i].enabled = true;
-            recv_event_table_->entries[i].recv_flag = false;
-            recv_event_table_->entries[i].pending_flag = false;
-            recv_event_table_->entries[i].proc_id = context.get_pid();
-            recv_event_table_->entries[i].real_channel_id = real_id;
-            if (on_recv != nullptr) {
-                recv_event_table_->entries[i].type = HAKO_RECV_EVENT_TYPE_CALLBACK;
-                recv_event_table_->entries[i].on_recv = on_recv;
-            }
-            else {
-                recv_event_table_->entries[i].type = HAKO_RECV_EVENT_TYPE_FLAG;
-                recv_event_table_->entries[i].on_recv = nullptr;
-            }
-            recv_event_id = i;
-            //std::cout << "INFO: register_data_recv_event() recv_event_id: " << recv_event_id << std::endl;
-            recv_event_table_->entry_num++;
-            ret = true;
-            break;
-        }
+    this->lock_recv_event_table();
+    if (recv_event_table_->entry_num >= HAKO_RECV_EVENT_MAX) {
+        this->unlock_recv_event_table();
+        std::cout << "ERROR: recv_event_table_ is full" << std::endl;
+        return false;
     }
-    //this->shmp_->unlock_memory(HAKO_SHARED_MEMORY_ID_2);
-    this->unlock_memory();
-    //auto now = hako::data::pro::get_timestamp();
-    //std::cout << now << ": register_data_recv_event() recv_event_table_->entry_num: " << recv_event_table_->entry_num << std::endl;  
-    //std::cout << "INFO: register_data_recv_event() robot_name: " << robot_name << " real_id: " << channel_id << " ret: " << ret << std::endl;
-    return ret;
+    hako::core::context::HakoContext context;
+    int alloc_id = recv_event_table_->entry_num;
+    recv_event_table_->entries[alloc_id].enabled = true;
+    recv_event_table_->entries[alloc_id].recv_flag = false;
+    recv_event_table_->entries[alloc_id].pending_flag = false;
+    recv_event_table_->entries[alloc_id].proc_id = context.get_pid();
+    recv_event_table_->entries[alloc_id].real_channel_id = real_id;
+    if (on_recv != nullptr) {
+        recv_event_table_->entries[alloc_id].type = HAKO_RECV_EVENT_TYPE_CALLBACK;
+        recv_event_table_->entries[alloc_id].on_recv = on_recv;
+    }
+    else {
+        recv_event_table_->entries[alloc_id].type = HAKO_RECV_EVENT_TYPE_FLAG;
+        recv_event_table_->entries[alloc_id].on_recv = nullptr;
+    }
+    recv_event_id = alloc_id;
+    recv_event_table_->entry_num++;
+    this->unlock_recv_event_table();
+    return true;
 }
 bool hako::data::pro::HakoProData::update_data_recv_event(const std::string& robot_name, int channel_id, void (*on_recv)(int), int& recv_event_id)
 {
@@ -79,7 +72,7 @@ bool hako::data::pro::HakoProData::update_data_recv_event(const std::string& rob
         if (recv_event_table_->entries[i].real_channel_id != real_id) {
             continue;
         }
-        this->lock_memory();
+        this->lock_recv_event_table();
         recv_event_table_->entries[i].recv_flag = false;
         recv_event_table_->entries[i].proc_id = context.get_pid();
         if (on_recv != nullptr) {
@@ -90,7 +83,7 @@ bool hako::data::pro::HakoProData::update_data_recv_event(const std::string& rob
             recv_event_table_->entries[i].type = HAKO_RECV_EVENT_TYPE_FLAG;
             recv_event_table_->entries[i].on_recv = nullptr;
         }
-        this->unlock_memory();
+        this->unlock_recv_event_table();
         recv_event_id = i;
         return true;
     }
@@ -248,14 +241,14 @@ bool hako::data::pro::HakoProData::set_recv_event_pending(int recv_event_id, boo
     }
     hako::core::context::HakoContext context;
     auto pid = context.get_pid();
-    this->lock_memory();
+    this->lock_recv_event_table();
     if ((recv_event_table_->entries[recv_event_id].enabled == false)
         || (recv_event_table_->entries[recv_event_id].proc_id != pid)) {
-        this->unlock_memory();
+        this->unlock_recv_event_table();
         return false;
     }
     recv_event_table_->entries[recv_event_id].pending_flag = pending;
-    this->unlock_memory();
+    this->unlock_recv_event_table();
     return true;
 }
 
@@ -273,7 +266,7 @@ bool hako::data::pro::HakoProData::set_recv_event_pending(const std::string& rob
     }
     hako::core::context::HakoContext context;
     auto pid = context.get_pid();
-    this->lock_memory();
+    this->lock_recv_event_table();
     for (int i = 0; i < recv_event_table_->entry_num; i++) {
         if (recv_event_table_->entries[i].enabled == false) {
             continue;
@@ -285,9 +278,9 @@ bool hako::data::pro::HakoProData::set_recv_event_pending(const std::string& rob
             continue;
         }
         recv_event_table_->entries[i].pending_flag = pending;
-        this->unlock_memory();
+        this->unlock_recv_event_table();
         return true;
     }
-    this->unlock_memory();
+    this->unlock_recv_event_table();
     return false;
 }

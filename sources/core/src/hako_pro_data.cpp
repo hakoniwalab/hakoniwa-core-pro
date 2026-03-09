@@ -13,7 +13,6 @@ bool pro::HakoProData::on_pdu_data_create()
         return false;
     }
     (void)shmid;
-    //char *datap = (char*)this->get_shared_memory()->lock_memory(HAKO_SHARED_MEMORY_ID_2);
     char* datap = (char*)this->lock_memory();
     this->set_recv_event_table(reinterpret_cast<HakoRecvEventTableType*>(&datap[OFFSET_HAKO_RECV_EVENT_TABLE]));
     this->set_service_table(reinterpret_cast<HakoServiceTableType*>(&datap[OFFSET_HAKO_SERVICE_TABLE]));
@@ -22,8 +21,8 @@ bool pro::HakoProData::on_pdu_data_create()
         memset(&datap[OFFSET_HAKO_SERVICE_TABLE], 0, sizeof(HakoServiceTableType));
         //this->set_service_data();
         this->service_table_->entry_num = 0;
+        this->rebuild_service_name_indexes();
     }
-    //this->get_shared_memory()->unlock_memory(HAKO_SHARED_MEMORY_ID_2);
     this->unlock_memory();
     std::cout << "INFO: HakoProData::on_pdu_data_create() created memory" << std::endl;
     return true;
@@ -38,6 +37,7 @@ bool pro::HakoProData::on_pdu_data_load()
     }
     this->set_recv_event_table(reinterpret_cast<HakoRecvEventTableType*>(&datap[OFFSET_HAKO_RECV_EVENT_TABLE]));
     this->set_service_table(reinterpret_cast<HakoServiceTableType*>(&datap[OFFSET_HAKO_SERVICE_TABLE]));
+    this->rebuild_service_name_indexes();
     std::cout << "INFO: HakoProData::on_pdu_data_load() loaded memory" << std::endl;
     return true;
 }
@@ -51,6 +51,7 @@ bool pro::HakoProData::on_pdu_data_reset()
     for (int i = 0; i < HAKO_RECV_EVENT_MAX; ++i) {
         table->entries[i].enabled = false;
     }
+    this->rebuild_service_name_indexes();
     return true;
 }
 bool pro::HakoProData::on_pdu_data_destroy()

@@ -782,12 +782,12 @@ static PyObject* py_hako_asset_service_client_get_response(PyObject*, PyObject* 
     HakoServiceHandleType handle;
     handle.service_id = (int)PyLong_AsLong(py_service_id);
     handle.client_id = (int)PyLong_AsLong(py_client_id);
-    std::cout << "service_id: " << handle.service_id << ", client_id: " << handle.client_id << std::endl;
+    //std::cout << "service_id: " << handle.service_id << ", client_id: " << handle.client_id << std::endl;
     char* packet = NULL;
     size_t packet_len = 0;
 
     int result = hako_asset_service_client_get_response(&handle, &packet, &packet_len, timeout);
-    std::cout << "result: " << result << std::endl;
+    //std::cout << "result: " << result << std::endl;
     if (result == 0 && packet != NULL) {
         return PyByteArray_FromStringAndSize(packet, packet_len);
     }
@@ -886,7 +886,7 @@ static PyObject* py_hako_asset_service_get_channel_id(PyObject*, PyObject* args)
         PyErr_SetString(PyExc_RuntimeError, "Failed to get pro data");
         return NULL;
     }
-    std::cout << "service_id: " << service_id << ", client_id: " << client_id << std::endl;
+    //std::cout << "service_id: " << service_id << ", client_id: " << client_id << std::endl;
     auto& service_entry = pro_data->get_service_entry(service_id);
     int req_id = service_entry.clientChannelMap[client_id].requestChannelId;
     int res_id = service_entry.clientChannelMap[client_id].responseChannelId;

@@ -6,6 +6,8 @@
 #include "nlohmann/json.hpp"
 
 #include <hako_extension.hpp>
+#include <unordered_map>
+#include <vector>
 #include "hako_pro_data_types.hpp"
 #include "utils/hako_share/hako_shared_memory_factory.hpp"
 
@@ -91,6 +93,37 @@ class HakoProData : public std::enable_shared_from_this<HakoProData>, public hak
             this->shmp_->unlock_memory(HAKO_SHARED_MEMORY_ID_2);
             //std::cout << "INFO: HakoProData::unlock_memory() " << std::endl;
         }
+        void lock_service_entry(int service_id)
+        {
+            if ((service_table_ == nullptr) || (service_id < 0) || (service_id >= service_table_->entry_num)) {
+                return;
+            }
+            hako_spin_lock_bool(&service_table_->entries[service_id].atomic_is_busy);
+        }
+        void unlock_service_entry(int service_id)
+        {
+            if ((service_table_ == nullptr) || (service_id < 0) || (service_id >= service_table_->entry_num)) {
+                return;
+            }
+            hako_spin_unlock_bool(&service_table_->entries[service_id].atomic_is_busy);
+        }
+        void lock_recv_event_table()
+        {
+            if (recv_event_table_ == nullptr) {
+                return;
+            }
+            int spins = 0;
+            while (hako_atomic_exchange_bool(&recv_event_table_->atomic_is_busy, true)) {
+                hako_cpu_relax_backoff(spins);
+            }
+        }
+        void unlock_recv_event_table()
+        {
+            if (recv_event_table_ == nullptr) {
+                return;
+            }
+            hako_atomic_store_bool(&recv_event_table_->atomic_is_busy, false);
+        }
         std::shared_ptr<hako::extension::IHakoAssetExtension> get_asset_extension()
         {
             return std::static_pointer_cast<hako::extension::IHakoAssetExtension>(asset_extension_);
@@ -175,6 +208,20 @@ class HakoProData : public std::enable_shared_from_this<HakoProData>, public hak
         int put_request(int asset_id, int service_id, int client_id, char* packet, size_t packet_len);
 
     private:
+        void rebuild_service_name_indexes()
+        {
+            service_name_to_id_.clear();
+            if (service_table_ == nullptr) {
+                return;
+            }
+            for (int i = 0; i < service_table_->entry_num; i++) {
+                auto& entry = service_table_->entries[i];
+                if (entry.enabled == false) {
+                    continue;
+                }
+                service_name_to_id_[entry.serviceName] = i;
+            }
+        }
         HakoRecvEventTableType* recv_event_table_;
         HakoServiceTableType* service_table_;
         std::shared_ptr<HakoProAssetExtension> asset_extension_;
@@ -182,6 +229,7 @@ class HakoProData : public std::enable_shared_from_this<HakoProData>, public hak
         std::string shm_type_;
         std::shared_ptr<data::HakoMasterData> master_data_;
         HakoServiceImplType service_impl_;
+        std::unordered_map<std::string, int> service_name_to_id_;
 };
     
 class HakoProAssetExtension: public hako::extension::IHakoAssetExtension {

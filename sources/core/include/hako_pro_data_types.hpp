@@ -31,6 +31,7 @@ typedef struct {
 typedef struct {
     HakoRecvEventEntryType entries[HAKO_RECV_EVENT_MAX];
     int entry_num;
+    bool atomic_is_busy;
 } HakoRecvEventTableType;
 
 /*
@@ -54,6 +55,8 @@ typedef struct {
     int namelen;
     char serviceName[HAKO_SERVICE_NAMELEN_MAX];
     int maxClients;
+    int nextClientId;
+    bool atomic_is_busy;
     int pdu_size_request;
     int pdu_size_response;
     HakoServiceClientChannelMapType clientChannelMap[HAKO_SERVICE_CLIENT_MAX];
