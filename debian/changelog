@@ -1,3 +1,22 @@
+hakoniwa-core (1.1.3-1) noble; urgency=medium
+
+  [ Takashi Mori ]
+  * New upstream release v1.1.3.
+  * Add build/install-time capacity overrides:
+    HAKO_SERVICE_MAX, HAKO_RECV_EVENT_MAX, HAKO_SERVICE_CLIENT_MAX.
+  * Extend build scripts with capacity environment variables and larger defaults:
+    ASSET_NUM (4->16), SERVICE_MAX, RECV_EVENT_MAX, SERVICE_CLIENT_MAX.
+  * Apply asset_timeout_usec consistently in init/controller paths and add logs.
+  * Fix service protocol polling interval handling.
+  * Fix polling client lookup collisions by using (service_id, client_id) keys.
+  * Improve recovery from stale shared-memory service metadata.
+  * Fix Windows test build issue for environment variable setup.
+  * Update submodules:
+    hakoniwa-core-cpp (7d419d6->00ccc22),
+    hakoniwa-pdu-registry (d447116->8f31bcd).
+
+ -- Takashi Mori <tmori@hakoniwa-lab.net>  Mon, 09 Mar 2026 12:00:00 +0900
+
 hakoniwa-core (1.1.2-1) noble; urgency=medium
 
   [ Takashi Mori ]
