@@ -28,10 +28,17 @@ if [ -n "${SERVICE_CLIENT_MAX:-}" ] && [ "${SERVICE_CLIENT_MAX}" -gt 0 ]; then
 else
     SERVICE_CLIENT_MAX=${DEFAULT_HAKO_SERVICE_CLIENT_MAX}
 fi
+DEFAULT_HAKO_PDU_CHANNEL_MAX=8192
+if [ -n "${CHANNEL_MAX:-}" ] && [ "${CHANNEL_MAX}" -gt 0 ]; then
+    :
+else
+    CHANNEL_MAX=${DEFAULT_HAKO_PDU_CHANNEL_MAX}
+fi
 echo "ASSET_NUM is ${ASSET_NUM}"
 echo "SERVICE_MAX is ${SERVICE_MAX}"
 echo "RECV_EVENT_MAX is ${RECV_EVENT_MAX}"
 echo "SERVICE_CLIENT_MAX is ${SERVICE_CLIENT_MAX}"
+echo "CHANNEL_MAX is ${CHANNEL_MAX}"
 
 # ----------------------------------------
 # Detect OS type
@@ -63,6 +70,7 @@ then
             -DHAKO_SERVICE_MAX=${SERVICE_MAX} \
             -DHAKO_RECV_EVENT_MAX=${RECV_EVENT_MAX} \
             -DHAKO_SERVICE_CLIENT_MAX=${SERVICE_CLIENT_MAX} \
+            -DHAKO_PDU_CHANNEL_MAX=${CHANNEL_MAX} \
             $BUILD_C_FLAGS
         make
     else
