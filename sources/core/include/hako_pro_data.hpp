@@ -222,6 +222,13 @@ class HakoProData : public std::enable_shared_from_this<HakoProData>, public hak
                 service_name_to_id_[entry.serviceName] = i;
             }
         }
+        void refresh_service_name_indexes_if_needed()
+        {
+            if (service_table_ == nullptr) {
+                return;
+            }
+            rebuild_service_name_indexes();
+        }
         HakoRecvEventTableType* recv_event_table_;
         HakoServiceTableType* service_table_;
         std::shared_ptr<HakoProAssetExtension> asset_extension_;

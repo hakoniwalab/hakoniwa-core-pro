@@ -6,11 +6,18 @@ using namespace hako::data;
 
 bool hako::data::pro::HakoProData::is_exist_service(const std::string& service_name)
 {
+    if (service_name_to_id_.find(service_name) == service_name_to_id_.end()) {
+        this->refresh_service_name_indexes_if_needed();
+    }
     return service_name_to_id_.find(service_name) != service_name_to_id_.end();
 }
 bool hako::data::pro::HakoProData::is_exist_client_on_service(const std::string& service_name, const std::string& client_name)
 {
     auto service_it = service_name_to_id_.find(service_name);
+    if (service_it == service_name_to_id_.end()) {
+        this->refresh_service_name_indexes_if_needed();
+        service_it = service_name_to_id_.find(service_name);
+    }
     if (service_it == service_name_to_id_.end()) {
         return false;
     }
@@ -32,6 +39,10 @@ bool hako::data::pro::HakoProData::is_exist_client_on_service(const std::string&
 hako::data::pro::HakoServiceEntryTye& hako::data::pro::HakoProData::get_service_entry(const std::string& service_name)
 {
     auto service_it = service_name_to_id_.find(service_name);
+    if (service_it == service_name_to_id_.end()) {
+        this->refresh_service_name_indexes_if_needed();
+        service_it = service_name_to_id_.find(service_name);
+    }
     if (service_it != service_name_to_id_.end()) {
         return service_table_->entries[service_it->second];
     }
@@ -40,6 +51,10 @@ hako::data::pro::HakoServiceEntryTye& hako::data::pro::HakoProData::get_service_
 int hako::data::pro::HakoProData::get_service_id(const std::string& service_name)
 {
     auto service_it = service_name_to_id_.find(service_name);
+    if (service_it == service_name_to_id_.end()) {
+        this->refresh_service_name_indexes_if_needed();
+        service_it = service_name_to_id_.find(service_name);
+    }
     if (service_it != service_name_to_id_.end()) {
         return service_it->second;
     }
