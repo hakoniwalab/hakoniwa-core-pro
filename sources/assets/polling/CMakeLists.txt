@@ -4,6 +4,27 @@ project(hako-client
     LANGUAGES C CXX
 )
 
+if (DEFINED HAKO_DATA_MAX_ASSET_NUM)
+    add_compile_definitions(HAKO_DATA_MAX_ASSET_NUM=${HAKO_DATA_MAX_ASSET_NUM})
+    message(STATUS "HAKO_DATA_MAX_ASSET_NUM is redefined with " ${HAKO_DATA_MAX_ASSET_NUM})
+endif()
+if (DEFINED HAKO_SERVICE_MAX)
+    add_compile_definitions(HAKO_SERVICE_MAX=${HAKO_SERVICE_MAX})
+    message(STATUS "HAKO_SERVICE_MAX is redefined with " ${HAKO_SERVICE_MAX})
+endif()
+if (DEFINED HAKO_RECV_EVENT_MAX)
+    add_compile_definitions(HAKO_RECV_EVENT_MAX=${HAKO_RECV_EVENT_MAX})
+    message(STATUS "HAKO_RECV_EVENT_MAX is redefined with " ${HAKO_RECV_EVENT_MAX})
+endif()
+if (DEFINED HAKO_SERVICE_CLIENT_MAX)
+    add_compile_definitions(HAKO_SERVICE_CLIENT_MAX=${HAKO_SERVICE_CLIENT_MAX})
+    message(STATUS "HAKO_SERVICE_CLIENT_MAX is redefined with " ${HAKO_SERVICE_CLIENT_MAX})
+endif()
+if (DEFINED HAKO_PDU_CHANNEL_MAX)
+    add_compile_definitions(HAKO_PDU_CHANNEL_MAX=${HAKO_PDU_CHANNEL_MAX})
+    message(STATUS "HAKO_PDU_CHANNEL_MAX is redefined with " ${HAKO_PDU_CHANNEL_MAX})
+endif()
+
 message(STATUS "CMAKE_VERSION:${CMAKE_VERSION}" )
 
 set(OS_TYPE "posix")
