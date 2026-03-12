@@ -188,6 +188,19 @@ HAKO_API int hako_asset_service_client_poll(const HakoServiceHandleType* handle)
  */
 HAKO_API int hako_asset_service_client_get_channel_id(int service_id, int* request_channel_id, int* response_channel_id);
 
+/**
+ * Retrieves the request and response channel IDs from a concrete client handle.
+ *
+ * This API should be preferred when a service may have multiple clients because
+ * `service_id` alone is not sufficient to identify a unique client protocol.
+ *
+ * @param handle Client handle.
+ * @param request_channel_id Output pointer to store request channel ID.
+ * @param response_channel_id Output pointer to store response channel ID.
+ * @return 0 on success, -1 on failure.
+ */
+HAKO_API int hako_asset_service_client_get_channel_id_by_handle(const HakoServiceHandleType* handle, int* request_channel_id, int* response_channel_id);
+
 /* Client opcode values (used in request header) */
 #define HAKO_SERVICE_CLIENT_API_OPCODE_REQUEST     0
 #define HAKO_SERVICE_CLIENT_API_OPCODE_CANCEL      1

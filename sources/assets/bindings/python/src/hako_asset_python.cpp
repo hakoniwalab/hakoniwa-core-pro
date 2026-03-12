@@ -674,11 +674,13 @@ static PyObject* py_hako_asset_service_client_get_channel_id(PyObject*, PyObject
         return NULL;
     }
 
-    int service_id = (int)PyLong_AsLong(py_service_id);
+    HakoServiceHandleType handle;
+    handle.service_id = (int)PyLong_AsLong(py_service_id);
+    handle.client_id = (int)PyLong_AsLong(py_client_id);
     int request_channel_id = 0;
     int response_channel_id = 0;
 
-    int result = hako_asset_service_client_get_channel_id(service_id, &request_channel_id, &response_channel_id);
+    int result = hako_asset_service_client_get_channel_id_by_handle(&handle, &request_channel_id, &response_channel_id);
     if (result == 0) {
         return Py_BuildValue("(ii)", request_channel_id, response_channel_id);
     } else {
