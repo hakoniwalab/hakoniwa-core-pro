@@ -236,6 +236,14 @@ bool hako_asset_impl_init(const char* asset_name, const char* config_path, hako_
         return false;
     }
     // PDUのチャネルを作成する
+    auto pro_data = hako::data::pro::hako_pro_get_data();
+    if (pro_data == nullptr) {
+        std::cerr << "ERROR: Can not get hako pro data" << std::endl;
+        return false;
+    }
+    // asset_register_polling() already touches master state, so only guard the
+    // subsequent shared PDU channel creation with the coarse-grained master lock.
+    pro_data->lock_master();
     for (const hako::asset::RobotCompact& robot : hako_asset_instance.robots_compact) {
         for (const hako::asset::PduIoEntry& entry : robot.pdus) {
             std::cout << "Robot: " << robot.name << ", PduIO: " << hako_full_name_from_entry(robot.name, entry.name) << std::endl;
@@ -246,11 +254,13 @@ bool hako_asset_impl_init(const char* asset_name, const char* config_path, hako_
                 entry.io.pdu_size
             );
             if (err == false) {
+                pro_data->unlock_master();
                 std::cerr << "ERROR: Can not create_pdu_channel()" << std::endl;
                 return false;
             }            
         }
     }
+    pro_data->unlock_master();
 #ifdef ENABLE_HAKO_TIME_MEASURE
     //create buffer
     hako_asset_instance.measure_vp = hako_asset_impl_measure_create_csv(asset_name);

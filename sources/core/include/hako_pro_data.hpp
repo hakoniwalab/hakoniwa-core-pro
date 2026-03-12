@@ -72,6 +72,14 @@ class HakoProData : public std::enable_shared_from_this<HakoProData>, public hak
         {
             return this->master_data_->ref_time_nolock().current;
         }
+        void lock_master()
+        {
+            this->master_data_->lock();
+        }
+        void unlock_master()
+        {
+            this->master_data_->unlock();
+        }
 
         std::shared_ptr<hako::utils::HakoSharedMemory> get_shared_memory()
         {

@@ -77,10 +77,14 @@ int hako::data::pro::HakoProData::get_service_id(const std::string& service_name
          std::cerr << "Error: Failed to open service config file: " << service_config_path << std::endl;
          return false;
      }
- 
+
+     bool master_locked = false;
      try {
          ifs >> this->service_impl_.param;
          int pduMetaDataSize = this->service_impl_.param["pduMetaDataSize"];
+         // Service channel creation must be serialized across processes.
+         this->master_data_->lock();
+         master_locked = true;
          for (const auto& item : this->service_impl_.param["services"]) {
              hako::data::pro::Service s;
              s.name = item["name"];
@@ -101,6 +105,8 @@ int hako::data::pro::HakoProData::get_service_id(const std::string& service_name
                  bool ret = this->master_data_->get_pdu_data()->create_lchannel(s.name, server_channel_id, s.server_total_size);
                  if (ret == false) {
                      std::cerr << "Error: Failed to create PDU channel for service server: " << s.name << std::endl;
+                     this->master_data_->unlock();
+                     master_locked = false;
                      return false;
                  }
                  std::cout << "INFO: create_lchannel() serviceName: "
@@ -111,6 +117,8 @@ int hako::data::pro::HakoProData::get_service_id(const std::string& service_name
                  ret = this->master_data_->get_pdu_data()->create_lchannel(s.name, client_channel_id, s.client_total_size);
                  if (ret == false) {
                      std::cerr << "Error: Failed to create PDU channel for service client: " << s.name << std::endl;
+                     this->master_data_->unlock();
+                     master_locked = false;
                      return false;
                  }
                  std::cout << "INFO: create_lchannel() serviceName: "
@@ -120,7 +128,12 @@ int hako::data::pro::HakoProData::get_service_id(const std::string& service_name
              }
              this->service_impl_.services.push_back(s);
          }
+         this->master_data_->unlock();
+         master_locked = false;
      } catch (const std::exception& e) {
+         if (master_locked) {
+             this->master_data_->unlock();
+         }
          std::cerr << "Error: Failed to parse service config JSON: " << e.what() << std::endl;
          return false;
      }
