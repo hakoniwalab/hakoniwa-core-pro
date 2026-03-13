@@ -1,3 +1,21 @@
+hakoniwa-core (1.1.4-1) noble; urgency=medium
+
+  [ Takashi Mori ]
+  * New upstream release v1.1.4.
+  * Add build/install-time PDU channel capacity override:
+    CHANNEL_MAX / HAKO_PDU_CHANNEL_MAX.
+  * Add service client channel lookup API by concrete handle and update
+    Python binding to use (service_id, client_id).
+  * Improve concurrent access handling for service metadata and recv-event
+    tables with additional locking and indexed lookup.
+  * Serialize service and callback-side PDU channel creation to reduce
+    multi-process startup races.
+  * Add pro_init.lock handling for PDU shared-memory create/load paths.
+  * Document lock ordering rules for fleet startup scenarios.
+  * Update hakoniwa-core-cpp submodule (00ccc22 -> c41e551; fixes #55, #56).
+
+ -- Takashi Mori <tmori@hakoniwa-lab.net>  Sat, 14 Mar 2026 08:11:40 +0900
+
 hakoniwa-core (1.1.3-1) noble; urgency=medium
 
   [ Takashi Mori ]
