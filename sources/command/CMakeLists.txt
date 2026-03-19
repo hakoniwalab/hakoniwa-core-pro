@@ -43,4 +43,6 @@ target_include_directories(
     PRIVATE ${nlohmann_json_SOURCE_DIR}/single_include
     PRIVATE ${cxxopts_SOURCE_DIR}/include
 )
-install(TARGETS hako-cmd DESTINATION bin)
+install(TARGETS hako-cmd
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)

@@ -37,6 +37,8 @@ message(STATUS "GCOV" ${GCOV})
 message(STATUS "CMAKE_C_FLAGS" ${CMAKE_C_FLAGS})
 message(STATUS "CMAKE_CXX_FLAGS" ${CMAKE_CXX_FLAGS})
 
+include(GNUInstallDirs)
+
 add_subdirectory(sources/core)
 add_subdirectory(sources/command)
 add_subdirectory(sources/assets/callback)
@@ -52,7 +54,6 @@ add_subdirectory(tests/cpp)
 endif()
 
 # For pkg-config support
-include(GNUInstallDirs)
 configure_file(
   cmake/hakoniwa-core.pc.in
   ${CMAKE_BINARY_DIR}/hakoniwa-core.pc
@@ -90,23 +91,23 @@ file(GLOB HAKO_ROOT_HEADERS
 )
 install(
   FILES ${HAKO_ROOT_HEADERS}
-  DESTINATION include/hakoniwa
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/hakoniwa
 )
 
 # Install PDU header files
 install(
     DIRECTORY ${PROJECT_SOURCE_DIR}/hakoniwa-pdu-registry/pdu/types/
-    DESTINATION include/hakoniwa/pdu
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/hakoniwa/pdu
 )
 
 # Install core config file
 install(
     FILES ${PROJECT_SOURCE_DIR}/hakoniwa-core-cpp/cpp_core_config.json
-    DESTINATION /etc/hakoniwa
+    DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/hakoniwa
 )
 
 # Install PDU offset files
 install(
     DIRECTORY ${PROJECT_SOURCE_DIR}/hakoniwa-pdu-registry/pdu/offset/
-    DESTINATION share/hakoniwa/offset
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/hakoniwa/offset
 )
