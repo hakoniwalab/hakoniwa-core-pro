@@ -14,6 +14,47 @@ set(HAKO_CORE_SOURCE_DIR "${PROJECT_SOURCE_DIR}/hakoniwa-core-cpp")
 set(HAKO_PDU_SOURCE_DIR "${PROJECT_SOURCE_DIR}/hakoniwa-pdu-registry/pdu/types")
 set(HAKO_INC_DIR "${PROJECT_SOURCE_DIR}/include")
 set(HAKO_CORE_PRO_SOURCE_DIR "${PROJECT_SOURCE_DIR}/sources")
+set(HAKO_BUILD_DEFAULTS_FILE "${PROJECT_SOURCE_DIR}/cmake/hako_build_defaults.conf")
+
+function(hako_load_build_defaults defaults_file prefix)
+    if(NOT EXISTS "${defaults_file}")
+        message(FATAL_ERROR "Hakoniwa build defaults file not found: ${defaults_file}")
+    endif()
+
+    file(STRINGS "${defaults_file}" _hako_default_lines)
+    foreach(_line IN LISTS _hako_default_lines)
+        string(STRIP "${_line}" _line)
+        if(_line STREQUAL "" OR _line MATCHES "^#")
+            continue()
+        endif()
+        if(NOT _line MATCHES "^([A-Z0-9_]+)=([0-9]+)$")
+            message(FATAL_ERROR "Invalid build default entry: ${_line}")
+        endif()
+        set(${prefix}${CMAKE_MATCH_1} "${CMAKE_MATCH_2}" PARENT_SCOPE)
+    endforeach()
+endfunction()
+
+function(hako_set_cache_default variable_name default_value docstring)
+    if(NOT DEFINED ${variable_name})
+        set(${variable_name} "${default_value}" CACHE STRING "${docstring}")
+    endif()
+endfunction()
+
+hako_load_build_defaults("${HAKO_BUILD_DEFAULTS_FILE}" "HAKO_DEFAULT_")
+hako_set_cache_default(HAKO_DATA_MAX_ASSET_NUM "${HAKO_DEFAULT_HAKO_DATA_MAX_ASSET_NUM}" "Maximum number of Hakoniwa assets")
+hako_set_cache_default(HAKO_PDU_CHANNEL_MAX "${HAKO_DEFAULT_HAKO_PDU_CHANNEL_MAX}" "Maximum number of Hakoniwa PDU channels")
+hako_set_cache_default(HAKO_RECV_EVENT_MAX "${HAKO_DEFAULT_HAKO_RECV_EVENT_MAX}" "Maximum number of Hakoniwa receive events")
+hako_set_cache_default(HAKO_SERVICE_CLIENT_MAX "${HAKO_DEFAULT_HAKO_SERVICE_CLIENT_MAX}" "Maximum number of Hakoniwa service client channels")
+hako_set_cache_default(HAKO_SERVICE_MAX "${HAKO_DEFAULT_HAKO_SERVICE_MAX}" "Maximum number of Hakoniwa services")
+
+message(STATUS
+    "Hakoniwa build limits: "
+    "asset_num=${HAKO_DATA_MAX_ASSET_NUM} "
+    "channel_max=${HAKO_PDU_CHANNEL_MAX} "
+    "recv_event_max=${HAKO_RECV_EVENT_MAX} "
+    "service_client_max=${HAKO_SERVICE_CLIENT_MAX} "
+    "service_max=${HAKO_SERVICE_MAX}"
+)
 
 if (DEFINED HAKO_CLIENT_OPTION_FILEPATH)
     MESSAGE(STATUS "Using custom CMake options from ${HAKO_CLIENT_OPTION_FILEPATH}")

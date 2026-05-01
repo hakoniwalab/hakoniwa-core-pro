@@ -6,6 +6,8 @@
 #include <iomanip>
 #include <sstream>
 #include <cstdlib>
+#include "config/hako_config.hpp"
+#include "hako_pro_config.hpp"
 
 std::string hako::data::pro::get_timestamp()
 {
@@ -25,6 +27,27 @@ static std::shared_ptr<hako::data::HakoMasterData> master_data_ptr = nullptr;
 static std::shared_ptr<hako::IHakoMasterController> master_ptr = nullptr;
 static std::shared_ptr<hako::IHakoAssetController> asset_ptr = nullptr;
 static std::shared_ptr<hako::IHakoSimulationEventController> simevent_ptr = nullptr;
+
+static void hako_log_build_limits(const char* caller)
+{
+    std::cout << "INFO: " << caller
+              << " build_limits"
+              << " asset_num=" << HAKO_DATA_MAX_ASSET_NUM
+              << " channel_max=" << HAKO_PDU_CHANNEL_MAX
+              << " recv_event_max=" << HAKO_RECV_EVENT_MAX
+              << " service_client_max=" << HAKO_SERVICE_CLIENT_MAX
+              << " service_max=" << HAKO_SERVICE_MAX
+              << std::endl;
+    HAKO_LOG_INFO(
+        "%s: build_limits asset_num=%d channel_max=%d recv_event_max=%d service_client_max=%d service_max=%d",
+        caller,
+        HAKO_DATA_MAX_ASSET_NUM,
+        HAKO_PDU_CHANNEL_MAX,
+        HAKO_RECV_EVENT_MAX,
+        HAKO_SERVICE_CLIENT_MAX,
+        HAKO_SERVICE_MAX
+    );
+}
 
 std::shared_ptr<hako::data::pro::HakoProData> hako::data::pro::hako_pro_get_data()
 {
@@ -68,6 +91,7 @@ bool hako::init()
         std::cout << "INFO: hako::init() : type: " << master_data_ptr->get_shm_type() << std::endl;
         pro_data_ptr->init(master_data_ptr->get_shm_type());
     }
+    hako_log_build_limits("hako::init()");
     HAKO_LOG_INFO("hako::init(): shared memory type = %s", master_data_ptr->get_shm_type().c_str());
     //hako::utils::logger::get("core")->info("hakoniwa initialized");
     return true;
@@ -145,6 +169,7 @@ std::shared_ptr<hako::IHakoAssetController> hako::create_asset_controller()
     }
     asset_ptr = std::make_shared<hako::HakoAssetControllerImpl>(master_data_ptr);
     asset_ptr->register_asset_extension(pro_data_ptr->get_asset_extension());
+    hako_log_build_limits("hako::create_asset_controller()");
     HAKO_LOG_INFO("hako::create_asset_controller(): shared memory type = %s", master_data_ptr->get_shm_type().c_str());
 
     return asset_ptr;
@@ -183,6 +208,7 @@ std::shared_ptr<hako::IHakoSimulationEventController> hako::get_simevent_control
         }    
     }
     simevent_ptr = std::make_shared<hako::HakoSimulationEventController>(master_data_ptr);
+    hako_log_build_limits("hako::get_simevent_controller()");
     HAKO_LOG_INFO("hako::get_simevent_controller(): shared memory type = %s", master_data_ptr->get_shm_type().c_str());
     return simevent_ptr;
 }

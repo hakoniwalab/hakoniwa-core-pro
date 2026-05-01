@@ -57,24 +57,65 @@ function Invoke-Checked {
     }
 }
 
-function Get-EffectiveAssetNum {
-    param([Nullable[int]]$Value)
+function Get-BuildDefaults {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path
+    )
 
-    $defaultValue = 16
+    if (-not (Test-Path -LiteralPath $Path)) {
+        throw "Build defaults file not found: $Path"
+    }
+
+    $defaults = @{}
+    foreach ($line in Get-Content -LiteralPath $Path) {
+        $trimmed = $line.Trim()
+        if ($trimmed.Length -eq 0 -or $trimmed.StartsWith("#")) {
+            continue
+        }
+        $parts = $trimmed -split "=", 2
+        if ($parts.Length -ne 2) {
+            throw "Invalid build defaults entry: $trimmed"
+        }
+        $defaults[$parts[0].Trim()] = [int]$parts[1].Trim()
+    }
+    return $defaults
+}
+
+function Get-DefaultValue {
+    param(
+        [Parameter(Mandatory = $true)]
+        [hashtable]$Defaults,
+        [Parameter(Mandatory = $true)]
+        [string]$Key
+    )
+
+    if (-not $Defaults.ContainsKey($Key)) {
+        throw "Missing build default key: $Key"
+    }
+    return [int]$Defaults[$Key]
+}
+
+function Get-EffectiveAssetNum {
+    param(
+        [Nullable[int]]$Value,
+        [int]$DefaultValue
+    )
+
     if ($null -ne $Value) {
-        if ($Value -gt $defaultValue) {
+        if ($Value -gt $DefaultValue) {
             return [int]$Value
         }
-        return $defaultValue
+        return $DefaultValue
     }
 
     if ($env:ASSET_NUM) {
         $envValue = [int]$env:ASSET_NUM
-        if ($envValue -gt $defaultValue) {
+        if ($envValue -gt $DefaultValue) {
             return $envValue
         }
     }
-    return $defaultValue
+    return $DefaultValue
 }
 
 function Get-EffectivePositiveInt {
@@ -114,18 +155,27 @@ $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot = Resolve-FullPath -Path $scriptDir
 $buildDirPath = Resolve-FullPath -Path $BuildDir
 $cmakeOptionFile = Join-Path $repoRoot "cmake-options/win-cmake-options.cmake"
+$buildDefaultsFile = Join-Path $repoRoot "cmake/hako_build_defaults.conf"
+$buildDefaults = Get-BuildDefaults -Path $buildDefaultsFile
 
-$effectiveAssetNum = Get-EffectiveAssetNum -Value $AssetNum
-$effectiveServiceMax = Get-EffectivePositiveInt -Value $ServiceMax -EnvName "SERVICE_MAX" -DefaultValue 4096
-$effectiveRecvEventMax = Get-EffectivePositiveInt -Value $RecvEventMax -EnvName "RECV_EVENT_MAX" -DefaultValue 16384
-$effectiveServiceClientMax = Get-EffectivePositiveInt -Value $ServiceClientMax -EnvName "SERVICE_CLIENT_MAX" -DefaultValue 1024
-$effectiveChannelMax = Get-EffectivePositiveInt -Value $ChannelMax -EnvName "CHANNEL_MAX" -DefaultValue 8192
+$defaultAssetNum = Get-DefaultValue -Defaults $buildDefaults -Key "HAKO_DATA_MAX_ASSET_NUM"
+$defaultServiceMax = Get-DefaultValue -Defaults $buildDefaults -Key "HAKO_SERVICE_MAX"
+$defaultRecvEventMax = Get-DefaultValue -Defaults $buildDefaults -Key "HAKO_RECV_EVENT_MAX"
+$defaultServiceClientMax = Get-DefaultValue -Defaults $buildDefaults -Key "HAKO_SERVICE_CLIENT_MAX"
+$defaultChannelMax = Get-DefaultValue -Defaults $buildDefaults -Key "HAKO_PDU_CHANNEL_MAX"
+
+$effectiveAssetNum = Get-EffectiveAssetNum -Value $AssetNum -DefaultValue $defaultAssetNum
+$effectiveServiceMax = Get-EffectivePositiveInt -Value $ServiceMax -EnvName "SERVICE_MAX" -DefaultValue $defaultServiceMax
+$effectiveRecvEventMax = Get-EffectivePositiveInt -Value $RecvEventMax -EnvName "RECV_EVENT_MAX" -DefaultValue $defaultRecvEventMax
+$effectiveServiceClientMax = Get-EffectivePositiveInt -Value $ServiceClientMax -EnvName "SERVICE_CLIENT_MAX" -DefaultValue $defaultServiceClientMax
+$effectiveChannelMax = Get-EffectivePositiveInt -Value $ChannelMax -EnvName "CHANNEL_MAX" -DefaultValue $defaultChannelMax
 
 Write-Host "ASSET_NUM is $effectiveAssetNum"
 Write-Host "SERVICE_MAX is $effectiveServiceMax"
 Write-Host "RECV_EVENT_MAX is $effectiveRecvEventMax"
 Write-Host "SERVICE_CLIENT_MAX is $effectiveServiceClientMax"
 Write-Host "CHANNEL_MAX is $effectiveChannelMax"
+Write-Host "Build defaults   : $buildDefaultsFile"
 Write-Host "Repository root : $repoRoot"
 Write-Host "Build directory : $buildDirPath"
 Write-Host "Configuration   : $Configuration"

@@ -4,31 +4,42 @@
 # C_FLAGS と CXX_FLAGS に -m32 オプションを追加
 # BUILD_C_FLAGS="-DCMAKE_C_FLAGS=-m32 -DCMAKE_CXX_FLAGS=-m32"
 
-DEFAULT_HAKO_ASSET_NUM=16
-if [ ! -z "${ASSET_NUM}" ] && [ ${ASSET_NUM} -gt ${DEFAULT_HAKO_ASSET_NUM} ]; then
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DEFAULTS_FILE="${SCRIPT_DIR}/cmake/hako_build_defaults.conf"
+
+if [ ! -f "${DEFAULTS_FILE}" ]; then
+    echo "ERROR: build defaults file not found: ${DEFAULTS_FILE}" >&2
+    exit 1
+fi
+
+# shellcheck disable=SC1090
+source "${DEFAULTS_FILE}"
+
+DEFAULT_HAKO_ASSET_NUM=${HAKO_DATA_MAX_ASSET_NUM}
+if [ -n "${ASSET_NUM:-}" ] && [ "${ASSET_NUM}" -gt "${DEFAULT_HAKO_ASSET_NUM}" ]; then
     :
 else
     ASSET_NUM=${DEFAULT_HAKO_ASSET_NUM}
 fi
-DEFAULT_HAKO_SERVICE_MAX=4096
+DEFAULT_HAKO_SERVICE_MAX=${HAKO_SERVICE_MAX}
 if [ -n "${SERVICE_MAX:-}" ] && [ "${SERVICE_MAX}" -gt 0 ]; then
     :
 else
     SERVICE_MAX=${DEFAULT_HAKO_SERVICE_MAX}
 fi
-DEFAULT_HAKO_RECV_EVENT_MAX=16384
+DEFAULT_HAKO_RECV_EVENT_MAX=${HAKO_RECV_EVENT_MAX}
 if [ -n "${RECV_EVENT_MAX:-}" ] && [ "${RECV_EVENT_MAX}" -gt 0 ]; then
     :
 else
     RECV_EVENT_MAX=${DEFAULT_HAKO_RECV_EVENT_MAX}
 fi
-DEFAULT_HAKO_SERVICE_CLIENT_MAX=1024
+DEFAULT_HAKO_SERVICE_CLIENT_MAX=${HAKO_SERVICE_CLIENT_MAX}
 if [ -n "${SERVICE_CLIENT_MAX:-}" ] && [ "${SERVICE_CLIENT_MAX}" -gt 0 ]; then
     :
 else
     SERVICE_CLIENT_MAX=${DEFAULT_HAKO_SERVICE_CLIENT_MAX}
 fi
-DEFAULT_HAKO_PDU_CHANNEL_MAX=8192
+DEFAULT_HAKO_PDU_CHANNEL_MAX=${HAKO_PDU_CHANNEL_MAX}
 if [ -n "${CHANNEL_MAX:-}" ] && [ "${CHANNEL_MAX}" -gt 0 ]; then
     :
 else
