@@ -22,6 +22,8 @@ typedef enum {
     HAKO_ASSET_MODEL_CONTROLLER
 } HakoAssetModelType;
 extern int hako_asset_register(const char *asset_name, const char *config_path, hako_asset_callbacks_t *callbacks, hako_time_t delta_usec, HakoAssetModelType model);
+extern int hako_asset_attach_core(void);
+extern int hako_asset_attach_core_with_name(const char *asset_name, const char *config_path);
 extern int hako_asset_start_no_wait(int (*is_force_stop)(void));
 static inline int hako_asset_start(void) {
     return hako_asset_start_no_wait(NULL);

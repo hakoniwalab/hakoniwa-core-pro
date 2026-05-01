@@ -25,6 +25,7 @@ HAKO_API hako_time_t hakoniwa_master_get_delta_time_usec(void);
 /*
  * for asset
  */
+HAKO_API int hakoniwa_asset_endpoint_attach_core(void);
 HAKO_API int hakoniwa_asset_init(void);
 HAKO_API int hakoniwa_asset_register(const char* name, hako_asset_callback_t *callbacks);
 

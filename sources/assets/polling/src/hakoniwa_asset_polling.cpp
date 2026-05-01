@@ -41,6 +41,10 @@ int hakoniwa_asset_init(void)
 {
     return hako_status_from_bool(hako_asset_init());
 }
+int hakoniwa_asset_endpoint_attach_core(void)
+{
+    return hako_status_from_bool(hako_asset_endpoint_attach_core());
+}
 
 int hakoniwa_asset_register(const char* name, hako_asset_callback_t *callbacks)
 {

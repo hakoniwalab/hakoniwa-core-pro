@@ -55,6 +55,7 @@ extern bool hako_asset_impl_pdu_read(const char* robo_name, HakoPduChannelIdType
 extern bool hako_asset_impl_pdu_write(const char* robo_name, HakoPduChannelIdType lchannel, const char* buffer, size_t buffer_len);
 
 extern bool hako_asset_impl_initialize_for_external();
+extern bool hako_asset_impl_attach_core(const char* asset_name, const char* config_path);
 extern int hako_asset_impl_pdu_create(const char *robo_name, HakoPduChannelIdType lchannel, size_t pdu_size);
 
 

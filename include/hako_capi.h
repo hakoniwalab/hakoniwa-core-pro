@@ -26,6 +26,7 @@ extern "C" {
  * for asset
  */
 	HAKO_API bool hako_asset_init();
+	HAKO_API bool hako_asset_endpoint_attach_core();
 	HAKO_API bool hako_capi_asset_register(const char* name, hako_asset_callback_t *callbacks);
 
 	HAKO_API bool hako_asset_register_polling(const char* name);

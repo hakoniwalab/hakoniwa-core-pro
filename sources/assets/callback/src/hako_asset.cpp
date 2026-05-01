@@ -38,6 +38,36 @@ int hako_asset_register(const char *asset_name, const char *config_path, hako_as
     std::cout << "INFO: asset(" << asset_name << ") is registered." << std::endl;
     return 0;
 }
+int hako_asset_attach_core(void)
+{
+    if (hako_asset_instance.is_initialized) {
+        return 0;
+    }
+    if (!hako_asset_impl_initialize_for_external()) {
+        return EIO;
+    }
+    std::cout << "INFO: Success for core attach." << std::endl;
+    return 0;
+}
+int hako_asset_attach_core_with_name(const char *asset_name, const char *config_path)
+{
+    if (hako_asset_instance.is_initialized) {
+        return 0;
+    }
+    if (asset_name == nullptr || *asset_name == '\0') {
+        std::cerr << "Error: Asset name is not set." << std::endl;
+        return EINVAL;
+    }
+    if (config_path == nullptr || !file_exists(config_path)) {
+        std::cerr << "Error: Config file does not exist." << std::endl;
+        return ENOENT;
+    }
+    if (!hako_asset_impl_attach_core(asset_name, config_path)) {
+        return EIO;
+    }
+    std::cout << "INFO: Success for core attach with asset name." << std::endl;
+    return 0;
+}
 int hako_initialize_for_external(void)
 {
     if (!hako_asset_impl_initialize_for_external()) {

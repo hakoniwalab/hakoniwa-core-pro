@@ -69,7 +69,7 @@ static std::string hako_full_name_from_entry(const std::string& robot_name, cons
 
 static std::string hako_pdu_key(const hako::asset::RobotCompact& /*robot*/, const hako::asset::PduIoEntry& entry)
 {
-    return entry.name + "|" + std::to_string(entry.io.channel_id) + "|" + entry.io.type;
+    return entry.name + "|" + std::to_string(entry.io.channel_id) + "|" + std::to_string(entry.io.pdu_size);
 }
 
 static void hako_add_pdu_io_unique(hako::asset::RobotCompact& robot, const hako::asset::PduIoEntry& entry, std::unordered_set<std::string>& seen)
@@ -107,6 +107,7 @@ static hako::asset::PduWriter create_writer_from_io(const std::string& robot_nam
 
 static bool hako_asset_impl_parse_robots_compact(bool /*is_plant*/, const std::string& config_path)
 {
+    std::vector<hako::asset::RobotCompact> robots_compact;
     const json& paths_json = hako_asset_instance.param["paths"];
     const json& robots_json = hako_asset_instance.param["robots"];
     std::string base_dir = hako_get_dirname(config_path);
@@ -144,8 +145,9 @@ static bool hako_asset_impl_parse_robots_compact(bool /*is_plant*/, const std::s
         for (const auto& pdu_json : pdutypes) {
             hako_add_pdu_io_unique(robot, create_io_compact(pdu_json), seen);
         }
-        hako_asset_instance.robots_compact.push_back(std::move(robot));
+        robots_compact.push_back(std::move(robot));
     }
+    hako_asset_instance.robots_compact = std::move(robots_compact);
     return true;
 }
 
@@ -155,6 +157,7 @@ static bool hako_asset_impl_parse_robots(bool is_plant, const std::string& confi
         return hako_asset_impl_parse_robots_compact(is_plant, config_path);
     }
 
+    std::vector<hako::asset::RobotCompact> robots_compact;
     const json& robots_json = hako_asset_instance.param["robots"];
     for (const auto& robot_json : robots_json) {
         hako::asset::RobotCompact robot;
@@ -192,8 +195,9 @@ static bool hako_asset_impl_parse_robots(bool is_plant, const std::string& confi
         } else {
             // nothing to do
         }
-        hako_asset_instance.robots_compact.push_back(std::move(robot));
+        robots_compact.push_back(std::move(robot));
     }
+    hako_asset_instance.robots_compact = std::move(robots_compact);
     return true;
 }
 
@@ -201,6 +205,10 @@ bool hako_asset_impl_init(const char* asset_name, const char* config_path, hako_
 {
     hako_asset_instance.is_initialized = false;
     hako_asset_instance.external_use = false;
+    hako_asset_instance.callback = nullptr;
+    hako_asset_instance.hako_asset = nullptr;
+    hako_asset_instance.hako_sim = nullptr;
+    hako_asset_instance.robots_compact.clear();
     std::ifstream ifs(config_path);
     
     if (!ifs.is_open()) {
@@ -311,6 +319,61 @@ bool hako_asset_impl_initialize_for_external()
     hako_asset_instance.asset_name_str = "None";
     hako_asset_instance.delta_usec = 0;
     hako_asset_instance.current_usec = 0;
+    hako_asset_instance.callback = nullptr;
+    hako_asset_instance.hako_asset = nullptr;
+    hako_asset_instance.hako_sim = nullptr;
+    hako_asset_instance.robots_compact.clear();
+
+    hako_asset_instance.hako_asset = hako::create_asset_controller();
+    if (hako_asset_instance.hako_asset == nullptr) {
+        std::cerr << "ERROR: Not found hako-master on this PC" << std::endl;
+        return false;
+    }
+    hako_asset_instance.hako_sim = hako::get_simevent_controller();
+    if (hako_asset_instance.hako_sim == nullptr) {
+        std::cerr << "ERROR: Not found hako-master on this PC" << std::endl;
+        return false;
+    }
+
+    hako_asset_instance.is_initialized = true;
+    return true;
+}
+bool hako_asset_impl_attach_core(const char* asset_name, const char* config_path)
+{
+    if (hako_asset_instance.is_initialized) {
+        return false;
+    }
+    if (asset_name == nullptr || *asset_name == '\0') {
+        return false;
+    }
+    if (config_path == nullptr) {
+        return false;
+    }
+
+    hako_asset_instance.is_initialized = false;
+    hako_asset_instance.external_use = false;
+    hako_asset_instance.asset_name_str = asset_name;
+    hako_asset_instance.delta_usec = 0;
+    hako_asset_instance.current_usec = 0;
+    hako_asset_instance.callback = nullptr;
+    hako_asset_instance.hako_asset = nullptr;
+    hako_asset_instance.hako_sim = nullptr;
+    hako_asset_instance.robots_compact.clear();
+
+    std::ifstream ifs(config_path);
+    if (!ifs.is_open()) {
+        std::cerr << "Error: Failed to open config file." << std::endl;
+        return false;
+    }
+    try {
+        hako_asset_instance.param = json::parse(ifs);
+        if (!hako_asset_impl_parse_robots(false, config_path)) {
+            return false;
+        }
+    } catch (const json::exception& e) {
+        std::cerr << "JSON parsing error: " << e.what() << std::endl;
+        return false;
+    }
 
     hako_asset_instance.hako_asset = hako::create_asset_controller();
     if (hako_asset_instance.hako_asset == nullptr) {
