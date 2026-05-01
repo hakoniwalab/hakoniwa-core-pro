@@ -2,8 +2,8 @@
 
 setlocal
 
-rem Set default asset number if not provided by environment variable
-set DEFAULT_HAKO_ASSET_NUM=4
+rem Keep the Windows batch default aligned with PowerShell/Linux builds and hako_config.hpp
+set DEFAULT_HAKO_ASSET_NUM=16
 if not defined ASSET_NUM (
     set ASSET_NUM=%DEFAULT_HAKO_ASSET_NUM%
 )
