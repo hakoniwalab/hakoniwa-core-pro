@@ -7,22 +7,6 @@ if (DEFINED HAKO_DATA_MAX_ASSET_NUM)
     add_compile_definitions(HAKO_DATA_MAX_ASSET_NUM=${HAKO_DATA_MAX_ASSET_NUM})
     message(STATUS "HAKO_DATA_MAX_ASSET_NUM is redefined with " ${HAKO_DATA_MAX_ASSET_NUM})
 endif()
-if (DEFINED HAKO_SERVICE_MAX)
-    add_compile_definitions(HAKO_SERVICE_MAX=${HAKO_SERVICE_MAX})
-    message(STATUS "HAKO_SERVICE_MAX is redefined with " ${HAKO_SERVICE_MAX})
-endif()
-if (DEFINED HAKO_RECV_EVENT_MAX)
-    add_compile_definitions(HAKO_RECV_EVENT_MAX=${HAKO_RECV_EVENT_MAX})
-    message(STATUS "HAKO_RECV_EVENT_MAX is redefined with " ${HAKO_RECV_EVENT_MAX})
-endif()
-if (DEFINED HAKO_SERVICE_CLIENT_MAX)
-    add_compile_definitions(HAKO_SERVICE_CLIENT_MAX=${HAKO_SERVICE_CLIENT_MAX})
-    message(STATUS "HAKO_SERVICE_CLIENT_MAX is redefined with " ${HAKO_SERVICE_CLIENT_MAX})
-endif()
-if (DEFINED HAKO_PDU_CHANNEL_MAX)
-    add_compile_definitions(HAKO_PDU_CHANNEL_MAX=${HAKO_PDU_CHANNEL_MAX})
-    message(STATUS "HAKO_PDU_CHANNEL_MAX is redefined with " ${HAKO_PDU_CHANNEL_MAX})
-endif()
 
 set(OS_TYPE "posix")
 if(WIN32)
@@ -33,19 +17,23 @@ endif(WIN32)
 MESSAGE(STATUS "OS_TYPE=" ${OS_TYPE})
 
 include(FetchContent)
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND EXISTS "/etc/os-release")
-    FetchContent_Declare(
-        json
-        URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz
-    )
+if(DEFINED HAKO_LOCAL_NLOHMANN_JSON_ROOT AND EXISTS "${HAKO_LOCAL_NLOHMANN_JSON_ROOT}/single_include/nlohmann/json.hpp")
+    set(nlohmann_json_SOURCE_DIR "${HAKO_LOCAL_NLOHMANN_JSON_ROOT}")
 else()
-    FetchContent_Declare(
-        json
-        URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz
-        DOWNLOAD_EXTRACT_TIMESTAMP TRUE
-    )
+    if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND EXISTS "/etc/os-release")
+        FetchContent_Declare(
+            json
+            URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz
+        )
+    else()
+        FetchContent_Declare(
+            json
+            URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz
+            DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+        )
+    endif()
+    FetchContent_MakeAvailable(json)
 endif()
-FetchContent_MakeAvailable(json)
 
 add_library(
     hako STATIC
@@ -104,7 +92,6 @@ endif()
 
 install(TARGETS hako
     EXPORT hakoniwa-core-targets
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}

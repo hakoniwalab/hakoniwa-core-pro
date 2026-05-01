@@ -37,15 +37,20 @@ message(STATUS "GCOV" ${GCOV})
 message(STATUS "CMAKE_C_FLAGS" ${CMAKE_C_FLAGS})
 message(STATUS "CMAKE_CXX_FLAGS" ${CMAKE_CXX_FLAGS})
 
-include(GNUInstallDirs)
-
 add_subdirectory(sources/core)
+option(HAKO_CORE_PRO_BUILD_COMMAND "Build hakoniwa-core-pro command tools" ON)
+if(HAKO_CORE_PRO_BUILD_COMMAND)
 add_subdirectory(sources/command)
+endif()
 add_subdirectory(sources/assets/callback)
 add_subdirectory(sources/assets/polling)
 add_subdirectory(sources/conductor)
+option(HAKO_CORE_PRO_BUILD_EXAMPLES "Build hakoniwa-core-pro examples" ON)
+if(HAKO_CORE_PRO_BUILD_EXAMPLES)
 add_subdirectory(examples)
-if(NOT "${CMAKE_CXX_FLAGS}" MATCHES "-m32")
+endif()
+option(HAKO_CORE_PRO_BUILD_PYTHON_BINDINGS "Build hakoniwa-core-pro python bindings" ON)
+if(HAKO_CORE_PRO_BUILD_PYTHON_BINDINGS AND NOT "${CMAKE_CXX_FLAGS}" MATCHES "-m32")
 add_subdirectory(sources/assets/bindings/python)
 endif()
 option(HAKO_ENABLE_GTEST "Enable GTest-based tests for hakoniwa-core-pro" ON)
@@ -54,6 +59,7 @@ add_subdirectory(tests/cpp)
 endif()
 
 # For pkg-config support
+include(GNUInstallDirs)
 configure_file(
   cmake/hakoniwa-core.pc.in
   ${CMAKE_BINARY_DIR}/hakoniwa-core.pc
@@ -91,23 +97,23 @@ file(GLOB HAKO_ROOT_HEADERS
 )
 install(
   FILES ${HAKO_ROOT_HEADERS}
-  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/hakoniwa
+  DESTINATION include/hakoniwa
 )
 
 # Install PDU header files
 install(
     DIRECTORY ${PROJECT_SOURCE_DIR}/hakoniwa-pdu-registry/pdu/types/
-    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/hakoniwa/pdu
+    DESTINATION include/hakoniwa/pdu
 )
 
 # Install core config file
 install(
     FILES ${PROJECT_SOURCE_DIR}/hakoniwa-core-cpp/cpp_core_config.json
-    DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/hakoniwa
+    DESTINATION /etc/hakoniwa
 )
 
 # Install PDU offset files
 install(
     DIRECTORY ${PROJECT_SOURCE_DIR}/hakoniwa-pdu-registry/pdu/offset/
-    DESTINATION ${CMAKE_INSTALL_DATADIR}/hakoniwa/offset
+    DESTINATION share/hakoniwa/offset
 )

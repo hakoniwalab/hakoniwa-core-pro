@@ -4,27 +4,6 @@ project(hako-asset
     LANGUAGES C CXX
 )
 
-if (DEFINED HAKO_DATA_MAX_ASSET_NUM)
-    add_compile_definitions(HAKO_DATA_MAX_ASSET_NUM=${HAKO_DATA_MAX_ASSET_NUM})
-    message(STATUS "HAKO_DATA_MAX_ASSET_NUM is redefined with " ${HAKO_DATA_MAX_ASSET_NUM})
-endif()
-if (DEFINED HAKO_SERVICE_MAX)
-    add_compile_definitions(HAKO_SERVICE_MAX=${HAKO_SERVICE_MAX})
-    message(STATUS "HAKO_SERVICE_MAX is redefined with " ${HAKO_SERVICE_MAX})
-endif()
-if (DEFINED HAKO_RECV_EVENT_MAX)
-    add_compile_definitions(HAKO_RECV_EVENT_MAX=${HAKO_RECV_EVENT_MAX})
-    message(STATUS "HAKO_RECV_EVENT_MAX is redefined with " ${HAKO_RECV_EVENT_MAX})
-endif()
-if (DEFINED HAKO_SERVICE_CLIENT_MAX)
-    add_compile_definitions(HAKO_SERVICE_CLIENT_MAX=${HAKO_SERVICE_CLIENT_MAX})
-    message(STATUS "HAKO_SERVICE_CLIENT_MAX is redefined with " ${HAKO_SERVICE_CLIENT_MAX})
-endif()
-if (DEFINED HAKO_PDU_CHANNEL_MAX)
-    add_compile_definitions(HAKO_PDU_CHANNEL_MAX=${HAKO_PDU_CHANNEL_MAX})
-    message(STATUS "HAKO_PDU_CHANNEL_MAX is redefined with " ${HAKO_PDU_CHANNEL_MAX})
-endif()
-
 message(STATUS "CMAKE_VERSION:${CMAKE_VERSION}" )
 
 set(OS_TYPE "posix")
@@ -34,8 +13,12 @@ endif(WIN32)
 MESSAGE(STATUS "OS_TYPE=" ${OS_TYPE})
 
 include(FetchContent)
-FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz DOWNLOAD_EXTRACT_TIMESTAMP true)
-FetchContent_MakeAvailable(json)
+if(DEFINED HAKO_LOCAL_NLOHMANN_JSON_ROOT AND EXISTS "${HAKO_LOCAL_NLOHMANN_JSON_ROOT}/single_include/nlohmann/json.hpp")
+    set(nlohmann_json_SOURCE_DIR "${HAKO_LOCAL_NLOHMANN_JSON_ROOT}")
+else()
+    FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz DOWNLOAD_EXTRACT_TIMESTAMP true)
+    FetchContent_MakeAvailable(json)
+endif()
 
 
 
@@ -90,7 +73,6 @@ set_target_properties(assets PROPERTIES VERSION 1.0.0 SOVERSION 1)
 
 install(TARGETS assets
     EXPORT hakoniwa-core-targets
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
