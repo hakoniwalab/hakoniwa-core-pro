@@ -31,10 +31,10 @@ int hako_asset_register(const char *asset_name, const char *config_path, hako_as
         std::cerr << "Error: delta_usec(" << delta_usec << ") is small: MIN=" << HAKO_ASSET_MIN_DELTA_TIME_USEC << std::endl;
         return EINVAL;
     }
-    hako_asset_impl_register_callback(callbacks);
     if (!hako_asset_impl_init(asset_name, config_path, delta_usec, (model == HAKO_ASSET_MODEL_PLANT))) {
         return EIO;
     }
+    hako_asset_impl_register_callback(callbacks);
     std::cout << "INFO: asset(" << asset_name << ") is registered." << std::endl;
     return 0;
 }
@@ -95,7 +95,8 @@ int hako_asset_start_no_wait(int (*is_force_stop)(void) = nullptr) {
         return EIO;
     }
     std::cout << "INFO: start simulation" << std::endl;
-    if (hako_asset_instance.callback->on_manual_timing_control != nullptr) {
+    if ((hako_asset_instance.callback != nullptr) &&
+        (hako_asset_instance.callback->on_manual_timing_control != nullptr)) {
         return hako_asset_instance.callback->on_manual_timing_control(nullptr);
     }
     //on_simulation_step
