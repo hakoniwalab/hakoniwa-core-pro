@@ -23,7 +23,7 @@ endif()
 
 
 
-if(WIN32 AND NOT HAKO_WIN32_SHARED_LIBS)
+if(WIN32)
 add_library(
     assets STATIC
     src/hako_asset.cpp
