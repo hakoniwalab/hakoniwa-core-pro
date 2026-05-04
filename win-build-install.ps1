@@ -24,6 +24,9 @@ param(
 
     [string]$BuildCFlags = $env:BUILD_C_FLAGS,
 
+    [ValidateSet("Shared", "Static")]
+    [string]$LibraryMode = "Shared",
+
     [switch]$Clean
 )
 
@@ -207,6 +210,9 @@ Write-Host "Build directory : $buildDirPath"
 Write-Host "Install prefix  : $installPrefixPath"
 Write-Host "Configuration   : $Configuration"
 Write-Host "Platform        : $Platform"
+Write-Host "Library mode    : $LibraryMode"
+
+$sharedLibsEnabled = if ($LibraryMode -eq "Shared") { "ON" } else { "OFF" }
 
 if ($Clean -and (Test-Path -LiteralPath $buildDirPath)) {
     Write-Host "Cleaning build directory: $buildDirPath"
@@ -223,6 +229,7 @@ $configureArgs = @(
     "-G", $Generator,
     "-A", $Platform,
     "-DHAKO_CLIENT_OPTION_FILEPATH=$cmakeOptionFile",
+    "-DHAKO_WIN32_SHARED_LIBS=$sharedLibsEnabled",
     "-DHAKO_DATA_MAX_ASSET_NUM=$effectiveAssetNum",
     "-DHAKO_SERVICE_MAX=$effectiveServiceMax",
     "-DHAKO_RECV_EVENT_MAX=$effectiveRecvEventMax",

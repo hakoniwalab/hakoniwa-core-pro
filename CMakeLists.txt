@@ -10,6 +10,8 @@ project(hakoniwa-core-pro
 
 enable_testing()
 
+option(HAKO_WIN32_SHARED_LIBS "Build Windows-facing libraries as shared libraries" OFF)
+
 set(HAKO_CORE_SOURCE_DIR "${PROJECT_SOURCE_DIR}/hakoniwa-core-cpp")
 set(HAKO_PDU_SOURCE_DIR "${PROJECT_SOURCE_DIR}/hakoniwa-pdu-registry/pdu/types")
 set(HAKO_INC_DIR "${PROJECT_SOURCE_DIR}/include")

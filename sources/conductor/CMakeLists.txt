@@ -13,7 +13,7 @@ endif(WIN32)
 MESSAGE(STATUS "OS_TYPE=" ${OS_TYPE})
 
 
-if(WIN32)
+if(WIN32 AND NOT HAKO_WIN32_SHARED_LIBS)
 add_library(
     conductor STATIC
     src/hako_conductor.cpp
