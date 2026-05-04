@@ -6,7 +6,9 @@
 #include <iomanip>
 #include <sstream>
 #include <cstdlib>
+#include <cstddef>
 #include "config/hako_config.hpp"
+#include "data/hako_master_data.hpp"
 #include "hako_pro_config.hpp"
 
 std::string hako::data::pro::get_timestamp()
@@ -30,6 +32,10 @@ static std::shared_ptr<hako::IHakoSimulationEventController> simevent_ptr = null
 
 static void hako_log_build_limits(const char* caller)
 {
+    const size_t pro_shm_size =
+        sizeof(hako::data::pro::HakoRecvEventTableType) +
+        sizeof(hako::data::pro::HakoServiceTableType) +
+        1024;
     std::cout << "INFO: " << caller
               << " build_limits"
               << " asset_num=" << HAKO_DATA_MAX_ASSET_NUM
@@ -37,15 +43,34 @@ static void hako_log_build_limits(const char* caller)
               << " recv_event_max=" << HAKO_RECV_EVENT_MAX
               << " service_client_max=" << HAKO_SERVICE_CLIENT_MAX
               << " service_max=" << HAKO_SERVICE_MAX
+              << " client_namelen_max=" << HAKO_CLIENT_NAMELEN_MAX
+              << " service_namelen_max=" << HAKO_SERVICE_NAMELEN_MAX
+              << std::endl;
+    std::cout << "INFO: " << caller
+              << " shm_sizes"
+              << " master_shm_size=" << sizeof(hako::data::HakoMasterDataType)
+              << " recv_event_table_size=" << sizeof(hako::data::pro::HakoRecvEventTableType)
+              << " service_table_size=" << sizeof(hako::data::pro::HakoServiceTableType)
+              << " pro_shm_size=" << pro_shm_size
               << std::endl;
     HAKO_LOG_INFO(
-        "%s: build_limits asset_num=%d channel_max=%d recv_event_max=%d service_client_max=%d service_max=%d",
+        "%s: build_limits asset_num=%d channel_max=%d recv_event_max=%d service_client_max=%d service_max=%d client_namelen_max=%d service_namelen_max=%d",
         caller,
         HAKO_DATA_MAX_ASSET_NUM,
         HAKO_PDU_CHANNEL_MAX,
         HAKO_RECV_EVENT_MAX,
         HAKO_SERVICE_CLIENT_MAX,
-        HAKO_SERVICE_MAX
+        HAKO_SERVICE_MAX,
+        HAKO_CLIENT_NAMELEN_MAX,
+        HAKO_SERVICE_NAMELEN_MAX
+    );
+    HAKO_LOG_INFO(
+        "%s: shm_sizes master_shm_size=%zu recv_event_table_size=%zu service_table_size=%zu pro_shm_size=%zu",
+        caller,
+        sizeof(hako::data::HakoMasterDataType),
+        sizeof(hako::data::pro::HakoRecvEventTableType),
+        sizeof(hako::data::pro::HakoServiceTableType),
+        pro_shm_size
     );
 }
 

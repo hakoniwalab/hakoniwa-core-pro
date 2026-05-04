@@ -9,6 +9,8 @@ foreach(_hako_limit_var IN ITEMS
     HAKO_RECV_EVENT_MAX
     HAKO_SERVICE_CLIENT_MAX
     HAKO_SERVICE_MAX
+    HAKO_CLIENT_NAMELEN_MAX
+    HAKO_SERVICE_NAMELEN_MAX
 )
     if(DEFINED ${_hako_limit_var})
         add_compile_definitions(${_hako_limit_var}=${${_hako_limit_var}})

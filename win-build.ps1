@@ -21,9 +21,6 @@ param(
 
     [string]$BuildCFlags = $env:BUILD_C_FLAGS,
 
-    [ValidateSet("Shared", "Static")]
-    [string]$LibraryMode = "Shared",
-
     [switch]$Clean
 )
 
@@ -165,27 +162,30 @@ $defaultAssetNum = Get-DefaultValue -Defaults $buildDefaults -Key "HAKO_DATA_MAX
 $defaultServiceMax = Get-DefaultValue -Defaults $buildDefaults -Key "HAKO_SERVICE_MAX"
 $defaultRecvEventMax = Get-DefaultValue -Defaults $buildDefaults -Key "HAKO_RECV_EVENT_MAX"
 $defaultServiceClientMax = Get-DefaultValue -Defaults $buildDefaults -Key "HAKO_SERVICE_CLIENT_MAX"
+$defaultClientNameLenMax = Get-DefaultValue -Defaults $buildDefaults -Key "HAKO_CLIENT_NAMELEN_MAX"
+$defaultServiceNameLenMax = Get-DefaultValue -Defaults $buildDefaults -Key "HAKO_SERVICE_NAMELEN_MAX"
 $defaultChannelMax = Get-DefaultValue -Defaults $buildDefaults -Key "HAKO_PDU_CHANNEL_MAX"
 
 $effectiveAssetNum = Get-EffectiveAssetNum -Value $AssetNum -DefaultValue $defaultAssetNum
 $effectiveServiceMax = Get-EffectivePositiveInt -Value $ServiceMax -EnvName "SERVICE_MAX" -DefaultValue $defaultServiceMax
 $effectiveRecvEventMax = Get-EffectivePositiveInt -Value $RecvEventMax -EnvName "RECV_EVENT_MAX" -DefaultValue $defaultRecvEventMax
 $effectiveServiceClientMax = Get-EffectivePositiveInt -Value $ServiceClientMax -EnvName "SERVICE_CLIENT_MAX" -DefaultValue $defaultServiceClientMax
+$effectiveClientNameLenMax = Get-EffectivePositiveInt -Value $null -EnvName "CLIENT_NAMELEN_MAX" -DefaultValue $defaultClientNameLenMax
+$effectiveServiceNameLenMax = Get-EffectivePositiveInt -Value $null -EnvName "SERVICE_NAMELEN_MAX" -DefaultValue $defaultServiceNameLenMax
 $effectiveChannelMax = Get-EffectivePositiveInt -Value $ChannelMax -EnvName "CHANNEL_MAX" -DefaultValue $defaultChannelMax
 
 Write-Host "ASSET_NUM is $effectiveAssetNum"
 Write-Host "SERVICE_MAX is $effectiveServiceMax"
 Write-Host "RECV_EVENT_MAX is $effectiveRecvEventMax"
 Write-Host "SERVICE_CLIENT_MAX is $effectiveServiceClientMax"
+Write-Host "CLIENT_NAMELEN_MAX is $effectiveClientNameLenMax"
+Write-Host "SERVICE_NAMELEN_MAX is $effectiveServiceNameLenMax"
 Write-Host "CHANNEL_MAX is $effectiveChannelMax"
 Write-Host "Build defaults   : $buildDefaultsFile"
 Write-Host "Repository root : $repoRoot"
 Write-Host "Build directory : $buildDirPath"
 Write-Host "Configuration   : $Configuration"
 Write-Host "Platform        : $Platform"
-Write-Host "Library mode    : $LibraryMode"
-
-$sharedLibsEnabled = if ($LibraryMode -eq "Shared") { "ON" } else { "OFF" }
 
 if ($Clean) {
     if (Test-Path -LiteralPath $buildDirPath) {
@@ -204,11 +204,12 @@ $configureArgs = @(
     "-G", $Generator,
     "-A", $Platform,
     "-DHAKO_CLIENT_OPTION_FILEPATH=$cmakeOptionFile",
-    "-DHAKO_WIN32_SHARED_LIBS=$sharedLibsEnabled",
     "-DHAKO_DATA_MAX_ASSET_NUM=$effectiveAssetNum",
     "-DHAKO_SERVICE_MAX=$effectiveServiceMax",
     "-DHAKO_RECV_EVENT_MAX=$effectiveRecvEventMax",
     "-DHAKO_SERVICE_CLIENT_MAX=$effectiveServiceClientMax",
+    "-DHAKO_CLIENT_NAMELEN_MAX=$effectiveClientNameLenMax",
+    "-DHAKO_SERVICE_NAMELEN_MAX=$effectiveServiceNameLenMax",
     "-DHAKO_PDU_CHANNEL_MAX=$effectiveChannelMax"
 )
 $configureArgs += Split-Flags -Flags $EnableHakoTimeMeasureFlag

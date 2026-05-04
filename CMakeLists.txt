@@ -10,8 +10,6 @@ project(hakoniwa-core-pro
 
 enable_testing()
 
-option(HAKO_WIN32_SHARED_LIBS "Build Windows-facing libraries as shared libraries" OFF)
-
 set(HAKO_CORE_SOURCE_DIR "${PROJECT_SOURCE_DIR}/hakoniwa-core-cpp")
 set(HAKO_PDU_SOURCE_DIR "${PROJECT_SOURCE_DIR}/hakoniwa-pdu-registry/pdu/types")
 set(HAKO_INC_DIR "${PROJECT_SOURCE_DIR}/include")
@@ -48,6 +46,8 @@ hako_set_cache_default(HAKO_PDU_CHANNEL_MAX "${HAKO_DEFAULT_HAKO_PDU_CHANNEL_MAX
 hako_set_cache_default(HAKO_RECV_EVENT_MAX "${HAKO_DEFAULT_HAKO_RECV_EVENT_MAX}" "Maximum number of Hakoniwa receive events")
 hako_set_cache_default(HAKO_SERVICE_CLIENT_MAX "${HAKO_DEFAULT_HAKO_SERVICE_CLIENT_MAX}" "Maximum number of Hakoniwa service client channels")
 hako_set_cache_default(HAKO_SERVICE_MAX "${HAKO_DEFAULT_HAKO_SERVICE_MAX}" "Maximum number of Hakoniwa services")
+hako_set_cache_default(HAKO_CLIENT_NAMELEN_MAX "${HAKO_DEFAULT_HAKO_CLIENT_NAMELEN_MAX}" "Maximum client name length in Hakoniwa service tables")
+hako_set_cache_default(HAKO_SERVICE_NAMELEN_MAX "${HAKO_DEFAULT_HAKO_SERVICE_NAMELEN_MAX}" "Maximum service name length in Hakoniwa service tables")
 
 message(STATUS
     "Hakoniwa build limits: "
@@ -55,7 +55,9 @@ message(STATUS
     "channel_max=${HAKO_PDU_CHANNEL_MAX} "
     "recv_event_max=${HAKO_RECV_EVENT_MAX} "
     "service_client_max=${HAKO_SERVICE_CLIENT_MAX} "
-    "service_max=${HAKO_SERVICE_MAX}"
+    "service_max=${HAKO_SERVICE_MAX} "
+    "client_namelen_max=${HAKO_CLIENT_NAMELEN_MAX} "
+    "service_namelen_max=${HAKO_SERVICE_NAMELEN_MAX}"
 )
 
 if (DEFINED HAKO_CLIENT_OPTION_FILEPATH)
