@@ -1,3 +1,27 @@
+hakoniwa-core (1.2.0-1) noble; urgency=medium
+
+  [ Takashi Mori ]
+  * New upstream release v1.2.0.
+  * Add Godot-related PDU definitions in hakoniwa-pdu-registry.
+  * Add PowerShell-based Windows build/install scripts and document the
+    Windows build workflow in README.md.
+  * Centralize build-time capacity defaults in
+    cmake/hako_build_defaults.conf and apply them across CMake, build.bash,
+    install.bash, and Windows build scripts.
+  * Add build/install-time overrides for service/client name length limits:
+    HAKO_CLIENT_NAMELEN_MAX and HAKO_SERVICE_NAMELEN_MAX.
+  * Add APIs to attach asset endpoints to the core without registration and
+    improve polling/callback asset initialization for external use cases.
+  * Fix compact robot/PDU parsing to avoid stale entries and improve
+    duplicate-channel detection by using channel size in the uniqueness key.
+  * Improve polling/callback API robustness with lazy controller
+    initialization, safer exception handling, and additional build-limit /
+    shared-memory size logs.
+  * Fix Windows build issues, including MuJoCo-related compilation failures
+    and script/build configuration regressions.
+
+ -- Takashi Mori <tmori@hakoniwa-lab.net>  Tue, 05 May 2026 08:26:17 +0900
+
 hakoniwa-core (1.1.4-1) noble; urgency=medium
 
   [ Takashi Mori ]
