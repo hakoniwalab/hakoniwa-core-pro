@@ -25,8 +25,11 @@
 #include <string>
 #include <map>
 #include <functional>
+#include <iomanip>
 #include "dump_meta.hpp"
 #include "cxxopts.hpp"
+#include "utils/hako_share/hako_shared_memory.hpp"
+#include "data/hako_base_data.hpp"
 
 // Type definitions
 using HakoSimCtrlPtr = std::shared_ptr<hako::IHakoSimulationEventController>;
@@ -246,6 +249,18 @@ int main(int argc, char* argv[]) {
     }
     if (result.count("version")) {
         std::cout << "hako-cmd version 1.0.0" << std::endl;
+        std::cout << "HAKO_SHM_MAGIC=0x"
+                  << std::hex << HAKO_SHM_MAGIC << std::dec
+                  << std::endl;
+        std::cout << "HAKO_SHM_LAYOUT_VERSION="
+                  << HAKO_SHM_LAYOUT_VERSION
+                  << std::endl;
+        std::cout << "SharedMemoryMetaDataType.size="
+                  << sizeof(hako::utils::SharedMemoryMetaDataType)
+                  << std::endl;
+        std::cout << "HakoPduChannelType.size="
+                  << sizeof(hako::data::HakoPduChannelType)
+                  << std::endl;
         return 0;
     }
 
