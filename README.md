@@ -1,3 +1,5 @@
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/hakoniwalab/hakoniwa-core-pro)
+
 # hakoniwa-core-pro
 
 hakoniwa-core-pro は、箱庭シミュレーションフレームワーク **hakoniwa-core-cpp** を拡張し、
