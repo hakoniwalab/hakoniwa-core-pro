@@ -1,3 +1,29 @@
+hakoniwa-core (1.3.0-1) noble; urgency=medium
+
+  [ Takashi Mori ]
+  * New upstream release v1.3.0.
+  * Introduce shared-memory metadata/layout compatibility updates.
+  * Add hako-cmd version diagnostics for shared-memory compatibility checks:
+    HAKO_SHM_MAGIC, HAKO_SHM_LAYOUT_VERSION, SharedMemoryMetaDataType size,
+    and HakoPduChannelType size.
+  * Centralize build-time capacity defaults in cmake/hako_build_defaults.conf
+    and apply them across CMake, build.bash, install.bash, and Windows build
+    scripts.
+  * Add build/install-time overrides for service/client name length limits:
+    HAKO_CLIENT_NAMELEN_MAX and HAKO_SERVICE_NAMELEN_MAX.
+  * Add APIs to attach asset endpoints to the core without registration and
+    improve polling/callback asset initialization for external use cases.
+  * Fix compact robot/PDU parsing to avoid stale entries and improve
+    duplicate-channel detection by using channel size in the uniqueness key.
+  * Improve polling/callback API robustness with lazy controller
+    initialization, safer exception handling, and additional build-limit /
+    shared-memory size logs.
+  * Fix Windows build issues, including MuJoCo-related compilation failures
+    and script/build configuration regressions.
+  * Update hakoniwa-core-cpp and hakoniwa-pdu-registry submodules.
+
+ -- Takashi Mori <tmori@hakoniwa-lab.net>  Wed, 17 Jun 2026 09:30:00 +0900
+
 hakoniwa-core (1.2.0-1) noble; urgency=medium
 
   [ Takashi Mori ]
@@ -91,7 +117,7 @@ hakoniwa-core (1.1.1-3) noble; urgency=medium
   [ Takashi Mori ]
   * Added PDU message member (no code changes)
 
- -- Code <tmori@WinHako.>  Thu, 04 Dec 2025 09:16:44 +0900
+ -- Takashi Mori <tmori@hakoniwa-lab.net>  Thu, 04 Dec 2025 09:16:44 +0900
 
 hakoniwa-core (1.1.1-2) noble; urgency=medium
 
@@ -128,22 +154,22 @@ hakoniwa-core (1.0.0-4) noble; urgency=medium
   [ Takashi Mori ]
   * Rebuild: update hako-cmd binary
 
- -- Code <tmori@hakoniwa-lab.net>  Thu, 14 Aug 2025 09:01:29 +0900
+ -- Takashi Mori <tmori@hakoniwa-lab.net>  Thu, 14 Aug 2025 09:01:29 +0900
 
 hakoniwa-core (1.0.0-3) noble; urgency=medium
 
   * Cleanup: SONAME, manpage, debian/copyright.
 
- -- HakoniwaLab <tmori@hakoniwa-lab.net>  Tue, 12 Aug 2025 12:21:58 +0900
+ -- Takashi Mori <tmori@hakoniwa-lab.net>  Tue, 12 Aug 2025 12:21:58 +0900
 
 hakoniwa-core (1.0.0-2) noble; urgency=medium
 
   * Initial packaging for Noble (cleanup).
 
- -- HakoniwaLab <tmori@hakoniwa-lab.net>  Tue, 12 Aug 2025 11:27:54 +0900
+ -- Takashi Mori <tmori@hakoniwa-lab.net>  Tue, 12 Aug 2025 11:27:54 +0900
 
 hakoniwa-core (1.0.0-1) noble; urgency=low
 
   * Initial release
 
- -- HakoniwaLab <tmori@hakoniwa-lab.net>  Tue, 12 Aug 2025 11:20:44 +0900
+ -- Takashi Mori <tmori@hakoniwa-lab.net>  Tue, 12 Aug 2025 11:20:44 +0900
