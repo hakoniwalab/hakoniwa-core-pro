@@ -229,6 +229,7 @@ $configureArgs = @(
     "-G", $Generator,
     "-A", $Platform,
     "-DHAKO_CLIENT_OPTION_FILEPATH=$cmakeOptionFile",
+    "-DHAKO_WIN32_SHARED_LIBS=ON",
     "-DHAKO_DATA_MAX_ASSET_NUM=$effectiveAssetNum",
     "-DHAKO_SERVICE_MAX=$effectiveServiceMax",
     "-DHAKO_RECV_EVENT_MAX=$effectiveRecvEventMax",
