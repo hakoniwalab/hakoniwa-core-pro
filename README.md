@@ -2,14 +2,26 @@
 
 # hakoniwa-core-pro
 
-hakoniwa-core-pro は、箱庭シミュレーションフレームワーク **hakoniwa-core-cpp** を拡張し、
-イベント駆動型のシミュレーションを実現するためのライブラリ群です。C/C++/Python で
-記述されたアセットを組み合わせることで、ロボット制御やセンサシミュレーションなどの
-開発・検証を行うことができます。
+hakoniwa-core-pro は、箱庭シミュレーションフレームワーク **hakoniwa-core-cpp** を同梱し、
+その上にイベント駆動型の API、RPC サービス、C/Python 向けアセット連携機能を追加した
+ライブラリ群です。
+
+箱庭の中核は `hakoniwa-core-cpp` です。`hakoniwa-core-cpp` は **シミュレーションハブの本体**
+となるコアライブラリで、共有メモリ上の master data / PDU buffer を使って、アセット間の高速な
+PDU データ通信とシミュレーション時刻同期を実現します。`hakoniwa-core-pro` はこの基盤を使い、
+C/C++/Python で記述されたアセットから、ロボット制御やセンサシミュレーションなどの
+開発・検証を行いやすくするための拡張レイヤです。
+
+`hakoniwa-core-cpp` の詳細は以下も参照してください。
+
+- [hakoniwa-core-cpp README](hakoniwa-core-cpp/README.md)
+- [API Specification](hakoniwa-core-cpp/API_SPEC.md)
+- [Shared Memory Layout](hakoniwa-core-cpp/SHARED_MEMORY_SPEC.md)
 
 ## アーキテクチャ
 
-hakoniwa-core-pro は、以下のコンポーネントから構成されています。
+hakoniwa-core-pro は、`hakoniwa-core-cpp` のシミュレーションハブを基盤として、
+pro 側のライブラリとコマンドを組み合わせる構成です。
 
 ```mermaid
 graph TD
@@ -39,9 +51,45 @@ graph TD
 - **Asset**: ユーザが作成するシミュレーション参加要素。`libhako.a` が提供するAPIを利用して、他のアセットとのデータ送受信や、RPCサービスの利用が可能です。
 - **hako-cmd**: シミュレーションの状態を外部から確認したり、操作したりするためのコマンドラインツールです。
 
+### 基本的なシミュレーションの流れ
+
+`hakoniwa-core-cpp` の基本フローは、master が共有メモリ上の管理領域を作成し、asset が登録と
+PDU チャネル定義を行い、シミュレーション開始後に各 asset が PDU を読み書きする、という流れです。
+
+```mermaid
+sequenceDiagram
+    actor Cmd as HakoCommand
+    participant Master as HakoMaster
+    participant Asset as HakoAsset
+    participant MasterData as "Master Data"
+    participant PduData as "PDU Data"
+
+    Cmd->>Master: hako::init()
+    Master->>MasterData: create()
+    note over Master,MasterData: Master データ領域を確保
+
+    Asset->>Master: asset_register()
+    Master->>MasterData: アセット情報を登録
+    Asset->>MasterData: create_pdu_lchannel()
+    note left of Asset: PDU チャネルを定義
+
+    Cmd->>Master: start()
+    note right of Master: シミュレーションを Runnable 状態へ
+    Master->>MasterData: create_pdu_data()
+    MasterData->>PduData: create()
+    note over MasterData,PduData: PDU データ領域を確保
+
+    loop シミュレーション実行中
+        Asset-->>PduData: read_pdu() / write_pdu()
+    end
+
+    Cmd->>Master: stop()
+    note right of Master: シミュレーションを停止
+```
+
 ## 主な機能
 
-## C API (Polling)
+### C API (Polling)
 
 新しいC向けAPIは `include/hakoniwa_asset_polling.h` に集約しています。
 戻り値は `0=成功 / 非0=失敗` です（`is_*` 系は `1=true / 0=false`）。
@@ -68,7 +116,7 @@ int main(void)
 }
 ```
 
-### 旧APIからの移行
+#### 旧APIからの移行
 
 旧 `include/hako_capi.h` は互換性のため残していますが、将来的に削除予定です。
 移行時は以下の置き換えを行ってください。
