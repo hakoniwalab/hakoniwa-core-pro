@@ -379,6 +379,32 @@ ctest --test-dir cmake-build --verbose
 
 このスクリプトは、デフォルトでは `/usr/local/hakoniwa` を prefix として、`/usr/local/hakoniwa/bin` や `/usr/local/hakoniwa/lib` などにファイルをコピーします。設定ファイルは `/etc/hakoniwa`、mmap 用ディレクトリは `/var/lib/hakoniwa/mmap` に配置されます。管理者権限が必要なため、実行中に `sudo` のパスワードを求められることがあります。
 
+GitHub Release のビルド済みアーカイブからインストールする場合は、リポジトリを clone せずに installer だけを取得して実行できます。
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/hakoniwalab/hakoniwa-core-pro/main/install-hakoniwa.bash | bash
+```
+
+バージョンやインストール先を指定する場合は以下のように実行します。
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/hakoniwalab/hakoniwa-core-pro/main/install-hakoniwa.bash | bash -s -- --version v1.3.0 --prefix /usr/local/hakoniwa
+```
+
+アンインストールも同じ installer から実行できます。
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/hakoniwalab/hakoniwa-core-pro/main/install-hakoniwa.bash | bash -s -- uninstall
+```
+
+installer は、デフォルトで GitHub Release から以下の形式のアーカイブを取得します。独自の配布先を使う場合は `--url` でアーカイブ URL を直接指定できます。アーカイブの SHA-256 を検証する場合は `--sha256 <digest>` を指定してください。
+
+```text
+hakoniwa-core-pro-${version}-${os}-${arch}.tar.gz
+```
+
+アーカイブには `bin/`, `lib/`, `include/`, `share/` と、必要に応じて `etc/` を含めてください。インストール後は `/usr/local/hakoniwa/env.bash` が生成されます。
+
 インストール後、コマンド実行や外部プロジェクトからの利用のために、必要に応じて以下の環境変数を設定してください。
 
 ```sh
@@ -402,6 +428,12 @@ export DYLD_LIBRARY_PATH="${HAKONIWA_HOME}/lib:${DYLD_LIBRARY_PATH:-}"
 
 ```sh
 export HAKO_CONFIG_PATH=/path/to/cpp_core_config.json
+```
+
+installer を使った場合は、以下でも同じ環境変数を読み込めます。
+
+```sh
+source /usr/local/hakoniwa/env.bash
 ```
 
 なお、Pythonのサンプルコードを実行する場合は、以下のコマンドを実行して、Pythonライブラリをインストールしてください。
