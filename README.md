@@ -379,13 +379,15 @@ ctest --test-dir cmake-build --verbose
 
 このスクリプトは、デフォルトでは `/usr/local/hakoniwa` を prefix として、`/usr/local/hakoniwa/bin` や `/usr/local/hakoniwa/lib` などにファイルをコピーします。設定ファイルは `/etc/hakoniwa`、mmap 用ディレクトリは `/var/lib/hakoniwa/mmap` に配置されます。管理者権限が必要なため、実行中に `sudo` のパスワードを求められることがあります。
 
-GitHub Release のビルド済みアーカイブからインストールする場合は、リポジトリを clone せずに installer だけを取得して実行できます。
+リポジトリを手元に clone せずにインストールする場合は、installer だけを取得して実行できます。installer は一時ディレクトリに `git clone --recurse-submodules` し、その中でビルドとインストールを実行します。
+
+この方式では、実行環境に `git`, `cmake`, C/C++ コンパイラなどのビルドツールが必要です。
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/hakoniwalab/hakoniwa-core-pro/main/install-hakoniwa.bash | bash
 ```
 
-バージョンやインストール先を指定する場合は以下のように実行します。
+バージョンタグやインストール先を指定する場合は以下のように実行します。
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/hakoniwalab/hakoniwa-core-pro/main/install-hakoniwa.bash | bash -s -- --version v1.3.0 --prefix /usr/local/hakoniwa
@@ -397,13 +399,13 @@ curl -fsSL https://raw.githubusercontent.com/hakoniwalab/hakoniwa-core-pro/main/
 curl -fsSL https://raw.githubusercontent.com/hakoniwalab/hakoniwa-core-pro/main/install-hakoniwa.bash | bash -s -- uninstall
 ```
 
-installer は、デフォルトで GitHub Release から以下の形式のアーカイブを取得します。独自の配布先を使う場合は `--url` でアーカイブ URL を直接指定できます。アーカイブの SHA-256 を検証する場合は `--sha256 <digest>` を指定してください。
+開発ブランチや fork からインストールする場合は、`--ref` や `--repo` を指定できます。
 
-```text
-hakoniwa-core-pro-${version}-${os}-${arch}.tar.gz
+```sh
+curl -fsSL https://raw.githubusercontent.com/hakoniwalab/hakoniwa-core-pro/main/install-hakoniwa.bash | bash -s -- --repo https://github.com/hakoniwalab/hakoniwa-core-pro.git --ref main
 ```
 
-アーカイブには `bin/`, `lib/`, `include/`, `share/` と、必要に応じて `etc/` を含めてください。インストール後は `/usr/local/hakoniwa/env.bash` が生成されます。
+インストール後は `/usr/local/hakoniwa/env.bash` が生成されます。
 
 インストール後、コマンド実行や外部プロジェクトからの利用のために、必要に応じて以下の環境変数を設定してください。
 

@@ -2,8 +2,8 @@
 # This script builds and installs hakoniwa-core for Unix-like systems (Linux, macOS).
 
 set -e
-BUILD_DIR="cmake-build"
-INSTALL_PREFIX="/usr/local/hakoniwa"  # Default installation prefix
+BUILD_DIR="${BUILD_DIR:-cmake-build}"
+INSTALL_PREFIX="${INSTALL_PREFIX:-/usr/local/hakoniwa}"  # Default installation prefix
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEFAULTS_FILE="${SCRIPT_DIR}/cmake/hako_build_defaults.conf"
 

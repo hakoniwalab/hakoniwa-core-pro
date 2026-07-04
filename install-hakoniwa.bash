@@ -1,22 +1,22 @@
 #!/usr/bin/env bash
-# Installer for prebuilt hakoniwa-core-pro release archives.
+# Installer that clones, builds, and installs hakoniwa-core-pro.
 
 set -euo pipefail
 
-REPO_OWNER="hakoniwalab"
-REPO_NAME="hakoniwa-core-pro"
+DEFAULT_REPO_URL="https://github.com/hakoniwalab/hakoniwa-core-pro.git"
+DEFAULT_REF="main"
 DEFAULT_PREFIX="/usr/local/hakoniwa"
 CONFIG_DIR="/etc/hakoniwa"
 MMAP_DIR="/var/lib/hakoniwa/mmap"
 
 ACTION="install"
+REPO_URL="${HAKONIWA_REPO_URL:-${DEFAULT_REPO_URL}}"
+REF="${HAKONIWA_REF:-${DEFAULT_REF}}"
 PREFIX="${HAKONIWA_HOME:-${DEFAULT_PREFIX}}"
-VERSION="${HAKONIWA_VERSION:-latest}"
-ARCHIVE_URL="${HAKONIWA_ARCHIVE_URL:-}"
-SHA256="${HAKONIWA_SHA256:-}"
 YES=0
 SETUP_SHELL=0
 DRY_RUN=0
+KEEP_SOURCE=0
 
 usage() {
     cat <<'USAGE'
@@ -28,19 +28,14 @@ Usage:
 
 Options:
   --prefix PATH       Install prefix. Default: /usr/local/hakoniwa
-  --version VERSION   GitHub Release tag. Default: latest
-  --url URL           Download archive URL. Overrides --version.
-  --sha256 DIGEST     Expected SHA-256 digest for the archive.
+  --repo URL          Git repository URL.
+  --ref REF           Git branch or tag to install. Default: main
+  --version VERSION   Alias for --ref, intended for release tags.
   --setup-shell       Append source line to ~/.bashrc or ~/.zshrc.
+  --keep-source       Keep the temporary cloned source tree.
   --yes, -y           Do not ask for confirmation.
   --dry-run           Print actions without changing files.
   --help, -h          Show this help.
-
-Release archive convention:
-  hakoniwa-core-pro-${version}-${os}-${arch}.tar.gz
-
-Expected archive contents:
-  bin/ lib/ include/ share/ and optionally etc/
 
 Examples:
   curl -fsSL https://raw.githubusercontent.com/hakoniwalab/hakoniwa-core-pro/main/install-hakoniwa.bash | bash
@@ -110,59 +105,8 @@ detect_os() {
     esac
 }
 
-detect_arch() {
-    case "$(uname -m)" in
-        x86_64|amd64) printf 'x86_64' ;;
-        arm64|aarch64) printf 'arm64' ;;
-        *) die "unsupported architecture: $(uname -m)" ;;
-    esac
-}
-
-latest_version() {
-    need_cmd curl
-    curl -fsSL "https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases/latest" |
-        sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' |
-        head -n 1
-}
-
-archive_url() {
-    if [ -n "${ARCHIVE_URL}" ]; then
-        printf '%s' "${ARCHIVE_URL}"
-        return 0
-    fi
-
-    resolved_version="${VERSION}"
-    if [ "${resolved_version}" = "latest" ]; then
-        resolved_version="$(latest_version)"
-        [ -n "${resolved_version}" ] || die "failed to resolve latest release version"
-    fi
-
-    os_name="$(detect_os)"
-    arch_name="$(detect_arch)"
-    artifact="hakoniwa-core-pro-${resolved_version}-${os_name}-${arch_name}.tar.gz"
-    printf 'https://github.com/%s/%s/releases/download/%s/%s' "${REPO_OWNER}" "${REPO_NAME}" "${resolved_version}" "${artifact}"
-}
-
 make_temp_dir() {
     mktemp -d 2>/dev/null || mktemp -d -t hakoniwa-install
-}
-
-verify_archive() {
-    archive_path="$1"
-    [ -n "${SHA256}" ] || return 0
-
-    if command -v sha256sum >/dev/null 2>&1; then
-        actual="$(sha256sum "${archive_path}" | awk '{print $1}')"
-    elif command -v shasum >/dev/null 2>&1; then
-        actual="$(shasum -a 256 "${archive_path}" | awk '{print $1}')"
-    else
-        die "SHA-256 verification requested, but sha256sum/shasum was not found"
-    fi
-
-    if [ "${actual}" != "${SHA256}" ]; then
-        die "SHA-256 mismatch: expected ${SHA256}, got ${actual}"
-    fi
-    log "SHA-256 verified."
 }
 
 write_env_file() {
@@ -209,78 +153,49 @@ setup_shell() {
     log "Updated shell profile: ${shell_rc}"
 }
 
-copy_payload() {
-    src="$1"
-
-    for dir in bin lib include share; do
-        if [ -d "${src}/${dir}" ]; then
-            as_root mkdir -p "${PREFIX}/${dir}"
-            as_root cp -R "${src}/${dir}/." "${PREFIX}/${dir}/"
-        fi
-    done
-
-    if [ -d "${src}/etc/hakoniwa" ]; then
-        as_root mkdir -p "${CONFIG_DIR}"
-        as_root cp -R "${src}/etc/hakoniwa/." "${CONFIG_DIR}/"
-    elif [ -d "${src}/etc" ]; then
-        as_root mkdir -p "${CONFIG_DIR}"
-        as_root cp -R "${src}/etc/." "${CONFIG_DIR}/"
-    fi
-}
-
 install_action() {
-    need_cmd curl
-    need_cmd tar
-    need_cmd sed
-
-    url="$(archive_url)"
-    tmp_dir="$(make_temp_dir)"
-    archive_path="${tmp_dir}/hakoniwa.tar.gz"
-    extract_dir="${tmp_dir}/extract"
-
-    log "Installing hakoniwa-core-pro"
-    log "  prefix : ${PREFIX}"
-    log "  archive: ${url}"
-    if [ -n "${SHA256}" ]; then
-        log "  sha256 : ${SHA256}"
-    fi
-    confirm "Continue installation?"
+    os_name="$(detect_os)"
+    need_cmd git
+    need_cmd cmake
 
     if [ "${DRY_RUN}" -eq 1 ]; then
-        log "[dry-run] would download archive"
-        log "[dry-run] would install bin/lib/include/share into ${PREFIX}"
-        log "[dry-run] would install config files into ${CONFIG_DIR} if present"
+        tmp_dir="${TMPDIR:-/tmp}/hakoniwa-install.dry-run"
+    else
+        tmp_dir="$(make_temp_dir)"
+    fi
+    src_dir="${tmp_dir}/hakoniwa-core-pro"
+
+    log "Installing hakoniwa-core-pro"
+    log "  os     : ${os_name}"
+    log "  repo   : ${REPO_URL}"
+    log "  ref    : ${REF}"
+    log "  prefix : ${PREFIX}"
+    confirm "Clone, build, and install?"
+
+    if [ "${DRY_RUN}" -eq 1 ]; then
+        log "[dry-run] would git clone ${REPO_URL} (${REF}) into ${src_dir}"
+        log "[dry-run] would run install.bash with INSTALL_PREFIX=${PREFIX}"
         log "[dry-run] would create ${PREFIX}/env.bash"
-        log "[dry-run] would create ${MMAP_DIR}"
         return 0
     fi
 
-    run mkdir -p "${extract_dir}"
-    run curl -fL "${url}" -o "${archive_path}"
-    verify_archive "${archive_path}"
-    run tar -xzf "${archive_path}" -C "${extract_dir}"
+    run git clone --depth 1 --branch "${REF}" --recurse-submodules "${REPO_URL}" "${src_dir}"
+    (
+        cd "${src_dir}"
+        INSTALL_PREFIX="${PREFIX}" bash ./install.bash
+    )
 
-    payload_dir="${extract_dir}"
-    first_entry="$(find "${extract_dir}" -mindepth 1 -maxdepth 1 | head -n 1)"
-    entry_count="$(find "${extract_dir}" -mindepth 1 -maxdepth 1 | wc -l | tr -d ' ')"
-    if [ "${entry_count}" = "1" ] && [ -d "${first_entry}" ]; then
-        payload_dir="${first_entry}"
-    fi
-
-    [ -d "${payload_dir}/bin" ] || [ -d "${payload_dir}/lib" ] || die "archive does not look like a hakoniwa install payload"
-
-    as_root mkdir -p "${PREFIX}"
-    copy_payload "${payload_dir}"
     write_env_file
-    as_root mkdir -p "${MMAP_DIR}"
-    as_root chmod 755 /var/lib/hakoniwa
-    as_root chmod 777 "${MMAP_DIR}"
-
     if [ "${SETUP_SHELL}" -eq 1 ]; then
         setup_shell
     fi
 
-    run rm -rf "${tmp_dir}"
+    if [ "${KEEP_SOURCE}" -eq 1 ]; then
+        log "Source tree kept at: ${src_dir}"
+    else
+        run rm -rf "${tmp_dir}"
+    fi
+
     check_action
     log ""
     log "Installation completed."
@@ -340,23 +255,27 @@ while [ "$#" -gt 0 ]; do
             PREFIX="$2"
             shift 2
             ;;
+        --repo)
+            [ "$#" -ge 2 ] || die "--repo requires a value"
+            REPO_URL="$2"
+            shift 2
+            ;;
+        --ref)
+            [ "$#" -ge 2 ] || die "--ref requires a value"
+            REF="$2"
+            shift 2
+            ;;
         --version)
             [ "$#" -ge 2 ] || die "--version requires a value"
-            VERSION="$2"
-            shift 2
-            ;;
-        --url)
-            [ "$#" -ge 2 ] || die "--url requires a value"
-            ARCHIVE_URL="$2"
-            shift 2
-            ;;
-        --sha256)
-            [ "$#" -ge 2 ] || die "--sha256 requires a value"
-            SHA256="$2"
+            REF="$2"
             shift 2
             ;;
         --setup-shell)
             SETUP_SHELL=1
+            shift
+            ;;
+        --keep-source)
+            KEEP_SOURCE=1
             shift
             ;;
         --yes|-y)
