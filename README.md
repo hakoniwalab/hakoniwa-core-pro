@@ -379,6 +379,31 @@ ctest --test-dir cmake-build --verbose
 
 このスクリプトは、デフォルトでは `/usr/local/hakoniwa` を prefix として、`/usr/local/hakoniwa/bin` や `/usr/local/hakoniwa/lib` などにファイルをコピーします。設定ファイルは `/etc/hakoniwa`、mmap 用ディレクトリは `/var/lib/hakoniwa/mmap` に配置されます。管理者権限が必要なため、実行中に `sudo` のパスワードを求められることがあります。
 
+インストール後、コマンド実行や外部プロジェクトからの利用のために、必要に応じて以下の環境変数を設定してください。
+
+```sh
+export HAKONIWA_HOME=/usr/local/hakoniwa
+export PATH="${HAKONIWA_HOME}/bin:${PATH}"
+export CMAKE_PREFIX_PATH="${HAKONIWA_HOME}:${CMAKE_PREFIX_PATH:-}"
+export PKG_CONFIG_PATH="${HAKONIWA_HOME}/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
+```
+
+インストール済みの共有ライブラリを直接利用する実行ファイルを動かす場合は、OS に応じてライブラリ検索パスも設定します。
+
+```sh
+# Linux
+export LD_LIBRARY_PATH="${HAKONIWA_HOME}/lib:${LD_LIBRARY_PATH:-}"
+
+# macOS
+export DYLD_LIBRARY_PATH="${HAKONIWA_HOME}/lib:${DYLD_LIBRARY_PATH:-}"
+```
+
+箱庭コア設定ファイルは通常 `/etc/hakoniwa/cpp_core_config.json` を参照するため、デフォルト構成では追加設定は不要です。別の設定ファイルを使う場合だけ、以下を指定してください。
+
+```sh
+export HAKO_CONFIG_PATH=/path/to/cpp_core_config.json
+```
+
 なお、Pythonのサンプルコードを実行する場合は、以下のコマンドを実行して、Pythonライブラリをインストールしてください。
 
 ```sh
@@ -411,6 +436,15 @@ Windows では PowerShell から以下を実行します。
 ```
 
 Windows 版も POSIX 版と同様に、`ASSET_NUM` などの環境変数を利用できます。
+
+インストール後、PowerShell でコマンド実行や外部プロジェクトから利用する場合は、必要に応じて以下を設定してください。
+
+```powershell
+$env:HAKONIWA_HOME = (Resolve-Path .\install).Path
+$env:Path = "$env:HAKONIWA_HOME\bin;$env:Path"
+$env:CMAKE_PREFIX_PATH = "$env:HAKONIWA_HOME;$env:CMAKE_PREFIX_PATH"
+$env:PKG_CONFIG_PATH = "$env:HAKONIWA_HOME\lib\pkgconfig;$env:PKG_CONFIG_PATH"
+```
 
 ### アンインストール
 
