@@ -329,7 +329,7 @@ ctest --test-dir cmake-build --verbose
 ./install.bash
 ```
 
-このスクリプトは、`/usr/local/bin` や `/usr/local/lib` などの標準的なディレクトリにファイルをコピーします。管理者権限が必要なため、実行中に `sudo` のパスワードを求められることがあります。
+このスクリプトは、デフォルトでは `/usr/local/hakoniwa` を prefix として、`/usr/local/hakoniwa/bin` や `/usr/local/hakoniwa/lib` などにファイルをコピーします。設定ファイルは `/etc/hakoniwa`、mmap 用ディレクトリは `/var/lib/hakoniwa/mmap` に配置されます。管理者権限が必要なため、実行中に `sudo` のパスワードを求められることがあります。
 
 なお、Pythonのサンプルコードを実行する場合は、以下のコマンドを実行して、Pythonライブラリをインストールしてください。
 
@@ -351,9 +351,10 @@ Windows では PowerShell から以下を実行します。
 - `lib`
 - `bin`
 - `share/hakoniwa/offset`
-- `etc/hakoniwa`
 - `lib/pkgconfig`
 - `lib/cmake/hakoniwa-core`
+
+設定ファイルは CMake の install 定義上、prefix ではなく `/etc/hakoniwa` に配置されます。
 
 `OutputDir` も互換引数として利用できます。
 
@@ -447,17 +448,23 @@ target_link_libraries(my_app PRIVATE hakoniwa-core::hako hakoniwa-core::assets)
 
 ## Linux/MacOSの場合の内部開発向けファイル配置場所
 
+`install.bash` のデフォルト prefix は `/usr/local/hakoniwa` です。
+
 |分類|リポジトリ内|インストール先| 説明| 利用者|
 |---|---|---|---|---|
-|ヘッダファイル|include|/usr/include/hakoniwa|箱庭APIのヘッダファイル| C/C++ 開発者|
-|ヘッダファイル|hakoniwa-pdu-registry/pdu/types|/usr/include/hakoniwa/pdu|箱庭PDUバイナリ変換APIのヘッダファイル| C/C++ 開発者|
-|実行時参照ファイル|hakoniwa-pdu-registry/pdu/offset|/usr/share/hakoniwa/offset|箱庭PDUバイナリ変換用オフセットファイル| C/C++ 開発者|
+|ヘッダファイル|include|/usr/local/hakoniwa/include/hakoniwa|箱庭APIのヘッダファイル| C/C++ 開発者|
+|ヘッダファイル|hakoniwa-pdu-registry/pdu/types|/usr/local/hakoniwa/include/hakoniwa/pdu|箱庭PDUバイナリ変換APIのヘッダファイル| C/C++ 開発者|
+|実行時参照ファイル|hakoniwa-pdu-registry/pdu/offset|/usr/local/hakoniwa/share/hakoniwa/offset|箱庭PDUバイナリ変換用オフセットファイル| C/C++ 開発者|
 |MMAPファイル|なし|/var/lib/hakoniwa/mmap|MMAPファイルを配置するディレクトリ| 箱庭ライブラリ利用者|
 |設定ファイル|hakoniwa-core-cpp/cpp_core_config.json|/etc/hakoniwa/cpp_core_config.json|箱庭コアの設定ファイル| 箱庭ライブラリ利用者|
-|ライブラリ|cmake-build/sources/assets/callback|/usr/local/lib/hakoniwa/|箱庭アセット用ライブラリ(callback)| C++ 開発者|
-|ライブラリ|cmake-build/sources/conductor|/usr/local/lib/hakoniwa/|箱庭コンダクタ用ライブラリ| C++ 開発者|
-|ライブラリ|cmake-build/sources/assets/bindings/python|/usr/local/lib/hakoniwa/|Python バインディング| Python 開発者|
-|コマンド|cmake-build/sources/command/hako-cmd|/usr/local/bin/|箱庭コマンドラインツール| C/C++/Python 開発者|
+|ライブラリ|cmake-build/sources/core|/usr/local/hakoniwa/lib|箱庭コアライブラリ| C++ 開発者|
+|ライブラリ|cmake-build/sources/assets/callback|/usr/local/hakoniwa/lib|箱庭アセット用ライブラリ(callback)| C++ 開発者|
+|ライブラリ|cmake-build/sources/conductor|/usr/local/hakoniwa/lib|箱庭コンダクタ用ライブラリ| C++ 開発者|
+|ライブラリ|cmake-build/sources/assets/polling|/usr/local/hakoniwa/lib|箱庭アセット用ライブラリ(polling)| Unity 開発者|
+|ライブラリ|cmake-build/sources/assets/bindings/python|Python の site-packages|Python バインディング| Python 開発者|
+|CMake package|cmake-build|/usr/local/hakoniwa/lib/cmake/hakoniwa-core|`find_package(hakoniwa-core CONFIG REQUIRED)` 用ファイル| C/C++ 開発者|
+|pkg-config|cmake-build/hakoniwa-core.pc|/usr/local/hakoniwa/lib/pkgconfig|`pkg-config` 用ファイル| C/C++ 開発者|
+|コマンド|cmake-build/sources/command/hako-cmd|/usr/local/hakoniwa/bin|箱庭コマンドラインツール| C/C++/Python 開発者|
 
 
 
