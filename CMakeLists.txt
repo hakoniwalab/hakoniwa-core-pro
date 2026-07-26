@@ -8,6 +8,11 @@ project(hakoniwa-core-pro
     LANGUAGES C CXX
 )
 
+# Define the standard install directory variables before any subdirectory creates
+# install/export usage requirements. In particular, assets and shakoc publish
+# INSTALL_INTERFACE paths based on CMAKE_INSTALL_INCLUDEDIR.
+include(GNUInstallDirs)
+
 enable_testing()
 
 set(HAKO_CORE_SOURCE_DIR "${PROJECT_SOURCE_DIR}/hakoniwa-core-cpp")
@@ -104,7 +109,6 @@ add_subdirectory(tests/cpp)
 endif()
 
 # For pkg-config support
-include(GNUInstallDirs)
 configure_file(
   cmake/hakoniwa-core.pc.in
   ${CMAKE_BINARY_DIR}/hakoniwa-core.pc
