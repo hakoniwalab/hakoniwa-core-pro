@@ -151,10 +151,16 @@ install(
     DESTINATION include/hakoniwa/pdu
 )
 
+# Keep the historical system-wide location by default. CI, packaging, and
+# relocatable installs may override this with a relative path such as
+# "etc/hakoniwa", which is then resolved under CMAKE_INSTALL_PREFIX.
+set(HAKO_CORE_CONFIG_INSTALL_DIR "/etc/hakoniwa" CACHE STRING
+    "Install destination for cpp_core_config.json (absolute or relative to CMAKE_INSTALL_PREFIX)")
+
 # Install core config file
 install(
     FILES ${PROJECT_SOURCE_DIR}/hakoniwa-core-cpp/cpp_core_config.json
-    DESTINATION /etc/hakoniwa
+    DESTINATION "${HAKO_CORE_CONFIG_INSTALL_DIR}"
 )
 
 # Install PDU offset files
