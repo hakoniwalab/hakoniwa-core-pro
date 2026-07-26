@@ -60,14 +60,18 @@ target_link_libraries(
 )
 target_include_directories(
     assets
-    PRIVATE /usr/local/include
-    PRIVATE ${HAKO_INC_DIR}
-    PRIVATE ${HAKO_CORE_SOURCE_DIR}/src/include
-    PRIVATE ${HAKO_CORE_SOURCE_DIR}/src/hako
-    PRIVATE ${HAKO_PDU_SOURCE_DIR}
-    PRIVATE ${HAKO_CORE_PRO_SOURCE_DIR}/core/include
-    PRIVATE ${HAKO_CORE_PRO_SOURCE_DIR}/core/src/service
-    PRIVATE ${nlohmann_json_SOURCE_DIR}/single_include
+    PUBLIC
+        $<BUILD_INTERFACE:${HAKO_INC_DIR}>
+        $<BUILD_INTERFACE:${HAKO_PDU_SOURCE_DIR}>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/hakoniwa>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/hakoniwa/pdu>
+    PRIVATE
+        /usr/local/include
+        ${HAKO_CORE_SOURCE_DIR}/src/include
+        ${HAKO_CORE_SOURCE_DIR}/src/hako
+        ${HAKO_CORE_PRO_SOURCE_DIR}/core/include
+        ${HAKO_CORE_PRO_SOURCE_DIR}/core/src/service
+        ${nlohmann_json_SOURCE_DIR}/single_include
 )
 set_target_properties(assets PROPERTIES VERSION 1.0.0 SOVERSION 1)
 
