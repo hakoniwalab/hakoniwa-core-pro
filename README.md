@@ -387,6 +387,9 @@ PowerShell から以下を実行します。
 .\win-build.ps1
 ```
 
+Generatorを指定しない場合は、インストール済みのVisual StudioをCMakeが自動検出します。
+固定する必要がある場合だけ、`-Generator` または `CMAKE_GENERATOR` を指定してください。
+
 中間成果物はデフォルトで `build-win` に生成されます。
 POSIX 版と同様に、以下の環境変数でビルドパラメータを調整できます。
 

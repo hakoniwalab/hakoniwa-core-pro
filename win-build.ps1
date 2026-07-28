@@ -3,7 +3,7 @@ param(
 
     [string]$Configuration = "Release",
 
-    [string]$Generator = "Visual Studio 17 2022",
+    [string]$Generator = $env:CMAKE_GENERATOR,
 
     [string]$Platform = "x64",
 
@@ -212,6 +212,7 @@ Write-Host "Build defaults   : $buildDefaultsFile"
 Write-Host "Repository root : $repoRoot"
 Write-Host "Build directory : $buildDirPath"
 Write-Host "Configuration   : $Configuration"
+Write-Host "Generator       : $(if ([string]::IsNullOrWhiteSpace($Generator)) { 'CMake auto-detect' } else { $Generator })"
 Write-Host "Platform        : $Platform"
 
 if ($Clean) {
@@ -227,9 +228,18 @@ New-Item -ItemType Directory -Path $buildDirPath -Force | Out-Null
 $configureArgs = @(
     "cmake",
     "-S", $repoRoot,
-    "-B", $buildDirPath,
-    "-G", $Generator,
-    "-A", $Platform,
+    "-B", $buildDirPath
+)
+if (-not [string]::IsNullOrWhiteSpace($Generator)) {
+    $configureArgs += @("-G", $Generator)
+}
+if (
+    [string]::IsNullOrWhiteSpace($Generator) -or
+    $Generator.StartsWith("Visual Studio", [System.StringComparison]::OrdinalIgnoreCase)
+) {
+    $configureArgs += @("-A", $Platform)
+}
+$configureArgs += @(
     "-DHAKO_CLIENT_OPTION_FILEPATH=$cmakeOptionFile",
     "-DHAKO_BUILD_DEFAULTS_FILE=$buildDefaultsFile",
     "-DHAKO_WIN32_SHARED_LIBS=ON",
