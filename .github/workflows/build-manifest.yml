@@ -24,6 +24,39 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Install GTest (Ubuntu)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtest-dev
+
+      - name: Install GTest (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+        run: brew install googletest
+
+      - name: Configure POSIX Python
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          python_root="$(python -c 'import sys; print(sys.prefix)')"
+          python_executable="$(python -c 'import sys; print(sys.executable)')"
+          echo "BUILD_C_FLAGS=-DPython_ROOT_DIR=${python_root} -DPython_EXECUTABLE=${python_executable}" >> "$GITHUB_ENV"
+
+      - name: Install GTest and configure Windows dependencies
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          & "$env:VCPKG_INSTALLATION_ROOT\vcpkg.exe" install gtest:x64-windows
+          $pythonRoot = python -c "import sys; print(sys.prefix)"
+          $pythonExecutable = python -c "import sys; print(sys.executable)"
+          $toolchain = "$env:VCPKG_INSTALLATION_ROOT\scripts\buildsystems\vcpkg.cmake"
+          $flags = "-DCMAKE_TOOLCHAIN_FILE=$toolchain -DVCPKG_TARGET_TRIPLET=x64-windows -DPython_ROOT_DIR=$pythonRoot -DPython_EXECUTABLE=$pythonExecutable"
+          "BUILD_C_FLAGS=$flags" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
       - name: Test manifest adapter
         run: python -m unittest discover -s tests -p "test_*.py"
 
