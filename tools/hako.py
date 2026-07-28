@@ -159,7 +159,13 @@ def resolve_config(raw: Mapping[str, Any]) -> Dict[str, Any]:
     return {"version": 1, "limits": resolved_limits}
 
 
-def _manifest_path(value: str) -> Path:
+def _manifest_path(value: str | None) -> Path:
+    if value is None:
+        path = repo_root() / DEFAULT_MANIFEST
+        if not path.is_file():
+            raise ConfigError(f"default build manifest not found: {path}")
+        return path
+
     path = Path(value)
     if not path.is_absolute():
         path = (Path.cwd() / path).resolve()
@@ -211,7 +217,7 @@ def render_resolved_manifest(
     return "\n".join(lines) + "\n"
 
 
-def prepare_build_config(config_path: str) -> tuple[Path, Path, Dict[str, Any]]:
+def prepare_build_config(config_path: str | None) -> tuple[Path, Path, Dict[str, Any]]:
     root = repo_root()
     manifest = _manifest_path(config_path)
     cfg = resolve_config(load_simple_yaml(manifest))
@@ -324,15 +330,15 @@ def create_parser() -> argparse.ArgumentParser:
     doctor_parser = sub.add_parser("doctor", help="check build prerequisites")
     doctor_parser.add_argument(
         "--config",
-        default=DEFAULT_MANIFEST,
-        help=f"user-facing build manifest (default: {DEFAULT_MANIFEST})",
+        default=None,
+        help=f"user-facing build manifest (default: repository root/{DEFAULT_MANIFEST})",
     )
 
     build_parser = sub.add_parser("build", help="delegate to the existing platform build")
     build_parser.add_argument(
         "--config",
-        default=DEFAULT_MANIFEST,
-        help=f"user-facing build manifest (default: {DEFAULT_MANIFEST})",
+        default=None,
+        help=f"user-facing build manifest (default: repository root/{DEFAULT_MANIFEST})",
     )
     build_parser.add_argument("native_args", nargs=argparse.REMAINDER)
     return parser

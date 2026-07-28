@@ -1,0 +1,39 @@
+name: Build manifest
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  manifest:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        config:
+          - hakoniwa-build.yaml
+          - tests/fixtures/alternate-build.yaml
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Test manifest adapter
+        run: python -m unittest discover -s tests -p "test_*.py"
+
+      - name: Validate and resolve manifest
+        run: python tools/hako.py doctor --config "${{ matrix.config }}"
+
+      - name: Build with manifest (POSIX)
+        if: runner.os != 'Windows'
+        run: python tools/hako.py build --config "${{ matrix.config }}"
+
+      - name: Build with manifest (Windows)
+        if: runner.os == 'Windows'
+        run: python tools/hako.py build --config "${{ matrix.config }}"

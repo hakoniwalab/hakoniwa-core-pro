@@ -325,7 +325,9 @@ hakoniwa-core-pro では、PDU を介したリクエスト／レスポンス通�
 
 Python 3.12 から、リポジトリ直下の
 [`hakoniwa-build.yaml`](hakoniwa-build.yaml) を指定してビルドします。
-`--config` を省略した場合も、このファイルが使用されます。
+`--config` を省略した場合は、実行時のカレントディレクトリにかかわらず、
+このリポジトリ直下のファイルが使用されます。明示指定した相対パスは、
+カレントディレクトリを基準に解決されます。
 
 ```sh
 python3.12 tools/hako.py doctor

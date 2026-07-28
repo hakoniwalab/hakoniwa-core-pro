@@ -116,6 +116,26 @@ limits:
         self.assertEqual(args.config, "custom.yaml")
         self.assertEqual(args.native_args, ["--", "-Clean"])
 
+    def test_omitted_config_uses_repository_manifest(self):
+        args = HAKO.create_parser().parse_args(["doctor"])
+        self.assertIsNone(args.config)
+        self.assertEqual(
+            HAKO._manifest_path(args.config),
+            REPO_ROOT / "hakoniwa-build.yaml",
+        )
+
+    def test_explicit_relative_config_uses_current_directory(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            working_dir = Path(temp_dir)
+            manifest = working_dir / "custom.yaml"
+            manifest.write_text("version: 1\n", encoding="utf-8")
+            original_dir = HAKO.Path.cwd()
+            try:
+                HAKO.os.chdir(working_dir)
+                self.assertEqual(HAKO._manifest_path("custom.yaml"), manifest.resolve())
+            finally:
+                HAKO.os.chdir(original_dir)
+
 
 if __name__ == "__main__":
     unittest.main()
