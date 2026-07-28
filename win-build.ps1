@@ -21,6 +21,8 @@ param(
 
     [string]$BuildCFlags = $env:BUILD_C_FLAGS,
 
+    [string]$BuildDefaultsPath = $env:HAKO_BUILD_DEFAULTS_FILE,
+
     [switch]$Clean
 )
 
@@ -67,6 +69,15 @@ function Get-BuildDefaults {
         throw "Build defaults file not found: $Path"
     }
 
+    $allowedKeys = @(
+        "HAKO_DATA_MAX_ASSET_NUM",
+        "HAKO_PDU_CHANNEL_MAX",
+        "HAKO_RECV_EVENT_MAX",
+        "HAKO_SERVICE_CLIENT_MAX",
+        "HAKO_SERVICE_MAX",
+        "HAKO_CLIENT_NAMELEN_MAX",
+        "HAKO_SERVICE_NAMELEN_MAX"
+    )
     $defaults = @{}
     foreach ($line in Get-Content -LiteralPath $Path) {
         $trimmed = $line.Trim()
@@ -77,7 +88,18 @@ function Get-BuildDefaults {
         if ($parts.Length -ne 2) {
             throw "Invalid build defaults entry: $trimmed"
         }
-        $defaults[$parts[0].Trim()] = [int]$parts[1].Trim()
+        $key = $parts[0].Trim()
+        if ($key -notin $allowedKeys) {
+            throw "Unknown build defaults key: $key"
+        }
+        if ($defaults.ContainsKey($key)) {
+            throw "Duplicate build defaults key: $key"
+        }
+        $value = 0
+        if (-not [int]::TryParse($parts[1].Trim(), [ref]$value) -or $value -le 0) {
+            throw "Build default must be a positive integer: $key"
+        }
+        $defaults[$key] = $value
     }
     return $defaults
 }
@@ -155,7 +177,12 @@ $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot = Resolve-FullPath -Path $scriptDir
 $buildDirPath = Resolve-FullPath -Path $BuildDir
 $cmakeOptionFile = Join-Path $repoRoot "cmake-options/win-cmake-options.cmake"
-$buildDefaultsFile = Join-Path $repoRoot "cmake/hako_build_defaults.conf"
+if ([string]::IsNullOrWhiteSpace($BuildDefaultsPath)) {
+    $buildDefaultsFile = Join-Path $repoRoot "cmake/hako_build_defaults.conf"
+}
+else {
+    $buildDefaultsFile = Resolve-FullPath -Path $BuildDefaultsPath
+}
 $buildDefaults = Get-BuildDefaults -Path $buildDefaultsFile
 
 $defaultAssetNum = Get-DefaultValue -Defaults $buildDefaults -Key "HAKO_DATA_MAX_ASSET_NUM"
@@ -204,6 +231,7 @@ $configureArgs = @(
     "-G", $Generator,
     "-A", $Platform,
     "-DHAKO_CLIENT_OPTION_FILEPATH=$cmakeOptionFile",
+    "-DHAKO_BUILD_DEFAULTS_FILE=$buildDefaultsFile",
     "-DHAKO_WIN32_SHARED_LIBS=ON",
     "-DHAKO_DATA_MAX_ASSET_NUM=$effectiveAssetNum",
     "-DHAKO_SERVICE_MAX=$effectiveServiceMax",

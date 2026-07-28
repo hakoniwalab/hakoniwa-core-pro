@@ -19,7 +19,12 @@ set(HAKO_CORE_SOURCE_DIR "${PROJECT_SOURCE_DIR}/hakoniwa-core-cpp")
 set(HAKO_PDU_SOURCE_DIR "${PROJECT_SOURCE_DIR}/hakoniwa-pdu-registry/pdu/types")
 set(HAKO_INC_DIR "${PROJECT_SOURCE_DIR}/include")
 set(HAKO_CORE_PRO_SOURCE_DIR "${PROJECT_SOURCE_DIR}/sources")
-set(HAKO_BUILD_DEFAULTS_FILE "${PROJECT_SOURCE_DIR}/cmake/hako_build_defaults.conf")
+set(
+    HAKO_BUILD_DEFAULTS_FILE
+    "${PROJECT_SOURCE_DIR}/cmake/hako_build_defaults.conf"
+    CACHE FILEPATH
+    "Path to the native Hakoniwa build defaults file"
+)
 
 function(hako_load_build_defaults defaults_file prefix)
     if(NOT EXISTS "${defaults_file}")

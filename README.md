@@ -321,6 +321,56 @@ hakoniwa-core-pro では、PDU を介したリクエスト／レスポンス通�
 
 ## ビルド方法
 
+### 標準ビルド（推奨）
+
+Python 3.12 から、リポジトリ直下の
+[`hakoniwa-build.yaml`](hakoniwa-build.yaml) を指定してビルドします。
+`--config` を省略した場合も、このファイルが使用されます。
+
+```sh
+python3.12 tools/hako.py doctor
+python3.12 tools/hako.py build
+```
+
+別の構成を使う場合は、各サブコマンドの `--config` にマニフェストを指定します。
+
+```sh
+python3.12 tools/hako.py doctor --config tests/fixtures/alternate-build.yaml
+python3.12 tools/hako.py build --config tests/fixtures/alternate-build.yaml
+```
+
+マニフェストは次の7項目をすべて正整数で指定します。未知の項目、項目の不足、
+`version: 1` 以外のバージョンはエラーになります。
+
+| マニフェスト項目 | CMake／ネイティブ設定 | 既定値 | 用途 |
+| --- | --- | ---: | --- |
+| `limits.asset_num` | `HAKO_DATA_MAX_ASSET_NUM` | 16 | アセット数の上限 |
+| `limits.pdu_channel_max` | `HAKO_PDU_CHANNEL_MAX` | 8192 | PDUチャネル数の上限 |
+| `limits.recv_event_max` | `HAKO_RECV_EVENT_MAX` | 4096 | 受信イベント数の上限 |
+| `limits.service_client_max` | `HAKO_SERVICE_CLIENT_MAX` | 256 | サービスクライアント数の上限 |
+| `limits.service_max` | `HAKO_SERVICE_MAX` | 1024 | サービス数の上限 |
+| `limits.client_name_len_max` | `HAKO_CLIENT_NAMELEN_MAX` | 64 | クライアント名の最大長 |
+| `limits.service_name_len_max` | `HAKO_SERVICE_NAMELEN_MAX` | 128 | サービス名の最大長 |
+
+`hako.py` は検証済みの内容を
+`.hako/hako_build_defaults.conf` に既存ビルドスクリプト互換の形式で生成し、
+解決結果を `.hako/resolved-build.yaml` に記録します。これらは生成物であり、
+Gitの管理対象ではありません。
+
+設定の優先順位は、Windowsの明示的なスクリプト引数、従来の環境変数、
+選択したマニフェストの順です。ただし `ASSET_NUM` は従来どおり、
+マニフェストの値より大きい場合だけ環境変数の値が採用されます。
+
+これらの上限は共有メモリのレイアウトやサイズに影響するコンパイル時設定です。
+同じ箱庭環境に接続する Core Pro と関連プロセスは、互換性のある同一設定で
+ビルドしてください。設定を変更した場合は関連バイナリを再ビルドし、実行中の
+プロセスと以前の設定で作成された共有メモリを終了・解放してから起動します。
+
+### 従来の直接ビルド
+
+次の手順も引き続き利用できます。この場合はマニフェストを経由せず、
+従来どおり `cmake/hako_build_defaults.conf` が既定値になります。
+
 ### Linux / macOS
 
 ```sh
@@ -342,6 +392,8 @@ POSIX 版と同様に、以下の環境変数でビルドパラメータを調�
 - `SERVICE_MAX`
 - `RECV_EVENT_MAX`
 - `SERVICE_CLIENT_MAX`
+- `CLIENT_NAMELEN_MAX`
+- `SERVICE_NAMELEN_MAX`
 - `CHANNEL_MAX`
 - `ENABLE_HAKO_TIME_MEASURE_FLAG`
 - `BUILD_C_FLAGS`

@@ -1,0 +1,13 @@
+# User-facing build capacity configuration for hakoniwa-core-pro.
+# tools/hako.py validates this file and generates a native-compatible
+# .hako/hako_build_defaults.conf for the existing build drivers.
+version: 1
+
+limits:
+  asset_num: 16
+  pdu_channel_max: 8192
+  recv_event_max: 4096
+  service_client_max: 256
+  service_max: 1024
+  client_name_len_max: 64
+  service_name_len_max: 128

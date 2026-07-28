@@ -5,15 +5,68 @@
 # BUILD_C_FLAGS="-DCMAKE_C_FLAGS=-m32 -DCMAKE_CXX_FLAGS=-m32"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DEFAULTS_FILE="${SCRIPT_DIR}/cmake/hako_build_defaults.conf"
+DEFAULTS_FILE="${HAKO_BUILD_DEFAULTS_FILE:-${SCRIPT_DIR}/cmake/hako_build_defaults.conf}"
 
 if [ ! -f "${DEFAULTS_FILE}" ]; then
     echo "ERROR: build defaults file not found: ${DEFAULTS_FILE}" >&2
     exit 1
 fi
 
-# shellcheck disable=SC1090
-source "${DEFAULTS_FILE}"
+HAKO_DATA_MAX_ASSET_NUM=
+HAKO_PDU_CHANNEL_MAX=
+HAKO_RECV_EVENT_MAX=
+HAKO_SERVICE_CLIENT_MAX=
+HAKO_SERVICE_MAX=
+HAKO_CLIENT_NAMELEN_MAX=
+HAKO_SERVICE_NAMELEN_MAX=
+
+while IFS= read -r line || [ -n "${line}" ]; do
+    line="${line#"${line%%[![:space:]]*}"}"
+    line="${line%"${line##*[![:space:]]}"}"
+    case "${line}" in
+        ""|\#*)
+            continue
+            ;;
+    esac
+    if [[ ! "${line}" =~ ^([A-Z0-9_]+)=([0-9]+)$ ]]; then
+        echo "ERROR: invalid build defaults entry: ${line}" >&2
+        exit 1
+    fi
+    key="${BASH_REMATCH[1]}"
+    value="${BASH_REMATCH[2]}"
+    case "${key}" in
+        HAKO_DATA_MAX_ASSET_NUM|HAKO_PDU_CHANNEL_MAX|HAKO_RECV_EVENT_MAX|\
+        HAKO_SERVICE_CLIENT_MAX|HAKO_SERVICE_MAX|HAKO_CLIENT_NAMELEN_MAX|\
+        HAKO_SERVICE_NAMELEN_MAX)
+            ;;
+        *)
+            echo "ERROR: unknown build defaults key: ${key}" >&2
+            exit 1
+            ;;
+    esac
+    if [ "${value}" -le 0 ]; then
+        echo "ERROR: build default must be a positive integer: ${key}" >&2
+        exit 1
+    fi
+    printf -v "${key}" '%s' "${value}"
+done < "${DEFAULTS_FILE}"
+
+for key in \
+    HAKO_DATA_MAX_ASSET_NUM \
+    HAKO_PDU_CHANNEL_MAX \
+    HAKO_RECV_EVENT_MAX \
+    HAKO_SERVICE_CLIENT_MAX \
+    HAKO_SERVICE_MAX \
+    HAKO_CLIENT_NAMELEN_MAX \
+    HAKO_SERVICE_NAMELEN_MAX
+do
+    if [ -z "${!key}" ]; then
+        echo "ERROR: missing build defaults key: ${key}" >&2
+        exit 1
+    fi
+done
+
+echo "Build defaults: ${DEFAULTS_FILE}"
 
 DEFAULT_HAKO_ASSET_NUM=${HAKO_DATA_MAX_ASSET_NUM}
 if [ -n "${ASSET_NUM:-}" ] && [ "${ASSET_NUM}" -gt "${DEFAULT_HAKO_ASSET_NUM}" ]; then
@@ -91,6 +144,7 @@ then
     if [ ${OS_TYPE} = "posix" ]
     then
         cmake .. -DCMAKE_INSTALL_PREFIX=/usr $ENABLE_HAKO_TIME_MEASURE_FLAG \
+            -DHAKO_BUILD_DEFAULTS_FILE="${DEFAULTS_FILE}" \
             -DHAKO_DATA_MAX_ASSET_NUM=${ASSET_NUM} \
             -DHAKO_SERVICE_MAX=${SERVICE_MAX} \
             -DHAKO_RECV_EVENT_MAX=${RECV_EVENT_MAX} \

@@ -1,0 +1,10 @@
+version: 1
+
+limits:
+  asset_num: 24
+  pdu_channel_max: 4096
+  recv_event_max: 2048
+  service_client_max: 128
+  service_max: 512
+  client_name_len_max: 48
+  service_name_len_max: 96

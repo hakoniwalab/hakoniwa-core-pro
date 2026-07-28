@@ -68,3 +68,4 @@ debian/*.orig
 
 # Generated files
 debian/control.in
+.hako/
