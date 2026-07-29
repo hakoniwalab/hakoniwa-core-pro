@@ -116,6 +116,38 @@ limits:
         self.assertEqual(args.config, "custom.yaml")
         self.assertEqual(args.native_args, ["--", "-Clean"])
 
+    def test_install_requires_explicit_install_directory(self):
+        with self.assertRaises(SystemExit):
+            HAKO.create_parser().parse_args(["install"])
+
+    def test_local_build_paths_are_separate_from_manifest(self):
+        args = HAKO.create_parser().parse_args(
+            [
+                "build",
+                "--config",
+                "custom.yaml",
+                "--build-dir",
+                "build-local",
+                "--install-dir",
+                ".hako/install",
+                "--python-install-dir",
+                ".hako/install/share/hakoniwa/python",
+                "--python-executable",
+                "/opt/python3.12",
+                "--core-mmap-dir",
+                ".hako/runtime/mmap",
+            ]
+        )
+        self.assertEqual(args.config, "custom.yaml")
+        self.assertEqual(args.build_dir, "build-local")
+        self.assertEqual(args.install_dir, ".hako/install")
+        self.assertEqual(
+            args.python_install_dir,
+            ".hako/install/share/hakoniwa/python",
+        )
+        self.assertEqual(args.python_executable, "/opt/python3.12")
+        self.assertEqual(args.core_mmap_dir, ".hako/runtime/mmap")
+
     def test_omitted_config_uses_repository_manifest(self):
         args = HAKO.create_parser().parse_args(["doctor"])
         self.assertIsNone(args.config)
@@ -135,6 +167,31 @@ limits:
                 self.assertEqual(HAKO._manifest_path("custom.yaml"), manifest.resolve())
             finally:
                 HAKO.os.chdir(original_dir)
+
+    def test_core_artifacts_are_compact_install_surfaces(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            prefix = Path(temp_dir)
+            (prefix / "bin").mkdir()
+            (prefix / "bin" / "hako-cmd").write_text("", encoding="utf-8")
+            (prefix / "lib" / "cmake" / "hakoniwa-core").mkdir(parents=True)
+            (prefix / "lib" / "libhako.a").write_text("", encoding="utf-8")
+            generated = prefix / "include" / "hakoniwa" / "pdu"
+            generated.mkdir(parents=True)
+            for index in range(100):
+                (generated / f"generated_{index}.hpp").write_text("", encoding="utf-8")
+
+            artifacts = HAKO._core_artifacts(prefix)
+
+            self.assertIn(
+                (Path("include/hakoniwa"), "directory"),
+                artifacts,
+            )
+            self.assertIn((Path("lib/libhako.a"), "library"), artifacts)
+            self.assertNotIn(
+                (Path("include/hakoniwa/pdu/generated_0.hpp"), "header"),
+                artifacts,
+            )
+            self.assertLess(len(artifacts), 10)
 
 
 if __name__ == "__main__":

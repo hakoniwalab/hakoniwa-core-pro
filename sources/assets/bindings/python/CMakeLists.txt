@@ -13,11 +13,22 @@ add_library(
     hako_asset_python SHARED
     src/hako_asset_python.cpp
 )
+set(
+    HAKO_PYTHON_EXECUTABLE
+    ""
+    CACHE FILEPATH
+    "Explicit Python interpreter used to build hakopy"
+)
+
 # OSごとに分岐
 if(WIN32)
     message(STATUS "Configuring for Windows")
 
     # Windows固有の設定
+    if(HAKO_PYTHON_EXECUTABLE)
+        message(STATUS "Using explicitly selected Python: ${HAKO_PYTHON_EXECUTABLE}")
+        set(Python_EXECUTABLE "${HAKO_PYTHON_EXECUTABLE}" CACHE FILEPATH "" FORCE)
+    endif()
     find_package(Python COMPONENTS Interpreter Development REQUIRED)
     set(HAKO_PYTHON_LIBS ${Python_LIBRARIES})
 
@@ -30,21 +41,25 @@ elseif(UNIX)
     message(STATUS "Configuring for Unix-like system (Ubuntu/Mac)")
 
     # Unix固有の設定
-    execute_process(
-        COMMAND pyenv which python
-        RESULT_VARIABLE PYENV_FOUND
-        OUTPUT_VARIABLE PYENV_PYTHON_PATH
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-
-    message(STATUS "PYENV_FOUND:${PYENV_FOUND}")
-
-    if(PYENV_FOUND EQUAL 0)
-        message(STATUS "pyenv detected, using pyenv Python.")
-        set(Python_EXECUTABLE ${PYENV_PYTHON_PATH})
-        set(Python_ROOT_DIR ${PYENV_PYTHON_PATH})
+    if(HAKO_PYTHON_EXECUTABLE)
+        message(STATUS "Using explicitly selected Python: ${HAKO_PYTHON_EXECUTABLE}")
+        set(Python_EXECUTABLE "${HAKO_PYTHON_EXECUTABLE}" CACHE FILEPATH "" FORCE)
     else()
-        message(WARNING "pyenv was not found. Falling back to system Python.")
+        execute_process(
+            COMMAND pyenv which python
+            RESULT_VARIABLE PYENV_FOUND
+            OUTPUT_VARIABLE PYENV_PYTHON_PATH
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+        )
+
+        message(STATUS "PYENV_FOUND:${PYENV_FOUND}")
+
+        if(PYENV_FOUND EQUAL 0)
+            message(STATUS "pyenv detected, using pyenv Python.")
+            set(Python_EXECUTABLE "${PYENV_PYTHON_PATH}" CACHE FILEPATH "" FORCE)
+        else()
+            message(WARNING "pyenv was not found. Falling back to system Python.")
+        endif()
     endif()
 
     find_package(Python COMPONENTS Interpreter Development REQUIRED)
@@ -110,6 +125,13 @@ if(APPLE)
 endif()
 
 # ライブラリをインストールする設定
+set(
+    HAKO_PYTHON_INSTALL_DIR
+    "${Python_SITELIB}"
+    CACHE PATH
+    "Install destination for hakopy (absolute or relative to CMAKE_INSTALL_PREFIX)"
+)
 install(TARGETS hako_asset_python
-    LIBRARY DESTINATION ${Python_SITELIB}
+    LIBRARY DESTINATION "${HAKO_PYTHON_INSTALL_DIR}"
+    RUNTIME DESTINATION "${HAKO_PYTHON_INSTALL_DIR}"
 )

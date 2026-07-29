@@ -1,0 +1,5 @@
+{
+    "shm_type": "mmap",
+    "core_mmap_path": "@HAKO_CORE_MMAP_PATH@",
+    "asset_timeout_usec": 600000000
+}

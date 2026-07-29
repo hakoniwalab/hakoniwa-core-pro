@@ -323,6 +323,185 @@ def build(native_defaults: Path, native_args: list[str]) -> int:
     return subprocess.run(cmd, cwd=root, env=child_env, check=False).returncode
 
 
+def _explicit_path(value: str | None, default: Path) -> Path:
+    if value is None:
+        return default
+    path = Path(value)
+    if not path.is_absolute():
+        path = Path.cwd() / path
+    return path.resolve()
+
+
+def _command_output(command: list[str], cwd: Path) -> str:
+    result = subprocess.run(
+        command,
+        cwd=cwd,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    return result.stdout.strip() if result.returncode == 0 else "unknown"
+
+
+def _cmake_cache_value(build_dir: Path, key: str) -> str:
+    cache = build_dir / "CMakeCache.txt"
+    if not cache.is_file():
+        return "unknown"
+    prefix = f"{key}:"
+    for line in cache.read_text(encoding="utf-8", errors="replace").splitlines():
+        if line.startswith(prefix) and "=" in line:
+            return line.split("=", 1)[1] or "unknown"
+    return "unknown"
+
+
+def _artifact_kind(path: Path, installed: Path) -> str:
+    if installed.is_dir():
+        return "directory"
+    if path.parts and path.parts[0] == "bin":
+        return "executable"
+    if path.suffix in {".a", ".so", ".dylib", ".dll", ".lib", ".pyd"}:
+        return "library"
+    if "cmake" in path.parts:
+        return "cmake-package"
+    if path.suffix in {".h", ".hpp"}:
+        return "header"
+    return "data"
+
+
+def _core_artifacts(install_dir: Path) -> list[tuple[Path, str]]:
+    """Return stable Core install surfaces instead of every generated PDU file."""
+    artifacts: list[Path] = []
+    directory_roots = (
+        Path("include/hakoniwa"),
+        Path("lib/cmake/hakoniwa-core"),
+        Path("lib/pkgconfig"),
+        Path("share/hakoniwa/offset"),
+    )
+    for relative in directory_roots:
+        if (install_dir / relative).is_dir():
+            artifacts.append(relative)
+
+    binary_dir = install_dir / "bin"
+    if binary_dir.is_dir():
+        artifacts.extend(
+            path.relative_to(install_dir)
+            for path in binary_dir.iterdir()
+            if path.is_file() and path.name in {"hako-cmd", "hako-cmd.exe"}
+        )
+
+    library_suffixes = {".a", ".so", ".dylib", ".dll", ".lib"}
+    library_dir = install_dir / "lib"
+    if library_dir.is_dir():
+        artifacts.extend(
+            path.relative_to(install_dir)
+            for path in library_dir.iterdir()
+            if path.is_file() and path.suffix.lower() in library_suffixes
+        )
+
+    python_dir = install_dir / "share" / "hakoniwa" / "python"
+    if python_dir.is_dir():
+        artifacts.extend(
+            path.relative_to(install_dir)
+            for path in python_dir.iterdir()
+            if path.is_file() and path.suffix.lower() in {".so", ".pyd"}
+        )
+
+    unique = sorted(set(artifacts), key=lambda item: item.as_posix())
+    return [
+        (relative, _artifact_kind(relative, install_dir / relative))
+        for relative in unique
+    ]
+
+
+def write_receipt(
+    build_dir: Path,
+    install_dir: Path,
+    cfg: Mapping[str, Any],
+) -> Path:
+    root = repo_root()
+    receipt_root = install_dir / "share" / "hakoniwa" / "receipts"
+    resolved_root = receipt_root / "resolved"
+    resolved_root.mkdir(parents=True, exist_ok=True)
+    resolved_source = root / ".hako" / "resolved-build.yaml"
+    resolved_relative = (
+        Path("share")
+        / "hakoniwa"
+        / "receipts"
+        / "resolved"
+        / "hakoniwa-core-pro.yaml"
+    )
+    shutil.copyfile(resolved_source, install_dir / resolved_relative)
+
+    artifacts = _core_artifacts(install_dir)
+    if not any(path.as_posix() in {"bin/hako-cmd", "bin/hako-cmd.exe"} for path, _ in artifacts):
+        raise HakoError(f"installed hako-cmd not found under: {install_dir}")
+
+    os_name = {
+        "Darwin": "macos",
+        "Linux": "linux",
+        "Windows": "windows",
+    }.get(platform.system(), platform.system().lower())
+    compiler = _cmake_cache_value(build_dir, "CMAKE_CXX_COMPILER")
+    revision = _command_output(["git", "rev-parse", "HEAD"], root)
+    limits = cfg["limits"]
+    lines = [
+        "schema_version: 1",
+        "component:",
+        "  id: hakoniwa-core-pro",
+        "  version: 1.0.0",
+        f"  source_revision: {_yaml_scalar(revision)}",
+        "platform:",
+        f"  os: {_yaml_scalar(os_name)}",
+        f"  architecture: {_yaml_scalar(platform.machine())}",
+        f"  toolchain: {_yaml_scalar(compiler)}",
+        "install:",
+        f"  prefix: {_yaml_scalar(install_dir)}",
+        "capabilities:",
+        "  shared_memory: true",
+        "  hako_cmd: true",
+        "  python_binding: true",
+        "  cmake_package: true",
+        "build_limits:",
+    ]
+    for key, value in limits.items():
+        lines.append(f"  {key}: {value}")
+    lines.extend(["dependencies: {}", "artifacts:"])
+    for artifact, kind in artifacts:
+        lines.extend(
+            [
+                f"  - path: {_yaml_scalar(artifact.as_posix())}",
+                f"    kind: {kind}",
+            ]
+        )
+    lines.append(f"resolved_manifest: {_yaml_scalar(resolved_relative.as_posix())}")
+    receipt_path = receipt_root / "hakoniwa-core-pro.yaml"
+    _atomic_write(receipt_path, "\n".join(lines) + "\n")
+    return receipt_path
+
+
+def install(
+    build_dir: Path,
+    install_dir: Path,
+    configuration: str,
+    cfg: Mapping[str, Any],
+) -> int:
+    root = repo_root()
+    if not (build_dir / "CMakeCache.txt").is_file():
+        raise HakoError(
+            f"configured build tree not found: {build_dir}; run hako.py build first"
+        )
+    install_dir.mkdir(parents=True, exist_ok=True)
+    cmd = ["cmake", "--install", str(build_dir), "--prefix", str(install_dir)]
+    if sys.platform == "win32":
+        cmd.extend(["--config", configuration])
+    print(">", subprocess.list2cmdline(cmd))
+    result = subprocess.run(cmd, cwd=root, check=False).returncode
+    if result == 0:
+        receipt = write_receipt(build_dir, install_dir, cfg)
+        print(f"Component Receipt: {receipt}")
+    return result
+
+
 def create_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Standard entry point for hakoniwa-core-pro")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -340,7 +519,25 @@ def create_parser() -> argparse.ArgumentParser:
         default=None,
         help=f"user-facing build manifest (default: repository root/{DEFAULT_MANIFEST})",
     )
+    build_parser.add_argument("--build-dir", default=None)
+    build_parser.add_argument("--install-dir", default=None)
+    build_parser.add_argument("--core-config-dir", default=None)
+    build_parser.add_argument("--python-install-dir", default=None)
+    build_parser.add_argument("--python-executable", default=None)
+    build_parser.add_argument("--core-mmap-dir", default=None)
     build_parser.add_argument("native_args", nargs=argparse.REMAINDER)
+
+    install_parser = sub.add_parser(
+        "install", help="install the existing build tree to an explicit local prefix"
+    )
+    install_parser.add_argument(
+        "--config",
+        default=None,
+        help=f"user-facing build manifest (default: repository root/{DEFAULT_MANIFEST})",
+    )
+    install_parser.add_argument("--build-dir", default=None)
+    install_parser.add_argument("--install-dir", required=True)
+    install_parser.add_argument("--configuration", default="Release")
     return parser
 
 
@@ -353,10 +550,60 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "doctor":
         return doctor(manifest, native_defaults)
     if args.command == "build":
+        root = repo_root()
+        build_dir = _explicit_path(
+            args.build_dir,
+            root / ("build-win" if sys.platform == "win32" else "cmake-build"),
+        )
+        child_values = {
+            "HAKO_BUILD_DIR": str(build_dir),
+            "HAKO_INSTALL_PREFIX": (
+                str(_explicit_path(args.install_dir, root)) if args.install_dir else None
+            ),
+            "HAKO_CORE_CONFIG_INSTALL_DIR": (
+                str(_explicit_path(args.core_config_dir, root))
+                if args.core_config_dir
+                else None
+            ),
+            "HAKO_PYTHON_INSTALL_DIR": (
+                str(_explicit_path(args.python_install_dir, root))
+                if args.python_install_dir
+                else None
+            ),
+            "HAKO_PYTHON_EXECUTABLE": (
+                str(_explicit_path(args.python_executable, root))
+                if args.python_executable
+                else None
+            ),
+            "HAKO_CORE_MMAP_PATH": (
+                str(_explicit_path(args.core_mmap_dir, root))
+                if args.core_mmap_dir
+                else None
+            ),
+        }
+        previous = {key: os.environ.get(key) for key in child_values}
+        for key, value in child_values.items():
+            if value is not None:
+                os.environ[key] = value
         native_args = args.native_args
         if native_args and native_args[0] == "--":
             native_args = native_args[1:]
-        return build(native_defaults, native_args)
+        try:
+            return build(native_defaults, native_args)
+        finally:
+            for key, value in previous.items():
+                if value is None:
+                    os.environ.pop(key, None)
+                else:
+                    os.environ[key] = value
+    if args.command == "install":
+        root = repo_root()
+        build_dir = _explicit_path(
+            args.build_dir,
+            root / ("build-win" if sys.platform == "win32" else "cmake-build"),
+        )
+        install_dir = _explicit_path(args.install_dir, root)
+        return install(build_dir, install_dir, args.configuration, _cfg)
     raise HakoError(f"unsupported command: {args.command}")
 
 

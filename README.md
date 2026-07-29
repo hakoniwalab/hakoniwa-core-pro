@@ -341,6 +341,16 @@ python3.12 tools/hako.py doctor --config tests/fixtures/alternate-build.yaml
 python3.12 tools/hako.py build --config tests/fixtures/alternate-build.yaml
 ```
 
+ローカルFoundationなど、Python native bindingを特定のvenvと組み合わせる場合は、
+venvを作成したinterpreter実体を`--python-executable`で明示できます。
+
+```sh
+python3.12 tools/hako.py build \
+  --python-executable /path/to/foundation/python/bin/python
+```
+
+未指定時は従来どおりのPython探索を維持します。
+
 マニフェストは次の7項目をすべて正整数で指定します。未知の項目、項目の不足、
 `version: 1` 以外のバージョンはエラーになります。
 

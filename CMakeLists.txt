@@ -165,10 +165,17 @@ install(
 # "etc/hakoniwa", which is then resolved under CMAKE_INSTALL_PREFIX.
 set(HAKO_CORE_CONFIG_INSTALL_DIR "/etc/hakoniwa" CACHE STRING
     "Install destination for cpp_core_config.json (absolute or relative to CMAKE_INSTALL_PREFIX)")
+set(HAKO_CORE_MMAP_PATH "/var/lib/hakoniwa/mmap" CACHE STRING
+    "Runtime mmap directory written to cpp_core_config.json")
+configure_file(
+    ${PROJECT_SOURCE_DIR}/cmake/cpp_core_config.json.in
+    ${CMAKE_BINARY_DIR}/cpp_core_config.json
+    @ONLY
+)
 
 # Install core config file
 install(
-    FILES ${PROJECT_SOURCE_DIR}/hakoniwa-core-cpp/cpp_core_config.json
+    FILES ${CMAKE_BINARY_DIR}/cpp_core_config.json
     DESTINATION "${HAKO_CORE_CONFIG_INSTALL_DIR}"
 )
 

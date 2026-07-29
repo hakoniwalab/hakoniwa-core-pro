@@ -135,7 +135,8 @@ fi
 # Build or Clean
 # ----------------------------------------
 
-BUILD_DIR="cmake-build"
+BUILD_DIR="${HAKO_BUILD_DIR:-cmake-build}"
+INSTALL_PREFIX="${HAKO_INSTALL_PREFIX:-/usr}"
 
 if [ $# -eq 0 ]
 then
@@ -143,7 +144,20 @@ then
     cd "${BUILD_DIR}"
     if [ ${OS_TYPE} = "posix" ]
     then
-        cmake .. -DCMAKE_INSTALL_PREFIX=/usr $ENABLE_HAKO_TIME_MEASURE_FLAG \
+        CMAKE_LOCAL_INSTALL_ARGS=()
+        if [ -n "${HAKO_CORE_CONFIG_INSTALL_DIR:-}" ]; then
+            CMAKE_LOCAL_INSTALL_ARGS+=("-DHAKO_CORE_CONFIG_INSTALL_DIR=${HAKO_CORE_CONFIG_INSTALL_DIR}")
+        fi
+        if [ -n "${HAKO_PYTHON_INSTALL_DIR:-}" ]; then
+            CMAKE_LOCAL_INSTALL_ARGS+=("-DHAKO_PYTHON_INSTALL_DIR=${HAKO_PYTHON_INSTALL_DIR}")
+        fi
+        if [ -n "${HAKO_PYTHON_EXECUTABLE:-}" ]; then
+            CMAKE_LOCAL_INSTALL_ARGS+=("-DHAKO_PYTHON_EXECUTABLE=${HAKO_PYTHON_EXECUTABLE}")
+        fi
+        if [ -n "${HAKO_CORE_MMAP_PATH:-}" ]; then
+            CMAKE_LOCAL_INSTALL_ARGS+=("-DHAKO_CORE_MMAP_PATH=${HAKO_CORE_MMAP_PATH}")
+        fi
+        cmake "${SCRIPT_DIR}" -DCMAKE_INSTALL_PREFIX="${INSTALL_PREFIX}" "${CMAKE_LOCAL_INSTALL_ARGS[@]}" $ENABLE_HAKO_TIME_MEASURE_FLAG \
             -DHAKO_BUILD_DEFAULTS_FILE="${DEFAULTS_FILE}" \
             -DHAKO_DATA_MAX_ASSET_NUM=${ASSET_NUM} \
             -DHAKO_SERVICE_MAX=${SERVICE_MAX} \
@@ -155,7 +169,7 @@ then
             $BUILD_C_FLAGS
         make
     else
-        cmake ..
+        cmake "${SCRIPT_DIR}"
         cmake --build . --target ALL_BUILD --config Release
     fi
 else

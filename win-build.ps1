@@ -1,5 +1,5 @@
 param(
-    [string]$BuildDir = "build-win",
+    [string]$BuildDir = $env:HAKO_BUILD_DIR,
 
     [string]$Configuration = "Release",
 
@@ -22,6 +22,16 @@ param(
     [string]$BuildCFlags = $env:BUILD_C_FLAGS,
 
     [string]$BuildDefaultsPath = $env:HAKO_BUILD_DEFAULTS_FILE,
+
+    [string]$InstallPrefix = $env:HAKO_INSTALL_PREFIX,
+
+    [string]$CoreConfigInstallDir = $env:HAKO_CORE_CONFIG_INSTALL_DIR,
+
+    [string]$PythonInstallDir = $env:HAKO_PYTHON_INSTALL_DIR,
+
+    [string]$PythonExecutable = $env:HAKO_PYTHON_EXECUTABLE,
+
+    [string]$CoreMmapPath = $env:HAKO_CORE_MMAP_PATH,
 
     [switch]$Clean
 )
@@ -175,6 +185,9 @@ function Split-Flags {
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot = Resolve-FullPath -Path $scriptDir
+if ([string]::IsNullOrWhiteSpace($BuildDir)) {
+    $BuildDir = "build-win"
+}
 $buildDirPath = Resolve-FullPath -Path $BuildDir
 $cmakeOptionFile = Join-Path $repoRoot "cmake-options/win-cmake-options.cmake"
 if ([string]::IsNullOrWhiteSpace($BuildDefaultsPath)) {
@@ -251,6 +264,21 @@ $configureArgs += @(
     "-DHAKO_SERVICE_NAMELEN_MAX=$effectiveServiceNameLenMax",
     "-DHAKO_PDU_CHANNEL_MAX=$effectiveChannelMax"
 )
+if (-not [string]::IsNullOrWhiteSpace($InstallPrefix)) {
+    $configureArgs += "-DCMAKE_INSTALL_PREFIX=$(Resolve-FullPath -Path $InstallPrefix)"
+}
+if (-not [string]::IsNullOrWhiteSpace($CoreConfigInstallDir)) {
+    $configureArgs += "-DHAKO_CORE_CONFIG_INSTALL_DIR=$(Resolve-FullPath -Path $CoreConfigInstallDir)"
+}
+if (-not [string]::IsNullOrWhiteSpace($PythonInstallDir)) {
+    $configureArgs += "-DHAKO_PYTHON_INSTALL_DIR=$(Resolve-FullPath -Path $PythonInstallDir)"
+}
+if (-not [string]::IsNullOrWhiteSpace($PythonExecutable)) {
+    $configureArgs += "-DHAKO_PYTHON_EXECUTABLE=$(Resolve-FullPath -Path $PythonExecutable)"
+}
+if (-not [string]::IsNullOrWhiteSpace($CoreMmapPath)) {
+    $configureArgs += "-DHAKO_CORE_MMAP_PATH=$(Resolve-FullPath -Path $CoreMmapPath)"
+}
 $configureArgs += Split-Flags -Flags $EnableHakoTimeMeasureFlag
 $configureArgs += Split-Flags -Flags $BuildCFlags
 Invoke-Checked -Command $configureArgs
