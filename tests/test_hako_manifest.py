@@ -193,6 +193,20 @@ limits:
             )
             self.assertLess(len(artifacts), 10)
 
+    def test_receipt_architecture_uses_foundation_vocabulary(self):
+        expected = {
+            "x86_64": "x64",
+            "AMD64": "x64",
+            "aarch64": "arm64",
+            "arm64": "arm64",
+        }
+        for machine, architecture in expected.items():
+            with self.subTest(machine=machine):
+                self.assertEqual(
+                    HAKO._normalized_architecture(machine),
+                    architecture,
+                )
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -354,6 +354,15 @@ def _cmake_cache_value(build_dir: Path, key: str) -> str:
     return "unknown"
 
 
+def _normalized_architecture(machine: str | None = None) -> str:
+    value = (machine or platform.machine()).lower()
+    return {
+        "amd64": "x64",
+        "x86_64": "x64",
+        "aarch64": "arm64",
+    }.get(value, value)
+
+
 def _artifact_kind(path: Path, installed: Path) -> str:
     if installed.is_dir():
         return "directory"
@@ -452,7 +461,7 @@ def write_receipt(
         f"  source_revision: {_yaml_scalar(revision)}",
         "platform:",
         f"  os: {_yaml_scalar(os_name)}",
-        f"  architecture: {_yaml_scalar(platform.machine())}",
+        f"  architecture: {_yaml_scalar(_normalized_architecture())}",
         f"  toolchain: {_yaml_scalar(compiler)}",
         "install:",
         f"  prefix: {_yaml_scalar(install_dir)}",
