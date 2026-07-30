@@ -1,4 +1,5 @@
 #include "hako_asset_impl.hpp"
+#include "hako_asset_state_check.hpp"
 
 struct hako_asset_context_s {
     void *data;
@@ -85,9 +86,11 @@ int hako_asset_start_no_wait(int (*is_force_stop)(void) = nullptr) {
         std::cerr << "Error: not initialized." << std::endl;
         return EINVAL;
     }
-    if (hako_asset_impl_state() != HakoSim_Stopped) {
-        std::cerr << "Error: simulation state(" << hako_asset_impl_state() << ") is invalid, expeting HakoSim_Stopeed." << std::endl;
-        return EINVAL;
+    const auto state = hako_asset_impl_state();
+    const int state_check = hako::asset::internal::require_stopped_state(
+        state, std::cout, std::cerr);
+    if (state_check != 0) {
+        return state_check;
     }
     bool ret = hako_asset_impl_wait_running(is_force_stop);
     if (ret == false) {
@@ -259,9 +262,11 @@ int hako_trigger_event(int event)
         std::cerr << "Error: not initialized." << std::endl;
         return EINVAL;
     }
-    if (hako_asset_impl_state() != HakoSim_Stopped) {
-        std::cerr << "Error: simulation state(" << hako_asset_impl_state() << ") is invalid, expeting HakoSim_Stopeed." << std::endl;
-        return EINVAL;
+    const auto state = hako_asset_impl_state();
+    const int state_check = hako::asset::internal::require_stopped_state(
+        state, std::cout, std::cerr);
+    if (state_check != 0) {
+        return state_check;
     }
     switch (event) {
         case HAKO_TRIGGER_EVENT_ID_START:

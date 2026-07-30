@@ -6,12 +6,14 @@ include(GoogleTest)
 add_executable(
     hako-core-pro-test
     hako_asset_pdu_compact_test.cpp
+    hako_asset_state_check_test.cpp
 )
 
 target_include_directories(
     hako-core-pro-test
     PRIVATE ${PROJECT_SOURCE_DIR}/include
     PRIVATE ${PROJECT_SOURCE_DIR}/hakoniwa-core-cpp/src/include
+    PRIVATE ${PROJECT_SOURCE_DIR}/sources/assets/callback/src
 )
 
 target_link_libraries(
