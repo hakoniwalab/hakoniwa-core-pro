@@ -399,6 +399,18 @@ def _cmake_cache_value(build_dir: Path, key: str) -> str:
     return "unknown"
 
 
+def _normalized_python_abi(soabi: str, extension_suffix: str) -> str:
+    """Return the ABI tag reported directly or encoded in a tagged suffix."""
+    if soabi:
+        return soabi
+    suffix = extension_suffix.strip()
+    for extension in (".pyd", ".so"):
+        if suffix.endswith(extension):
+            tag = suffix[1 : -len(extension)] if suffix.startswith(".") else ""
+            return tag if tag and tag not in {"pyd", "so"} else ""
+    return ""
+
+
 def _python_build_metadata(
     build_dir: Path,
     with_soabi: bool,
@@ -435,9 +447,13 @@ def _python_build_metadata(
         raise HakoError(
             f"configured Python returned invalid metadata: {result.stdout.strip()}"
         ) from exc
+    metadata["abi"] = _normalized_python_abi(
+        metadata["abi"], metadata["extension_suffix"]
+    )
     if with_soabi and (not metadata["abi"] or not metadata["extension_suffix"]):
         raise HakoError(
-            f"SOABI metadata is unavailable from configured Python: {executable}"
+            "ABI-tagged extension metadata is unavailable from configured Python: "
+            f"{executable}"
         )
     metadata["artifact_name"] = (
         f"hakopy{metadata['extension_suffix']}"

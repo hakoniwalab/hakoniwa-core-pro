@@ -380,6 +380,14 @@ python:
 untagged artifactへ暗黙fallbackさせない管理環境向けです。同じ通常のPython
 import pathへSOABI版とuntagged版を混在させないでください。
 
+Windows版CPythonでは`sysconfig.get_config_var("SOABI")`が空でも、標準の
+`EXT_SUFFIX`が`.cp312-win_amd64.pyd`のようなABIタグ付き名称を返す場合が
+あります。この場合、`hako.py`は`EXT_SUFFIX`から`cp312-win_amd64`を導出し、
+resolved manifestとReceiptのSOABI欄へ正規化して記録します。SOABIと
+ABIタグ付き`EXT_SUFFIX`のどちらからもABIを特定できない場合、
+`python.soabi: true`のbuild/installはエラーになり、untagged artifactへは
+fallbackしません。
+
 `hako.py` は検証済みの内容を
 `.hako/hako_build_defaults.conf` に既存ビルドスクリプト互換の形式で生成し、
 解決結果を `.hako/resolved-build.yaml` に記録します。これらは生成物であり、

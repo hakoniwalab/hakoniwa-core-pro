@@ -1,9 +1,13 @@
 from __future__ import annotations
 
 import importlib.util
+import json
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -185,6 +189,66 @@ python:
             "    artifact_name: \"hakopy.cpython-312-darwin.so\"",
             rendered,
         )
+
+    def test_python_abi_prefers_reported_soabi(self):
+        self.assertEqual(
+            HAKO._normalized_python_abi(
+                "cpython-312-x86_64-linux-gnu",
+                ".cpython-312-x86_64-linux-gnu.so",
+            ),
+            "cpython-312-x86_64-linux-gnu",
+        )
+
+    def test_python_abi_falls_back_to_windows_tagged_extension_suffix(self):
+        self.assertEqual(
+            HAKO._normalized_python_abi("", ".cp312-win_amd64.pyd"),
+            "cp312-win_amd64",
+        )
+
+    def test_python_abi_does_not_accept_untagged_extension(self):
+        self.assertEqual(HAKO._normalized_python_abi("", ".pyd"), "")
+        self.assertEqual(HAKO._normalized_python_abi("", ".so"), "")
+
+    def test_python_build_metadata_uses_windows_extension_suffix_fallback(self):
+        probe = {
+            "implementation": "CPython",
+            "executable": sys.executable,
+            "version": "3.12.10",
+            "major": 3,
+            "minor": 12,
+            "abi": "",
+            "extension_suffix": ".cp312-win_amd64.pyd",
+        }
+        completed = subprocess.CompletedProcess(
+            [sys.executable], 0, stdout=json.dumps(probe), stderr=""
+        )
+        with patch.object(
+            HAKO, "_cmake_cache_value", return_value=sys.executable
+        ), patch.object(HAKO.subprocess, "run", return_value=completed):
+            metadata = HAKO._python_build_metadata(Path("build"), True)
+        self.assertEqual(metadata["abi"], "cp312-win_amd64")
+        self.assertEqual(metadata["artifact_name"], "hakopy.cp312-win_amd64.pyd")
+
+    def test_python_build_metadata_rejects_untagged_fallback(self):
+        probe = {
+            "implementation": "CPython",
+            "executable": sys.executable,
+            "version": "3.12.10",
+            "major": 3,
+            "minor": 12,
+            "abi": "",
+            "extension_suffix": ".pyd",
+        }
+        completed = subprocess.CompletedProcess(
+            [sys.executable], 0, stdout=json.dumps(probe), stderr=""
+        )
+        with patch.object(
+            HAKO, "_cmake_cache_value", return_value=sys.executable
+        ), patch.object(HAKO.subprocess, "run", return_value=completed):
+            with self.assertRaisesRegex(
+                HAKO.HakoError, "ABI-tagged extension metadata is unavailable"
+            ):
+                HAKO._python_build_metadata(Path("build"), True)
 
     def test_config_option_and_native_arguments_are_distinct(self):
         args = HAKO.create_parser().parse_args(
