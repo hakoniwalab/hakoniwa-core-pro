@@ -334,6 +334,41 @@ python:
             )
             self.assertLess(len(artifacts), 10)
 
+    def test_install_transition_removes_only_stale_hakopy_extensions(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            prefix = Path(temp_dir)
+            python_dir = prefix / "share" / "hakoniwa" / "python"
+            python_dir.mkdir(parents=True)
+            expected = python_dir / "hakopy.cpython-312-darwin.so"
+            stale = python_dir / "hakopy.so"
+            unrelated = python_dir / "hakopy-notes.txt"
+            for path in (expected, stale, unrelated):
+                path.write_text("test\n", encoding="utf-8")
+
+            removed = HAKO.remove_stale_python_artifacts(
+                prefix, {"artifact_name": expected.name}
+            )
+
+            self.assertEqual(removed, [stale])
+            self.assertTrue(expected.is_file())
+            self.assertFalse(stale.exists())
+            self.assertTrue(unrelated.is_file())
+
+    def test_install_transition_requires_new_hakopy_before_cleanup(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            prefix = Path(temp_dir)
+            python_dir = prefix / "share" / "hakoniwa" / "python"
+            python_dir.mkdir(parents=True)
+            stale = python_dir / "hakopy.so"
+            stale.write_text("test\n", encoding="utf-8")
+
+            with self.assertRaisesRegex(HAKO.HakoError, "artifact not found"):
+                HAKO.remove_stale_python_artifacts(
+                    prefix, {"artifact_name": "hakopy.cpython-312-darwin.so"}
+                )
+
+            self.assertTrue(stale.is_file())
+
     def test_receipt_architecture_uses_foundation_vocabulary(self):
         expected = {
             "x86_64": "x64",

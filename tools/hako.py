@@ -637,6 +637,26 @@ def write_receipt(
     return receipt_path
 
 
+def remove_stale_python_artifacts(
+    install_dir: Path, python_build: Mapping[str, Any]
+) -> list[Path]:
+    python_dir = install_dir / "share" / "hakoniwa" / "python"
+    expected = python_dir / str(python_build["artifact_name"])
+    if not expected.is_file():
+        raise HakoError(f"installed hakopy artifact not found: {expected}")
+
+    removed: list[Path] = []
+    for candidate in python_dir.glob("hakopy*"):
+        if candidate == expected or not candidate.is_file():
+            continue
+        if candidate.suffix.lower() not in {".so", ".pyd"}:
+            continue
+        candidate.unlink()
+        removed.append(candidate)
+        print(f"Removed stale hakopy artifact: {candidate}")
+    return removed
+
+
 def install(
     build_dir: Path,
     install_dir: Path,
@@ -656,6 +676,7 @@ def install(
     print(">", subprocess.list2cmdline(cmd))
     result = subprocess.run(cmd, cwd=root, check=False).returncode
     if result == 0:
+        remove_stale_python_artifacts(install_dir, python_build)
         receipt = write_receipt(build_dir, install_dir, cfg, python_build)
         print(f"Component Receipt: {receipt}")
     return result
