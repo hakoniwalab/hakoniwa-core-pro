@@ -125,11 +125,11 @@ def load_simple_yaml(path: Path) -> Dict[str, Any]:
 
 
 def resolve_config(raw: Mapping[str, Any]) -> Dict[str, Any]:
-    root_keys = {"version", "limits"}
+    root_keys = {"version", "limits", "python"}
     unknown_root = sorted(set(raw) - root_keys)
     if unknown_root:
         raise ConfigError(f"unknown key(s) under root: {', '.join(unknown_root)}")
-    missing_root = sorted(root_keys - set(raw))
+    missing_root = sorted({"version", "limits"} - set(raw))
     if missing_root:
         raise ConfigError(f"missing required key(s) under root: {', '.join(missing_root)}")
     if raw["version"] != 1:
@@ -156,7 +156,22 @@ def resolve_config(raw: Mapping[str, Any]) -> Dict[str, Any]:
         if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
             raise ConfigError(f"limits.{key} must be a positive integer")
         resolved_limits[key] = value
-    return {"version": 1, "limits": resolved_limits}
+    python_config = raw.get("python", {})
+    if not isinstance(python_config, Mapping):
+        raise ConfigError("python must be a mapping")
+    unknown_python = sorted(set(python_config) - {"soabi"})
+    if unknown_python:
+        raise ConfigError(
+            f"unknown key(s) under python: {', '.join(unknown_python)}"
+        )
+    soabi = python_config.get("soabi", False)
+    if not isinstance(soabi, bool):
+        raise ConfigError("python.soabi must be a boolean")
+    return {
+        "version": 1,
+        "limits": resolved_limits,
+        "python": {"soabi": soabi},
+    }
 
 
 def _manifest_path(value: str | None) -> Path:
@@ -205,6 +220,7 @@ def render_resolved_manifest(
     manifest_path: Path,
     native_defaults_path: Path,
     cfg: Mapping[str, Any],
+    python_build: Mapping[str, Any] | None = None,
 ) -> str:
     lines = [
         "version: 1",
@@ -214,6 +230,26 @@ def render_resolved_manifest(
     ]
     for key, value in cfg["limits"].items():
         lines.append(f"  {key}: {value}")
+    lines.extend(
+        [
+            "python:",
+            f"  soabi: {'true' if cfg['python']['soabi'] else 'false'}",
+        ]
+    )
+    if python_build is not None:
+        lines.append("  resolved:")
+        for key in (
+            "implementation",
+            "executable",
+            "version",
+            "major",
+            "minor",
+            "abi",
+            "extension_suffix",
+            "artifact_name",
+        ):
+            value = python_build.get(key, "unknown")
+            lines.append(f"    {key}: {_yaml_scalar(value)}")
     return "\n".join(lines) + "\n"
 
 
@@ -240,7 +276,11 @@ def powershell() -> str:
     raise HakoError("PowerShell was not found on PATH")
 
 
-def doctor(manifest: Path, native_defaults: Path) -> int:
+def doctor(
+    manifest: Path,
+    native_defaults: Path,
+    cfg: Mapping[str, Any],
+) -> int:
     root = repo_root()
     checks: list[tuple[str, bool, str]] = []
 
@@ -264,6 +304,11 @@ def doctor(manifest: Path, native_defaults: Path) -> int:
         )
     )
     checks.append(("CMakeLists.txt", (root / "CMakeLists.txt").is_file(), "CMakeLists.txt"))
+
+    print(
+        "Requested hakopy artifact: "
+        + ("SOABI-tagged" if cfg["python"]["soabi"] else "legacy untagged")
+    )
 
     if sys.platform == "win32":
         win_build = root / "win-build.ps1"
@@ -354,6 +399,68 @@ def _cmake_cache_value(build_dir: Path, key: str) -> str:
     return "unknown"
 
 
+def _python_build_metadata(
+    build_dir: Path,
+    with_soabi: bool,
+) -> Dict[str, Any]:
+    executable = _cmake_cache_value(build_dir, "Python_EXECUTABLE")
+    if executable == "unknown" or not Path(executable).is_file():
+        raise HakoError(
+            f"configured Python executable was not found in {build_dir / 'CMakeCache.txt'}"
+        )
+    probe = (
+        "import json, platform, sys, sysconfig; "
+        "print(json.dumps({"
+        "'implementation': platform.python_implementation(), "
+        "'executable': sys.executable, "
+        "'version': platform.python_version(), "
+        "'major': sys.version_info.major, "
+        "'minor': sys.version_info.minor, "
+        "'abi': sysconfig.get_config_var('SOABI') or '', "
+        "'extension_suffix': sysconfig.get_config_var('EXT_SUFFIX') or ''}))"
+    )
+    result = subprocess.run(
+        [executable, "-c", probe],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        raise HakoError(
+            f"failed to inspect configured Python {executable}: {result.stderr.strip()}"
+        )
+    try:
+        metadata = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        raise HakoError(
+            f"configured Python returned invalid metadata: {result.stdout.strip()}"
+        ) from exc
+    if with_soabi and (not metadata["abi"] or not metadata["extension_suffix"]):
+        raise HakoError(
+            f"SOABI metadata is unavailable from configured Python: {executable}"
+        )
+    metadata["artifact_name"] = (
+        f"hakopy{metadata['extension_suffix']}"
+        if with_soabi
+        else ("hakopy.pyd" if sys.platform == "win32" else "hakopy.so")
+    )
+    return metadata
+
+
+def _write_resolved_build_metadata(
+    manifest: Path,
+    native_defaults: Path,
+    cfg: Mapping[str, Any],
+    build_dir: Path,
+) -> Dict[str, Any]:
+    python_build = _python_build_metadata(build_dir, cfg["python"]["soabi"])
+    _atomic_write(
+        repo_root() / ".hako" / "resolved-build.yaml",
+        render_resolved_manifest(manifest, native_defaults, cfg, python_build),
+    )
+    return python_build
+
+
 def _normalized_architecture(machine: str | None = None) -> str:
     value = (machine or platform.machine()).lower()
     return {
@@ -426,6 +533,7 @@ def write_receipt(
     build_dir: Path,
     install_dir: Path,
     cfg: Mapping[str, Any],
+    python_build: Mapping[str, Any],
 ) -> Path:
     root = repo_root()
     receipt_root = install_dir / "share" / "hakoniwa" / "receipts"
@@ -482,6 +590,31 @@ def write_receipt(
                 f"    kind: {kind}",
             ]
         )
+    python_artifacts = [
+        path.as_posix()
+        for path, _ in artifacts
+        if path.name.startswith("hakopy") and path.suffix.lower() in {".so", ".pyd"}
+    ]
+    if len(python_artifacts) != 1:
+        raise HakoError(
+            "expected exactly one installed hakopy artifact, found: "
+            + (", ".join(python_artifacts) if python_artifacts else "none")
+        )
+    lines.extend(
+        [
+            "python:",
+            "  binding_mode: "
+            + ("soabi" if cfg["python"]["soabi"] else "legacy"),
+            f"  implementation: {_yaml_scalar(python_build['implementation'])}",
+            f"  executable: {_yaml_scalar(python_build['executable'])}",
+            f"  version: {_yaml_scalar(python_build['version'])}",
+            f"  major: {python_build['major']}",
+            f"  minor: {python_build['minor']}",
+            f"  soabi: {_yaml_scalar(python_build['abi'])}",
+            f"  extension_suffix: {_yaml_scalar(python_build['extension_suffix'])}",
+            f"  artifact: {_yaml_scalar(python_artifacts[0])}",
+        ]
+    )
     lines.append(f"resolved_manifest: {_yaml_scalar(resolved_relative.as_posix())}")
     receipt_path = receipt_root / "hakoniwa-core-pro.yaml"
     _atomic_write(receipt_path, "\n".join(lines) + "\n")
@@ -493,6 +626,7 @@ def install(
     install_dir: Path,
     configuration: str,
     cfg: Mapping[str, Any],
+    python_build: Mapping[str, Any],
 ) -> int:
     root = repo_root()
     if not (build_dir / "CMakeCache.txt").is_file():
@@ -506,7 +640,7 @@ def install(
     print(">", subprocess.list2cmdline(cmd))
     result = subprocess.run(cmd, cwd=root, check=False).returncode
     if result == 0:
-        receipt = write_receipt(build_dir, install_dir, cfg)
+        receipt = write_receipt(build_dir, install_dir, cfg, python_build)
         print(f"Component Receipt: {receipt}")
     return result
 
@@ -552,12 +686,12 @@ def create_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = create_parser().parse_args(argv)
-    manifest, native_defaults, _cfg = prepare_build_config(args.config)
+    manifest, native_defaults, cfg = prepare_build_config(args.config)
     print(f"Build manifest          : {manifest}")
     print(f"Resolved native defaults: {native_defaults}")
 
     if args.command == "doctor":
-        return doctor(manifest, native_defaults)
+        return doctor(manifest, native_defaults, cfg)
     if args.command == "build":
         root = repo_root()
         build_dir = _explicit_path(
@@ -584,6 +718,9 @@ def main(argv: list[str] | None = None) -> int:
                 if args.python_executable
                 else None
             ),
+            "HAKO_PYTHON_WITH_SOABI": (
+                "ON" if cfg["python"]["soabi"] else "OFF"
+            ),
             "HAKO_CORE_MMAP_PATH": (
                 str(_explicit_path(args.core_mmap_dir, root))
                 if args.core_mmap_dir
@@ -598,7 +735,12 @@ def main(argv: list[str] | None = None) -> int:
         if native_args and native_args[0] == "--":
             native_args = native_args[1:]
         try:
-            return build(native_defaults, native_args)
+            result = build(native_defaults, native_args)
+            if result == 0:
+                _write_resolved_build_metadata(
+                    manifest, native_defaults, cfg, build_dir
+                )
+            return result
         finally:
             for key, value in previous.items():
                 if value is None:
@@ -612,7 +754,16 @@ def main(argv: list[str] | None = None) -> int:
             root / ("build-win" if sys.platform == "win32" else "cmake-build"),
         )
         install_dir = _explicit_path(args.install_dir, root)
-        return install(build_dir, install_dir, args.configuration, _cfg)
+        python_build = _write_resolved_build_metadata(
+            manifest, native_defaults, cfg, build_dir
+        )
+        return install(
+            build_dir,
+            install_dir,
+            args.configuration,
+            cfg,
+            python_build,
+        )
     raise HakoError(f"unsupported command: {args.command}")
 
 

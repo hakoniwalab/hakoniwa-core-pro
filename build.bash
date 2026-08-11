@@ -154,6 +154,9 @@ then
         if [ -n "${HAKO_PYTHON_EXECUTABLE:-}" ]; then
             CMAKE_LOCAL_INSTALL_ARGS+=("-DHAKO_PYTHON_EXECUTABLE=${HAKO_PYTHON_EXECUTABLE}")
         fi
+        if [ -n "${HAKO_PYTHON_WITH_SOABI:-}" ]; then
+            CMAKE_LOCAL_INSTALL_ARGS+=("-DHAKO_PYTHON_WITH_SOABI=${HAKO_PYTHON_WITH_SOABI}")
+        fi
         if [ -n "${HAKO_CORE_MMAP_PATH:-}" ]; then
             CMAKE_LOCAL_INSTALL_ARGS+=("-DHAKO_CORE_MMAP_PATH=${HAKO_CORE_MMAP_PATH}")
         fi

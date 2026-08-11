@@ -364,10 +364,31 @@ python3.12 tools/hako.py build \
 | `limits.client_name_len_max` | `HAKO_CLIENT_NAMELEN_MAX` | 64 | クライアント名の最大長 |
 | `limits.service_name_len_max` | `HAKO_SERVICE_NAMELEN_MAX` | 128 | サービス名の最大長 |
 
+Python bindingの成果物形式は、任意の`python`セクションで指定します。
+
+```yaml
+python:
+  soabi: false
+```
+
+| マニフェスト項目 | CMake設定 | 既定値 | 用途 |
+| --- | --- | --- | --- |
+| `python.soabi` | `HAKO_PYTHON_WITH_SOABI` | `false` | `true`の場合、選択されたPythonのSOABIを含む標準extension名で`hakopy`を生成する |
+
+`python`セクションを省略した場合も`soabi: false`として解決され、従来の
+`hakopy.so`／`hakopy.pyd`を生成します。`soabi: true`は、異なるCPython ABIから
+untagged artifactへ暗黙fallbackさせない管理環境向けです。同じ通常のPython
+import pathへSOABI版とuntagged版を混在させないでください。
+
 `hako.py` は検証済みの内容を
 `.hako/hako_build_defaults.conf` に既存ビルドスクリプト互換の形式で生成し、
 解決結果を `.hako/resolved-build.yaml` に記録します。これらは生成物であり、
 Gitの管理対象ではありません。
+
+ビルド成功後のresolved manifestには、CMakeが実際に選択したPython実体、
+Python version、SOABI、extension suffixおよびartifact名も記録されます。
+`hako.py install`は同じ情報と実際に配置した`hakopy`への相対pathをComponent
+Receiptへ保存します。
 
 設定の優先順位は、Windowsの明示的なスクリプト引数、従来の環境変数、
 選択したマニフェストの順です。ただし `ASSET_NUM` は従来どおり、

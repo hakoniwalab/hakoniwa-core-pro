@@ -109,6 +109,83 @@ limits:
 """
                     )
 
+    def test_python_soabi_defaults_to_legacy_false(self):
+        config = self.load(
+            """version: 1
+limits:
+  asset_num: 16
+  pdu_channel_max: 8192
+  recv_event_max: 4096
+  service_client_max: 256
+  service_max: 1024
+  client_name_len_max: 64
+  service_name_len_max: 128
+"""
+        )
+        self.assertFalse(config["python"]["soabi"])
+
+    def test_python_soabi_accepts_explicit_boolean(self):
+        config = self.load(
+            """version: 1
+limits:
+  asset_num: 16
+  pdu_channel_max: 8192
+  recv_event_max: 4096
+  service_client_max: 256
+  service_max: 1024
+  client_name_len_max: 64
+  service_name_len_max: 128
+python:
+  soabi: true
+"""
+        )
+        self.assertTrue(config["python"]["soabi"])
+
+    def test_python_soabi_rejects_non_boolean_and_unknown_keys(self):
+        base = """version: 1
+limits:
+  asset_num: 16
+  pdu_channel_max: 8192
+  recv_event_max: 4096
+  service_client_max: 256
+  service_max: 1024
+  client_name_len_max: 64
+  service_name_len_max: 128
+python:
+"""
+        with self.assertRaisesRegex(HAKO.ConfigError, "must be a boolean"):
+            self.load(base + "  soabi: yes\n")
+        with self.assertRaisesRegex(HAKO.ConfigError, "unknown key"):
+            self.load(base + "  soabi: false\n  extra: true\n")
+
+    def test_resolved_manifest_records_python_build_contract(self):
+        config = HAKO.resolve_config(
+            HAKO.load_simple_yaml(REPO_ROOT / "hakoniwa-build.yaml")
+        )
+        config["python"]["soabi"] = True
+        rendered = HAKO.render_resolved_manifest(
+            Path("/repo/hakoniwa-build.yaml"),
+            Path("/repo/.hako/hako_build_defaults.conf"),
+            config,
+            {
+                "implementation": "CPython",
+                "executable": "/venv/bin/python",
+                "version": "3.12.10",
+                "major": 3,
+                "minor": 12,
+                "abi": "cpython-312-darwin",
+                "extension_suffix": ".cpython-312-darwin.so",
+                "artifact_name": "hakopy.cpython-312-darwin.so",
+            },
+        )
+        self.assertIn("  soabi: true", rendered)
+        self.assertIn("    version: \"3.12.10\"", rendered)
+        self.assertIn("    abi: \"cpython-312-darwin\"", rendered)
+        self.assertIn(
+            "    artifact_name: \"hakopy.cpython-312-darwin.so\"",
+            rendered,
+        )
+
     def test_config_option_and_native_arguments_are_distinct(self):
         args = HAKO.create_parser().parse_args(
             ["build", "--config", "custom.yaml", "--", "-Clean"]

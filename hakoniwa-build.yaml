@@ -11,3 +11,8 @@ limits:
   service_max: 1024
   client_name_len_max: 64
   service_name_len_max: 128
+
+# Keep the legacy untagged hakopy artifact by default. Foundation builds set
+# this to true so incompatible CPython ABIs fail safely at import discovery.
+python:
+  soabi: false

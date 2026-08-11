@@ -31,6 +31,8 @@ param(
 
     [string]$PythonExecutable = $env:HAKO_PYTHON_EXECUTABLE,
 
+    [string]$PythonWithSoabi = $env:HAKO_PYTHON_WITH_SOABI,
+
     [string]$CoreMmapPath = $env:HAKO_CORE_MMAP_PATH,
 
     [switch]$Clean
@@ -275,6 +277,9 @@ if (-not [string]::IsNullOrWhiteSpace($PythonInstallDir)) {
 }
 if (-not [string]::IsNullOrWhiteSpace($PythonExecutable)) {
     $configureArgs += "-DHAKO_PYTHON_EXECUTABLE=$(Resolve-FullPath -Path $PythonExecutable)"
+}
+if (-not [string]::IsNullOrWhiteSpace($PythonWithSoabi)) {
+    $configureArgs += "-DHAKO_PYTHON_WITH_SOABI=$PythonWithSoabi"
 }
 if (-not [string]::IsNullOrWhiteSpace($CoreMmapPath)) {
     $configureArgs += "-DHAKO_CORE_MMAP_PATH=$(Resolve-FullPath -Path $CoreMmapPath)"
