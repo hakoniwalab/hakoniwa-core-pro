@@ -1,96 +1,46 @@
 #!/bin/bash
-# This script builds and installs hakoniwa-core for Unix-like systems (Linux, macOS).
+# Build (when needed) and install hakoniwa-core on Linux/macOS.
 
-set -e
-BUILD_DIR="${BUILD_DIR:-cmake-build}"
-INSTALL_PREFIX="${INSTALL_PREFIX:-/usr/local/hakoniwa}"  # Default installation prefix
+set -euo pipefail
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DEFAULTS_FILE="${SCRIPT_DIR}/cmake/hako_build_defaults.conf"
+BUILD_DIR="${HAKO_BUILD_DIR:-${BUILD_DIR:-${SCRIPT_DIR}/cmake-build}}"
+INSTALL_PREFIX="${HAKO_INSTALL_PREFIX:-${INSTALL_PREFIX:-/usr/local/hakoniwa}}"
+MMAP_DIR="${HAKO_CORE_MMAP_PATH:-/var/lib/hakoniwa/mmap}"
+HAKO_INSTALL_USE_SUDO="${HAKO_INSTALL_USE_SUDO:-ON}"
 
-if [ ! -f "${DEFAULTS_FILE}" ]; then
-    echo "ERROR: build defaults file not found: ${DEFAULTS_FILE}" >&2
-    exit 1
-fi
+run_privileged() {
+    if [ "${HAKO_INSTALL_USE_SUDO}" = "OFF" ]; then
+        "$@"
+    else
+        sudo "$@"
+    fi
+}
 
-# shellcheck disable=SC1090
-source "${DEFAULTS_FILE}"
+echo "Hakoniwa build directory: ${BUILD_DIR}"
+echo "Hakoniwa install prefix : ${INSTALL_PREFIX}"
 
-DEFAULT_HAKO_ASSET_NUM=${HAKO_DATA_MAX_ASSET_NUM}
-if [ -n "${ASSET_NUM:-}" ] && [ "${ASSET_NUM}" -gt "${DEFAULT_HAKO_ASSET_NUM}" ]; then
-    :
+if [ ! -f "${BUILD_DIR}/CMakeCache.txt" ]; then
+    echo "Configured build tree not found; running build.bash first..."
+    HAKO_BUILD_DIR="${BUILD_DIR}" \
+    HAKO_INSTALL_PREFIX="${INSTALL_PREFIX}" \
+        bash "${SCRIPT_DIR}/build.bash"
 else
-    ASSET_NUM=${DEFAULT_HAKO_ASSET_NUM}
+    # Preserve the complete build profile already stored in CMakeCache.txt
+    # (limits, Python/SOABI, config paths and compiler options). Only update the
+    # install prefix requested by this installation.
+    echo "Using existing configured build tree without replacing its build profile."
+    cmake -S "${SCRIPT_DIR}" -B "${BUILD_DIR}" \
+        -DCMAKE_INSTALL_PREFIX="${INSTALL_PREFIX}"
+    cmake --build "${BUILD_DIR}"
 fi
-DEFAULT_HAKO_SERVICE_MAX=${HAKO_SERVICE_MAX}
-if [ -n "${SERVICE_MAX:-}" ] && [ "${SERVICE_MAX}" -gt 0 ]; then
-    :
-else
-    SERVICE_MAX=${DEFAULT_HAKO_SERVICE_MAX}
-fi
-DEFAULT_HAKO_RECV_EVENT_MAX=${HAKO_RECV_EVENT_MAX}
-if [ -n "${RECV_EVENT_MAX:-}" ] && [ "${RECV_EVENT_MAX}" -gt 0 ]; then
-    :
-else
-    RECV_EVENT_MAX=${DEFAULT_HAKO_RECV_EVENT_MAX}
-fi
-DEFAULT_HAKO_SERVICE_CLIENT_MAX=${HAKO_SERVICE_CLIENT_MAX}
-if [ -n "${SERVICE_CLIENT_MAX:-}" ] && [ "${SERVICE_CLIENT_MAX}" -gt 0 ]; then
-    :
-else
-    SERVICE_CLIENT_MAX=${DEFAULT_HAKO_SERVICE_CLIENT_MAX}
-fi
-DEFAULT_HAKO_CLIENT_NAMELEN_MAX=${HAKO_CLIENT_NAMELEN_MAX}
-if [ -n "${CLIENT_NAMELEN_MAX:-}" ] && [ "${CLIENT_NAMELEN_MAX}" -gt 0 ]; then
-    :
-else
-    CLIENT_NAMELEN_MAX=${DEFAULT_HAKO_CLIENT_NAMELEN_MAX}
-fi
-DEFAULT_HAKO_SERVICE_NAMELEN_MAX=${HAKO_SERVICE_NAMELEN_MAX}
-if [ -n "${SERVICE_NAMELEN_MAX:-}" ] && [ "${SERVICE_NAMELEN_MAX}" -gt 0 ]; then
-    :
-else
-    SERVICE_NAMELEN_MAX=${DEFAULT_HAKO_SERVICE_NAMELEN_MAX}
-fi
-DEFAULT_HAKO_PDU_CHANNEL_MAX=${HAKO_PDU_CHANNEL_MAX}
-if [ -n "${CHANNEL_MAX:-}" ] && [ "${CHANNEL_MAX}" -gt 0 ]; then
-    :
-else
-    CHANNEL_MAX=${DEFAULT_HAKO_PDU_CHANNEL_MAX}
-fi
-echo "ASSET_NUM is ${ASSET_NUM}"
-echo "SERVICE_MAX is ${SERVICE_MAX}"
-echo "RECV_EVENT_MAX is ${RECV_EVENT_MAX}"
-echo "SERVICE_CLIENT_MAX is ${SERVICE_CLIENT_MAX}"
-echo "CLIENT_NAMELEN_MAX is ${CLIENT_NAMELEN_MAX}"
-echo "SERVICE_NAMELEN_MAX is ${SERVICE_NAMELEN_MAX}"
-echo "CHANNEL_MAX is ${CHANNEL_MAX}"
 
-echo "Starting Hakoniwa build..."
+echo "Installing project to ${INSTALL_PREFIX}..."
+run_privileged cmake --install "${BUILD_DIR}" --prefix "${INSTALL_PREFIX}"
 
-echo "Step 1/2: Building project with CMake..."
-cmake -B ${BUILD_DIR} -DCMAKE_INSTALL_PREFIX=${INSTALL_PREFIX} $ENABLE_HAKO_TIME_MEASURE_FLAG \
-  -DHAKO_DATA_MAX_ASSET_NUM=${ASSET_NUM} \
-  -DHAKO_SERVICE_MAX=${SERVICE_MAX} \
-  -DHAKO_RECV_EVENT_MAX=${RECV_EVENT_MAX} \
-  -DHAKO_SERVICE_CLIENT_MAX=${SERVICE_CLIENT_MAX} \
-  -DHAKO_CLIENT_NAMELEN_MAX=${CLIENT_NAMELEN_MAX} \
-  -DHAKO_SERVICE_NAMELEN_MAX=${SERVICE_NAMELEN_MAX} \
-  -DHAKO_PDU_CHANNEL_MAX=${CHANNEL_MAX} \
-  $BUILD_C_FLAGS
-cmake --build ${BUILD_DIR}
-
-# 2. Install the project.
-#    This command requires administrator privileges (sudo).
-#    It copies files to the system directories based on CMAKE_INSTALL_PREFIX.
-#    It also creates 'install_manifest.txt' in the build directory.
-echo "Step 2/2: Installing project to ${INSTALL_PREFIX}..."
-sudo cmake --install ${BUILD_DIR}
-
-echo "Configuring directory for mmap files..."
-sudo mkdir -p /var/lib/hakoniwa/mmap/
-sudo chmod 755 /var/lib/hakoniwa
-sudo chmod 777 /var/lib/hakoniwa/mmap/
-
+echo "Configuring directory for mmap files: ${MMAP_DIR}"
+run_privileged mkdir -p "${MMAP_DIR}"
+run_privileged chmod 777 "${MMAP_DIR}"
 
 echo ""
 echo "Hakoniwa installation completed successfully."

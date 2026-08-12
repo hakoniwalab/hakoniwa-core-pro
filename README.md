@@ -475,6 +475,17 @@ ctest --test-dir cmake-build --verbose
 
 このスクリプトは、デフォルトでは `/usr/local/hakoniwa` を prefix として、`/usr/local/hakoniwa/bin` や `/usr/local/hakoniwa/lib` などにファイルをコピーします。設定ファイルは `/etc/hakoniwa`、mmap 用ディレクトリは `/var/lib/hakoniwa/mmap` に配置されます。管理者権限が必要なため、実行中に `sudo` のパスワードを求められることがあります。
 
+`install.bash` は既存の `cmake-build` がある場合、そのCMake cacheに記録された
+ビルド上限、Python/SOABI、設定ファイルおよびmmapの構成を維持してインストール
+します。build treeがない場合だけ、同じディレクトリとinstall prefixを指定して
+`build.bash` を先に実行します。ビルド先とinstall先は次のように上書きできます。
+
+```sh
+HAKO_BUILD_DIR=/path/to/build \
+HAKO_INSTALL_PREFIX=/path/to/install \
+./install.bash
+```
+
 リポジトリを手元に clone せずにインストールする場合は、installer だけを取得して実行できます。installer は一時ディレクトリに `git clone --recurse-submodules` し、その中でビルドとインストールを実行します。
 
 この方式では、実行環境に `git`, `cmake`, C/C++ コンパイラなどのビルドツールが必要です。
