@@ -185,6 +185,11 @@ static PyObject* py_hako_asset_current_time(PyObject*, PyObject*) {
 
     return PyLong_FromLongLong(current_time);
 }
+static PyObject* py_hako_asset_min_asset_time(PyObject*, PyObject*) {
+    hako_time_t min_asset_time = hako_asset_min_asset_time();
+
+    return PyLong_FromLongLong(min_asset_time);
+}
 static PyObject* py_hako_asset_usleep(PyObject*, PyObject* args) {
     hako_time_t sleep_time_usec;
 
@@ -921,6 +926,7 @@ static PyMethodDef hako_asset_python_methods[] = {
     {"start", py_hako_asset_start, METH_VARARGS, "Start the asset."},
     {"simulation_time", py_hako_asset_simulation_time, METH_NOARGS, "Get the current simulation time."},
     {"asset_current_time", py_hako_asset_current_time, METH_NOARGS, "Get the current asset time."},
+    {"min_asset_time", py_hako_asset_min_asset_time, METH_NOARGS, "Get the minimum simulation time reported by registered assets."},
     {"usleep", py_hako_asset_usleep, METH_VARARGS, "Sleep for the specified time in microseconds."},
     {"pdu_read", py_hako_asset_pdu_read, METH_VARARGS, "Read PDU data for the specified robot name and channel ID."},
     {"pdu_write", py_hako_asset_pdu_write, METH_VARARGS, "Write PDU data for the specified robot name and channel ID."},
