@@ -50,6 +50,11 @@ def main():
         print(f"ERROR: hako_asset_register() returns {ret}.")
         return 1
 
+    min_asset_time = hakopy.min_asset_time()
+    if not isinstance(min_asset_time, int) or min_asset_time < 0:
+        print(f"ERROR: hakopy.min_asset_time() returns invalid value: {min_asset_time}")
+        return 1
+
     ret = hakopy.start()
     print(f"INFO: hako_asset_start() returns {ret}")
 
