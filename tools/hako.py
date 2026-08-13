@@ -508,6 +508,7 @@ def _core_artifacts(install_dir: Path) -> list[tuple[Path, str]]:
         Path("lib/cmake/hakoniwa-core"),
         Path("lib/pkgconfig"),
         Path("share/hakoniwa/offset"),
+        Path("share/hakoniwa/python/hakoniwa_measurement"),
     )
     for relative in directory_roots:
         if (install_dir / relative).is_dir():

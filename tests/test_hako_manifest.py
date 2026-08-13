@@ -316,6 +316,11 @@ python:
             (prefix / "bin" / "hako-cmd").write_text("", encoding="utf-8")
             (prefix / "lib" / "cmake" / "hakoniwa-core").mkdir(parents=True)
             (prefix / "lib" / "libhako.a").write_text("", encoding="utf-8")
+            measurement = (
+                prefix / "share" / "hakoniwa" / "python" / "hakoniwa_measurement"
+            )
+            measurement.mkdir(parents=True)
+            (measurement / "__init__.py").write_text("", encoding="utf-8")
             generated = prefix / "include" / "hakoniwa" / "pdu"
             generated.mkdir(parents=True)
             for index in range(100):
@@ -328,6 +333,13 @@ python:
                 artifacts,
             )
             self.assertIn((Path("lib/libhako.a"), "library"), artifacts)
+            self.assertIn(
+                (
+                    Path("share/hakoniwa/python/hakoniwa_measurement"),
+                    "directory",
+                ),
+                artifacts,
+            )
             self.assertNotIn(
                 (Path("include/hakoniwa/pdu/generated_0.hpp"), "header"),
                 artifacts,
