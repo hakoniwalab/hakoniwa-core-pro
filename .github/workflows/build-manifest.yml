@@ -57,7 +57,7 @@ jobs:
           $flags = "-DCMAKE_TOOLCHAIN_FILE=$toolchain -DVCPKG_TARGET_TRIPLET=x64-windows -DPython_ROOT_DIR=$pythonRoot -DPython_EXECUTABLE=$pythonExecutable"
           "BUILD_C_FLAGS=$flags" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
-      - name: Test manifest adapter
+      - name: Test Python tools and native platform backends
         run: python -m unittest discover -s tests -p "test_*.py"
 
       - name: Validate and resolve manifest

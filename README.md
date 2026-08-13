@@ -181,9 +181,17 @@ resume 後の最初の通知で 1 回だけイベントが上がります。
     - **説明:** シミュレーションのワールド時間（usec）を返します。
 - `hako_asset_current_time()`
     - **説明:** アセットの内部時間（usec）を返します（`hako_asset_instance.current_usec`）。
+- `hako_asset_min_asset_time()`
+    - **説明:** 登録済みアセットが報告したシミュレーション時刻の最小値（usec）を返します。
 - **Python binding**
     - `simulation_time()`
     - `asset_current_time()`
+    - `min_asset_time()`
+
+### Python測定ライブラリ
+
+`hakoniwa_measurement`は、箱庭アセットへ組み込める1 run単位の測定部品を提供します。
+詳細は[`docs/measurement-library.md`](docs/measurement-library.md)を参照してください。
 
 ### RPCサービス
 
