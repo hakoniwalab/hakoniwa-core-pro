@@ -45,14 +45,24 @@ class MacOSHostResourceBackend:
             raise RuntimeError("sysctlbyname(hw.memsize) failed")
         return int(value.value)
 
+    @staticmethod
+    def _available_pages(words: list[int]) -> int:
+        # vm_statistics64 begins with four natural_t page counters. After nine
+        # uint64 counters, purgeable_count and speculative_count are natural_t
+        # words 22 and 23. These indices are ABI word positions, not a uniform
+        # array of uint64 values.
+        if len(words) <= 23:
+            raise RuntimeError("vm_statistics64 returned too few words")
+        return int(words[0]) + int(words[2]) + int(words[23])
+
     def sample(self, monotonic_time_ns: int) -> MachineResourceSample:
         cpu = self._statistics(self._HOST_CPU_LOAD_INFO, self._CPU_STATE_COUNT)
         total_ticks = sum(cpu[: self._CPU_STATE_COUNT])
         idle_ticks = cpu[2]
 
-        vm = self._statistics(self._HOST_VM_INFO64, self._VM_INFO64_COUNT)
+        vm_words = self._statistics(self._HOST_VM_INFO64, self._VM_INFO64_COUNT)
         page_size = int(os.sysconf("SC_PAGE_SIZE"))
-        free_pages = vm[0] + vm[2] + vm[14]
+        free_pages = self._available_pages(vm_words)
         memory_total = self._total_memory()
         memory_used = max(0, memory_total - free_pages * page_size)
         return MachineResourceSample(

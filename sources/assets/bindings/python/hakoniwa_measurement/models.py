@@ -10,12 +10,15 @@ class MachineResourceSample:
     cpu_percent: float | None
     memory_used_bytes: int
     memory_total_bytes: int
+    memory_used_percent: float = field(init=False)
 
-    @property
-    def memory_used_percent(self) -> float:
-        if self.memory_total_bytes <= 0:
-            return 0.0
-        return 100.0 * self.memory_used_bytes / self.memory_total_bytes
+    def __post_init__(self) -> None:
+        percent = (
+            100.0 * self.memory_used_bytes / self.memory_total_bytes
+            if self.memory_total_bytes > 0
+            else 0.0
+        )
+        object.__setattr__(self, "memory_used_percent", percent)
 
 
 @dataclass(frozen=True)
@@ -23,11 +26,14 @@ class MachineResourceResult:
     backend_id: str
     sampling_interval_sec: float
     sample_count: int
+    cpu_sample_count: int
     invalid_sample_count: int
     cpu_average_percent: float | None
     cpu_max_percent: float | None
     memory_used_average_bytes: float | None
     memory_used_max_bytes: int | None
+    memory_used_average_percent: float | None
+    memory_used_max_percent: float | None
 
 
 @dataclass(frozen=True)
@@ -83,9 +89,11 @@ class ValidationResult:
 class MeasurementResultSet:
     run_id: str
     mode: str
+    minimum_machine_cpu_sample_count: int = 1
     status: str = "success"
     failure_type: str | None = None
     performance: SimulationExecutionResult | None = None
+    machine_preflight: MachineResourceResult | None = None
     machine: MachineResourceResult | None = None
     temporal: HakoniwaTimeResult | None = None
     metadata: dict[str, Any] = field(default_factory=dict)

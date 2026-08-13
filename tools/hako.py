@@ -594,6 +594,7 @@ def write_receipt(
         "  shared_memory: true",
         "  hako_cmd: true",
         "  python_binding: true",
+        "  measurement_library: true",
         "  cmake_package: true",
         "build_limits:",
     ]

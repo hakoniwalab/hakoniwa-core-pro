@@ -29,6 +29,9 @@ from hakoniwa_measurement.platform.factory import (  # noqa: E402
 from hakoniwa_measurement.platform.linux.host_resources import (  # noqa: E402
     LinuxHostResourceBackend,
 )
+from hakoniwa_measurement.platform.macos.host_resources import (  # noqa: E402
+    MacOSHostResourceBackend,
+)
 
 
 class _FakeBackend:
@@ -91,9 +94,34 @@ class MeasurementTest(unittest.TestCase):
         self.assertIsNotNone(second)
         result = monitor.finish()
         self.assertEqual(result.sample_count, 2)
+        self.assertEqual(result.cpu_sample_count, 2)
         self.assertEqual(len(monitor.samples), 2)
         self.assertEqual(result.cpu_average_percent, 25.0)
         self.assertEqual(result.memory_used_average_bytes, 250.0)
+        self.assertEqual(result.memory_used_average_percent, 25.0)
+        self.assertEqual(result.memory_used_max_percent, 30.0)
+
+    def test_machine_monitor_can_force_final_sample_for_short_runs(self) -> None:
+        backend = _FakeBackend()
+        monitor = MachineResourceMonitor(60.0, backend=backend)
+        monitor.start(monotonic_time_ns=0)
+        sample = monitor.sample_now(monotonic_time_ns=1_000_000)
+        result = monitor.finish()
+        self.assertEqual(sample.cpu_percent, 20.0)
+        self.assertEqual(result.sample_count, 1)
+        self.assertEqual(result.invalid_sample_count, 0)
+
+    def test_machine_monitor_treats_unavailable_cpu_interval_as_missing_not_invalid(self) -> None:
+        backend = _FakeBackend()
+        monitor = MachineResourceMonitor(1.0, backend=backend)
+        monitor.start(monotonic_time_ns=0)
+        backend.calls = 0
+        sample = monitor.sample_now(monotonic_time_ns=1)
+        result = monitor.finish()
+        self.assertIsNone(sample.cpu_percent)
+        self.assertEqual(result.invalid_sample_count, 0)
+        self.assertEqual(result.cpu_sample_count, 0)
+        self.assertIsNone(result.cpu_average_percent)
 
     def test_result_validation_marks_misaligned_world_time_invalid(self) -> None:
         meter = SimulationExecutionMeter(world_step_usec=20_000)
@@ -107,6 +135,59 @@ class MeasurementTest(unittest.TestCase):
         self.assertEqual(result.status, "invalid")
         checks = {check.name: check for check in validation.checks}
         self.assertFalse(checks["world_step_aligned"].passed)
+
+    def test_result_validation_checks_preflight_machine_samples(self) -> None:
+        backend = _FakeBackend()
+        monitor = MachineResourceMonitor(1.0, backend=backend)
+        monitor.start(monotonic_time_ns=0)
+        monitor.sample_now(monotonic_time_ns=1_000_000_000)
+        result = MeasurementResultSet(
+            run_id="run-preflight",
+            mode="performance",
+            status="failed",
+            failure_type="test",
+            machine_preflight=monitor.finish(),
+        )
+        validation = result.validate()
+        checks = {check.name: check for check in validation.checks}
+        self.assertTrue(checks["machine_preflight_samples_valid"].passed)
+        self.assertTrue(checks["machine_preflight_cpu_available"].passed)
+
+    def test_result_validation_rejects_machine_result_without_cpu_interval(self) -> None:
+        backend = _FakeBackend()
+        monitor = MachineResourceMonitor(1.0, backend=backend)
+        monitor.start(monotonic_time_ns=0)
+        backend.calls = 0
+        monitor.sample_now(monotonic_time_ns=1)
+        result = MeasurementResultSet(
+            run_id="run-no-cpu",
+            mode="performance",
+            status="failed",
+            failure_type="test",
+            machine=monitor.finish(),
+        )
+        validation = result.validate()
+        checks = {check.name: check for check in validation.checks}
+        self.assertFalse(checks["machine_cpu_available"].passed)
+        self.assertFalse(validation.passed)
+
+    def test_result_validation_enforces_minimum_cpu_sample_count(self) -> None:
+        backend = _FakeBackend()
+        monitor = MachineResourceMonitor(1.0, backend=backend)
+        monitor.start(monotonic_time_ns=0)
+        monitor.sample_now(monotonic_time_ns=1)
+        result = MeasurementResultSet(
+            run_id="run-few-cpu-samples",
+            mode="performance",
+            minimum_machine_cpu_sample_count=2,
+            status="failed",
+            failure_type="test",
+            machine=monitor.finish(),
+        )
+        validation = result.validate()
+        checks = {check.name: check for check in validation.checks}
+        self.assertFalse(checks["machine_cpu_sample_count"].passed)
+        self.assertEqual(checks["machine_cpu_sample_count"].actual, 1)
 
     def test_failed_startup_is_a_valid_result_record_without_performance(self) -> None:
         result = MeasurementResultSet(
@@ -143,6 +224,21 @@ class MeasurementTest(unittest.TestCase):
             self.assertEqual(payload["run_id"], "run-1")
             self.assertNotIn("samples", payload)
 
+    def test_raw_machine_sample_serializes_memory_percentage(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "samples.jsonl"
+            with JsonLinesWriter(path) as writer:
+                writer.write(
+                    MachineResourceSample(
+                        monotonic_time_ns=1,
+                        cpu_percent=10.0,
+                        memory_used_bytes=250,
+                        memory_total_bytes=1000,
+                    )
+                )
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            self.assertEqual(payload["memory_used_percent"], 25.0)
+
     def test_linux_backend_parses_procfs_without_commands(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             proc = Path(temporary)
@@ -176,6 +272,13 @@ class MeasurementTest(unittest.TestCase):
         self.assertGreaterEqual(first.memory_used_bytes, 0)
         self.assertLessEqual(first.memory_used_bytes, first.memory_total_bytes)
         self.assertTrue(second.cpu_percent is None or 0 <= second.cpu_percent <= 100)
+
+    def test_macos_vm_statistics_uses_abi_word_positions(self) -> None:
+        words = [0] * 40
+        words[0] = 10
+        words[2] = 20
+        words[23] = 30
+        self.assertEqual(MacOSHostResourceBackend._available_pages(words), 60)
 
 
 if __name__ == "__main__":

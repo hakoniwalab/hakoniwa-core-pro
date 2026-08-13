@@ -87,12 +87,39 @@ def validate_result_set(result: MeasurementResultSet) -> ValidationResult:
             actual=None if result.temporal is None else "present",
         )
 
+    if result.machine_preflight is not None:
+        check(
+            "machine_preflight_samples_valid",
+            result.machine_preflight.invalid_sample_count == 0,
+            expected=0,
+            actual=result.machine_preflight.invalid_sample_count,
+        )
+        check(
+            "machine_preflight_cpu_available",
+            result.machine_preflight.cpu_average_percent is not None,
+            expected="at least one CPU interval sample",
+            actual=result.machine_preflight.cpu_average_percent,
+        )
+
     if result.machine is not None:
         check(
             "machine_samples_valid",
             result.machine.invalid_sample_count == 0,
             expected=0,
             actual=result.machine.invalid_sample_count,
+        )
+        check(
+            "machine_cpu_available",
+            result.machine.cpu_average_percent is not None,
+            expected="at least one CPU interval sample",
+            actual=result.machine.cpu_average_percent,
+        )
+        check(
+            "machine_cpu_sample_count",
+            result.machine.cpu_sample_count
+            >= result.minimum_machine_cpu_sample_count,
+            expected=f">= {result.minimum_machine_cpu_sample_count}",
+            actual=result.machine.cpu_sample_count,
         )
 
     temporal = result.temporal

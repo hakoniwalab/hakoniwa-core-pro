@@ -51,6 +51,19 @@ class MachineResourceMonitor:
         self._next_sample_ns += skipped_intervals * self._interval_ns
         return sample
 
+    def sample_now(
+        self, monotonic_time_ns: int | None = None
+    ) -> MachineResourceSample:
+        """Collect one sample immediately, independent of the polling schedule."""
+        if self._next_sample_ns is None:
+            raise RuntimeError("machine resource measurement has not started")
+        if self._finished:
+            raise RuntimeError("machine resource measurement already finished")
+        observed_ns = time.monotonic_ns() if monotonic_time_ns is None else int(monotonic_time_ns)
+        sample = self._backend.sample(observed_ns)
+        self._samples.append(sample)
+        return sample
+
     def finish(self) -> MachineResourceResult:
         if self._next_sample_ns is None:
             raise RuntimeError("machine resource measurement has not started")
@@ -59,22 +72,27 @@ class MachineResourceMonitor:
         self._finished = True
         cpu = [sample.cpu_percent for sample in self._samples if sample.cpu_percent is not None]
         memory = [sample.memory_used_bytes for sample in self._samples]
+        memory_percent = [sample.memory_used_percent for sample in self._samples]
         invalid = sum(
             1
             for sample in self._samples
-            if sample.cpu_percent is None
-            or not 0.0 <= sample.cpu_percent <= 100.0
+            if (sample.cpu_percent is not None and not 0.0 <= sample.cpu_percent <= 100.0)
             or not 0 <= sample.memory_used_bytes <= sample.memory_total_bytes
         )
         return MachineResourceResult(
             backend_id=self._backend.backend_id,
             sampling_interval_sec=self._interval_sec,
             sample_count=len(self._samples),
+            cpu_sample_count=len(cpu),
             invalid_sample_count=invalid,
             cpu_average_percent=float(statistics.fmean(cpu)) if cpu else None,
             cpu_max_percent=max(cpu) if cpu else None,
             memory_used_average_bytes=float(statistics.fmean(memory)) if memory else None,
             memory_used_max_bytes=max(memory) if memory else None,
+            memory_used_average_percent=(
+                float(statistics.fmean(memory_percent)) if memory_percent else None
+            ),
+            memory_used_max_percent=max(memory_percent) if memory_percent else None,
         )
 
     @property
