@@ -8,6 +8,7 @@ import platform
 import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 from typing import Any, Dict, Mapping
 
@@ -125,7 +126,7 @@ def load_simple_yaml(path: Path) -> Dict[str, Any]:
 
 
 def resolve_config(raw: Mapping[str, Any]) -> Dict[str, Any]:
-    root_keys = {"version", "limits", "python"}
+    root_keys = {"version", "limits", "python", "validation"}
     unknown_root = sorted(set(raw) - root_keys)
     if unknown_root:
         raise ConfigError(f"unknown key(s) under root: {', '.join(unknown_root)}")
@@ -167,10 +168,22 @@ def resolve_config(raw: Mapping[str, Any]) -> Dict[str, Any]:
     soabi = python_config.get("soabi", False)
     if not isinstance(soabi, bool):
         raise ConfigError("python.soabi must be a boolean")
+    validation_config = raw.get("validation", {})
+    if not isinstance(validation_config, Mapping):
+        raise ConfigError("validation must be a mapping")
+    unknown_validation = sorted(set(validation_config) - {"tests"})
+    if unknown_validation:
+        raise ConfigError(
+            "unknown key(s) under validation: " + ", ".join(unknown_validation)
+        )
+    tests = validation_config.get("tests", True)
+    if not isinstance(tests, bool):
+        raise ConfigError("validation.tests must be a boolean")
     return {
         "version": 1,
         "limits": resolved_limits,
         "python": {"soabi": soabi},
+        "validation": {"tests": tests},
     }
 
 
@@ -234,6 +247,8 @@ def render_resolved_manifest(
         [
             "python:",
             f"  soabi: {'true' if cfg['python']['soabi'] else 'false'}",
+            "validation:",
+            f"  tests: {'true' if cfg['validation']['tests'] else 'false'}",
         ]
     )
     if python_build is not None:
@@ -276,6 +291,47 @@ def powershell() -> str:
     raise HakoError("PowerShell was not found on PATH")
 
 
+def _first_command(names: tuple[str, ...]) -> str | None:
+    for name in names:
+        found = shutil.which(name)
+        if found:
+            return found
+    return None
+
+
+def _cmake_gtest_available(cmake: str, compiler: str) -> bool:
+    """Use CMake's own package discovery without configuring the real project."""
+    with tempfile.TemporaryDirectory(prefix="hako-gtest-doctor-") as temp_dir:
+        root = Path(temp_dir)
+        source = root / "source"
+        build_dir = root / "build"
+        source.mkdir()
+        (source / "CMakeLists.txt").write_text(
+            "\n".join(
+                [
+                    "cmake_minimum_required(VERSION 3.16)",
+                    "project(hako_gtest_doctor LANGUAGES CXX)",
+                    "find_package(GTest QUIET)",
+                    "if(NOT GTest_FOUND)",
+                    '  message(FATAL_ERROR "GTest was not discovered")',
+                    "endif()",
+                ]
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        env = dict(os.environ)
+        env["CXX"] = compiler
+        result = subprocess.run(
+            [cmake, "-S", str(source), "-B", str(build_dir)],
+            check=False,
+            capture_output=True,
+            text=True,
+            env=env,
+        )
+        return result.returncode == 0
+
+
 def doctor(
     manifest: Path,
     native_defaults: Path,
@@ -285,9 +341,8 @@ def doctor(
     checks: list[tuple[str, bool, str]] = []
 
     checks.append(("Python 3.12+", sys.version_info >= (3, 12), sys.version.split()[0]))
-    checks.append(
-        ("CMake", shutil.which("cmake") is not None, shutil.which("cmake") or "not found")
-    )
+    cmake = shutil.which("cmake")
+    checks.append(("CMake", cmake is not None, cmake or "not found"))
     checks.append(("Git", shutil.which("git") is not None, shutil.which("git") or "not found"))
 
     cpp = root / "hakoniwa-core-cpp"
@@ -326,6 +381,23 @@ def doctor(
         build_script = root / "build.bash"
         checks.append(("POSIX build driver", build_script.is_file(), "build.bash"))
         checks.append(("Bash", shutil.which("bash") is not None, shutil.which("bash") or "not found"))
+        compiler = _first_command(("c++", "g++", "clang++"))
+        checks.append(("C++ compiler", compiler is not None, compiler or "not found"))
+        make = shutil.which("make")
+        checks.append(("Make", make is not None, make or "not found"))
+        if cfg["validation"]["tests"] and cmake and compiler:
+            gtest_available = _cmake_gtest_available(cmake, compiler)
+            checks.append(
+                (
+                    "GTest (validation.tests=true)",
+                    gtest_available,
+                    (
+                        "discoverable by CMake"
+                        if gtest_available
+                        else "not discoverable by CMake; GTest is required only because validation.tests=true"
+                    ),
+                )
+            )
 
     print(f"Platform: {platform.system()} {platform.machine()}")
     failed = False
@@ -759,6 +831,9 @@ def main(argv: list[str] | None = None) -> int:
             ),
             "HAKO_PYTHON_WITH_SOABI": (
                 "ON" if cfg["python"]["soabi"] else "OFF"
+            ),
+            "HAKO_ENABLE_GTEST": (
+                "ON" if cfg["validation"]["tests"] else "OFF"
             ),
             "HAKO_CORE_MMAP_PATH": (
                 str(_explicit_path(args.core_mmap_dir, root))

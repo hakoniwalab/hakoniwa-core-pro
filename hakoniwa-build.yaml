@@ -16,3 +16,8 @@ limits:
 # this to true so incompatible CPython ABIs fail safely at import discovery.
 python:
   soabi: false
+
+# Direct Core PRO builds keep the full validation profile. Foundation adapters
+# may disable Component tests in their generated build-input manifest.
+validation:
+  tests: true

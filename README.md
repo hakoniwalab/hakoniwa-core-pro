@@ -388,6 +388,22 @@ python:
 untagged artifactへ暗黙fallbackさせない管理環境向けです。同じ通常のPython
 import pathへSOABI版とuntagged版を混在させないでください。
 
+Component testのbuildは、任意の`validation`セクションで指定します。
+
+```yaml
+validation:
+  tests: true
+```
+
+| マニフェスト項目 | CMake設定 | 既定値 | 用途 |
+| --- | --- | --- | --- |
+| `validation.tests` | `HAKO_ENABLE_GTEST` | `true` | GTestを使用するCore PROのComponent testをbuildする |
+
+直接利用向けの標準manifestは、従来どおり厚い検証構成としてtestsを有効にします。
+Foundationなど、Component testを必要としない管理buildは、生成するComponent
+manifestで`validation.tests: false`を明示できます。`doctor`はtestsが有効な場合だけ
+GTestのCMake discoveryを確認し、無効な場合はGTestをhost prerequisiteとしません。
+
 Windows版CPythonでは`sysconfig.get_config_var("SOABI")`が空でも、標準の
 `EXT_SUFFIX`が`.cp312-win_amd64.pyd`のようなABIタグ付き名称を返す場合が
 あります。この場合、`hako.py`は`EXT_SUFFIX`から`cp312-win_amd64`を導出し、

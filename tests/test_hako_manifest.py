@@ -162,6 +162,121 @@ python:
         with self.assertRaisesRegex(HAKO.ConfigError, "unknown key"):
             self.load(base + "  soabi: false\n  extra: true\n")
 
+    def test_validation_tests_default_to_thick_direct_build(self):
+        config = self.load(
+            """version: 1
+limits:
+  asset_num: 16
+  pdu_channel_max: 8192
+  recv_event_max: 4096
+  service_client_max: 256
+  service_max: 1024
+  client_name_len_max: 64
+  service_name_len_max: 128
+"""
+        )
+        self.assertTrue(config["validation"]["tests"])
+
+    def test_validation_tests_accept_explicit_false(self):
+        config = self.load(
+            """version: 1
+limits:
+  asset_num: 16
+  pdu_channel_max: 8192
+  recv_event_max: 4096
+  service_client_max: 256
+  service_max: 1024
+  client_name_len_max: 64
+  service_name_len_max: 128
+validation:
+  tests: false
+"""
+        )
+        self.assertFalse(config["validation"]["tests"])
+
+    def test_validation_tests_reject_non_boolean_and_unknown_keys(self):
+        base = """version: 1
+limits:
+  asset_num: 16
+  pdu_channel_max: 8192
+  recv_event_max: 4096
+  service_client_max: 256
+  service_max: 1024
+  client_name_len_max: 64
+  service_name_len_max: 128
+validation:
+"""
+        with self.assertRaisesRegex(HAKO.ConfigError, "must be a boolean"):
+            self.load(base + "  tests: yes\n")
+        with self.assertRaisesRegex(HAKO.ConfigError, "unknown key"):
+            self.load(base + "  tests: true\n  extra: true\n")
+
+    def test_doctor_skips_gtest_probe_when_tests_are_disabled(self):
+        config = HAKO.resolve_config(
+            HAKO.load_simple_yaml(REPO_ROOT / "hakoniwa-build.yaml")
+        )
+        config["validation"]["tests"] = False
+        with patch.object(HAKO.sys, "platform", "linux"), patch.object(
+            HAKO.shutil, "which", return_value="/usr/bin/tool"
+        ), patch.object(HAKO, "_cmake_gtest_available") as probe:
+            result = HAKO.doctor(
+                REPO_ROOT / "hakoniwa-build.yaml",
+                REPO_ROOT / "cmake" / "hako_build_defaults.conf",
+                config,
+            )
+        self.assertEqual(result, 0)
+        probe.assert_not_called()
+
+    def test_doctor_reports_gtest_only_when_tests_are_enabled(self):
+        config = HAKO.resolve_config(
+            HAKO.load_simple_yaml(REPO_ROOT / "hakoniwa-build.yaml")
+        )
+        with patch.object(HAKO.sys, "platform", "linux"), patch.object(
+            HAKO.shutil, "which", return_value="/usr/bin/tool"
+        ), patch.object(HAKO, "_cmake_gtest_available", return_value=False):
+            result = HAKO.doctor(
+                REPO_ROOT / "hakoniwa-build.yaml",
+                REPO_ROOT / "cmake" / "hako_build_defaults.conf",
+                config,
+            )
+        self.assertEqual(result, 1)
+
+    def test_build_propagates_selected_test_profile_to_native_driver(self):
+        base_config = HAKO.resolve_config(
+            HAKO.load_simple_yaml(REPO_ROOT / "hakoniwa-build.yaml")
+        )
+        for selected, expected in ((True, "ON"), (False, "OFF")):
+            with self.subTest(selected=selected):
+                config = {
+                    **base_config,
+                    "validation": {"tests": selected},
+                }
+                observed: list[str | None] = []
+
+                def fake_build(_native_defaults, _native_args):
+                    observed.append(HAKO.os.environ.get("HAKO_ENABLE_GTEST"))
+                    return 1
+
+                with patch.object(
+                    HAKO,
+                    "prepare_build_config",
+                    return_value=(
+                        REPO_ROOT / "hakoniwa-build.yaml",
+                        REPO_ROOT / ".hako" / "hako_build_defaults.conf",
+                        config,
+                    ),
+                ), patch.object(HAKO, "build", side_effect=fake_build), patch.dict(
+                    HAKO.os.environ,
+                    {"HAKO_ENABLE_GTEST": "original"},
+                ):
+                    result = HAKO.main(["build"])
+                    self.assertEqual(
+                        HAKO.os.environ["HAKO_ENABLE_GTEST"], "original"
+                    )
+
+                self.assertEqual(result, 1)
+                self.assertEqual(observed, [expected])
+
     def test_resolved_manifest_records_python_build_contract(self):
         config = HAKO.resolve_config(
             HAKO.load_simple_yaml(REPO_ROOT / "hakoniwa-build.yaml")
@@ -183,6 +298,7 @@ python:
             },
         )
         self.assertIn("  soabi: true", rendered)
+        self.assertIn("  tests: true", rendered)
         self.assertIn("    version: \"3.12.10\"", rendered)
         self.assertIn("    abi: \"cpython-312-darwin\"", rendered)
         self.assertIn(
