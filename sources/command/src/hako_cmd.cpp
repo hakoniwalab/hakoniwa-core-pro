@@ -254,7 +254,7 @@ int main(int argc, char* argv[]) {
         return 0;
     }
     if (result.count("version")) {
-        std::cout << "hako-cmd version 1.0.0" << std::endl;
+        std::cout << "hako-cmd version " << HAKO_CMD_VERSION << std::endl;
         std::cout << "HAKO_SHM_MAGIC=0x"
                   << std::hex << HAKO_SHM_MAGIC << std::dec
                   << std::endl;

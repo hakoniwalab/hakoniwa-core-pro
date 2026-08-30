@@ -55,6 +55,7 @@ target_include_directories(
     PRIVATE ${nlohmann_json_SOURCE_DIR}/single_include
     PRIVATE ${cxxopts_SOURCE_DIR}/include
 )
+target_compile_definitions(hako-cmd PRIVATE HAKO_CMD_VERSION="1.0.1")
 install(TARGETS hako-cmd
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
