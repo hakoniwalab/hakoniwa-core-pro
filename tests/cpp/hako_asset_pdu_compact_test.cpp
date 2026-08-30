@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <cstdlib>
+#include <nlohmann/json.hpp>
 
 #include "hako.hpp"
 #include "hako_asset.h"
@@ -71,11 +72,10 @@ std::filesystem::path write_core_config()
 
     auto config_path = base_dir / "cpp_core_config.json";
     std::ofstream config(config_path);
-    config
-        << "{\n"
-        << "  \"shm_type\": \"mmap\",\n"
-        << "  \"core_mmap_path\": \"" << mmap_dir.string() << "\"\n"
-        << "}\n";
+    config << nlohmann::json{
+        {"shm_type", "mmap"},
+        {"core_mmap_path", mmap_dir.string()},
+    }.dump(2) << '\n';
     config.close();
 
     return config_path;
