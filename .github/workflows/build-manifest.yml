@@ -70,3 +70,11 @@ jobs:
       - name: Build with manifest (Windows)
         if: runner.os == 'Windows'
         run: python tools/hako.py build --config "${{ matrix.config }}"
+
+      - name: Run native tests (POSIX)
+        if: runner.os != 'Windows'
+        run: ctest --test-dir cmake-build --output-on-failure
+
+      - name: Run native tests (Windows)
+        if: runner.os == 'Windows'
+        run: ctest --test-dir build-win -C Release --output-on-failure

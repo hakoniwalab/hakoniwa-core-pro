@@ -27,8 +27,10 @@
 #include <functional>
 #include <iomanip>
 #include "dump_meta.hpp"
+#include "runtime_probe.hpp"
 #include "cxxopts.hpp"
 #include "utils/hako_share/hako_shared_memory.hpp"
+#include "utils/hako_share/impl/hako_flock_wait.hpp"
 #include "data/hako_base_data.hpp"
 
 // Type definitions
@@ -36,8 +38,10 @@ using HakoSimCtrlPtr = std::shared_ptr<hako::IHakoSimulationEventController>;
 using Args = const std::vector<std::string>&;
 
 // Signal handler
+static volatile sig_atomic_t hako_cmd_interrupted = 0;
+
 static void hako_cmd_signal_handler(int sig) {
-    printf("SIGNAL RECV: %d\n", sig);
+    hako_cmd_interrupted = sig;
 }
 
 // File I/O
@@ -209,6 +213,8 @@ void setup_options(cxxopts::Options& options) {
     options.add_options()
         ("h,help", "Print usage")
         ("v,version", "Print version")
+        ("lock-timeout-ms", "Maximum file-lock wait in milliseconds (hako-cmd only)",
+            cxxopts::value<uint32_t>()->default_value("3000"))
         ("positional", "Command and arguments", cxxopts::value<std::vector<std::string>>());
     
     options.parse_positional({"positional"});
@@ -279,25 +285,70 @@ int main(int argc, char* argv[]) {
         {"restore", do_restore}, {"real_cid", do_real_cid}
     };
 
-    HakoSimCtrlPtr hako_sim_ctrl = nullptr;
+    auto it = command_map.find(command);
+    if (it == command_map.end()) {
+        std::cerr << "Unknown command: " << command << std::endl;
+        std::cout << options.help() << std::endl;
+        return 1;
+    }
+
+    hako::command::RuntimeProbeResult runtime_probe{};
     if (command != "jmeta") {
-        hako_sim_ctrl = hako::get_simevent_controller();
-        if (hako_sim_ctrl == nullptr) {
-            std::cout << "ERROR: Not found hako-master on this PC" << std::endl;
+        runtime_probe = hako::command::probe_runtime();
+        if (!runtime_probe.is_running()) {
+            std::cerr << "ERROR: " << runtime_probe.message;
+            if (!runtime_probe.master_memory_path.empty()) {
+                std::cerr << " [" << runtime_probe.master_memory_path << "]";
+            }
+            std::cerr << std::endl;
             return 1;
         }
     }
 
+    HakoSimCtrlPtr hako_sim_ctrl = nullptr;
     int ret = 0;
-    auto it = command_map.find(command);
-    if (it != command_map.end()) {
-        ret = it->second(hako_sim_ctrl, positional_args);
-    } else {
-        std::cerr << "Unknown command: " << command << std::endl;
-        std::cout << options.help() << std::endl;
+    try {
+        if (command != "jmeta") {
+            HakoFlockWaitScope wait_scope({
+                result["lock-timeout-ms"].as<uint32_t>(),
+                &hako_cmd_interrupted,
+            });
+            hako_sim_ctrl = hako::get_simevent_controller();
+            if (hako_sim_ctrl == nullptr) {
+                std::cerr << "ERROR: Failed to attach to the running Hakoniwa master" << std::endl;
+                return 1;
+            }
+            ret = it->second(hako_sim_ctrl, positional_args);
+        }
+        else {
+            ret = it->second(hako_sim_ctrl, positional_args);
+        }
+    }
+    catch (const HakoFlockWaitError& e) {
+        if (e.type() == HakoFlockWaitErrorType::Interrupted) {
+            const int signal_number = static_cast<int>(hako_cmd_interrupted);
+            std::cerr << "ERROR: hako-cmd interrupted while waiting for a file lock"
+                      << std::endl;
+            ret = (signal_number > 0) ? (128 + signal_number) : 1;
+        }
+        else if (e.type() == HakoFlockWaitErrorType::Timeout) {
+            std::cerr << "ERROR: file-lock wait timed out after "
+                      << result["lock-timeout-ms"].as<uint32_t>() << " ms"
+                      << std::endl;
+            ret = 1;
+        }
+        else {
+            std::cerr << "ERROR: " << e.what() << std::endl;
+            ret = 1;
+        }
+    }
+    catch (const std::exception& e) {
+        std::cerr << "ERROR: " << e.what() << std::endl;
         ret = 1;
     }
 
-    hako::destroy();
+    if (hako_sim_ctrl != nullptr) {
+        hako::destroy();
+    }
     return ret;
 }

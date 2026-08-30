@@ -15,6 +15,17 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(cxxopts)
 
 
+add_library(hako-command-support STATIC src/runtime_probe.cpp)
+
+target_link_libraries(hako-command-support PRIVATE hako)
+target_include_directories(
+    hako-command-support
+    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src
+    PRIVATE ${HAKO_CORE_SOURCE_DIR}/src/include
+    PRIVATE ${HAKO_CORE_SOURCE_DIR}/src/hako
+    PRIVATE ${nlohmann_json_SOURCE_DIR}/single_include
+)
+
 add_executable(
     hako-cmd
     src/dump_meta.cpp
@@ -24,6 +35,7 @@ add_executable(
 target_link_libraries(
     hako-cmd 
     hako
+    hako-command-support
 )
 
 if (NOT WIN32)
