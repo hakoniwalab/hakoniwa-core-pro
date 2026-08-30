@@ -94,9 +94,8 @@ hako::command::RuntimeProbeResult hako::command::probe_runtime()
             "Hakoniwa master memory was not found");
     }
     const std::streamsize file_size = file.tellg();
-    const size_t expected_size = sizeof(hako::utils::SharedMemoryMetaDataType) +
-                                 sizeof(hako::data::HakoMasterDataType);
-    if ((file_size < 0) || (static_cast<uint64_t>(file_size) < expected_size)) {
+    if ((file_size < 0) ||
+        (static_cast<uint64_t>(file_size) < sizeof(hako::utils::SharedMemoryMetaDataType))) {
         return make_result(
             RuntimeProbeStatus::InvalidMasterMemory, path, 0,
             "Hakoniwa master memory is smaller than expected");
@@ -110,11 +109,21 @@ hako::command::RuntimeProbeResult hako::command::probe_runtime()
             "Failed to read Hakoniwa master memory metadata");
     }
     if ((metadata.magic != HAKO_SHM_MAGIC) ||
-        (metadata.version != HAKO_SHM_LAYOUT_VERSION) ||
-        (metadata.data_size != sizeof(hako::data::HakoMasterDataType))) {
+        (metadata.version != HAKO_SHM_LAYOUT_VERSION)) {
         return make_result(
             RuntimeProbeStatus::InvalidMasterMemory, path, 0,
             "Hakoniwa master memory metadata is incompatible");
+    }
+
+    const uint64_t minimum_data_size =
+        offsetof(hako::data::HakoMasterDataType, master_pid) + sizeof(pid_type);
+    const uint64_t expected_file_size =
+        sizeof(hako::utils::SharedMemoryMetaDataType) + metadata.data_size;
+    if ((metadata.data_size < minimum_data_size) ||
+        (static_cast<uint64_t>(file_size) < expected_file_size)) {
+        return make_result(
+            RuntimeProbeStatus::InvalidMasterMemory, path, 0,
+            "Hakoniwa master memory size metadata is invalid");
     }
 
     pid_type master_pid = 0;

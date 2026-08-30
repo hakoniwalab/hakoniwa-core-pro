@@ -78,17 +78,22 @@ protected:
         std::filesystem::remove_all(directory_, error);
     }
 
-    void write_master(pid_type pid, uint32_t magic = HAKO_SHM_MAGIC)
+    void write_master(
+        pid_type pid,
+        uint32_t magic = HAKO_SHM_MAGIC,
+        size_t additional_data_size = 0)
     {
         const size_t file_size = sizeof(hako::utils::SharedMemoryMetaDataType) +
-                                 sizeof(hako::data::HakoMasterDataType);
+                                 sizeof(hako::data::HakoMasterDataType) +
+                                 additional_data_size;
         std::vector<unsigned char> bytes(file_size, 0);
         auto* metadata = reinterpret_cast<hako::utils::SharedMemoryMetaDataType*>(bytes.data());
         metadata->magic = magic;
         metadata->version = HAKO_SHM_LAYOUT_VERSION;
         metadata->shm_id = -1;
         metadata->sem_id = HAKO_SHARED_MEMORY_ID_0;
-        metadata->data_size = sizeof(hako::data::HakoMasterDataType);
+        metadata->data_size = sizeof(hako::data::HakoMasterDataType) +
+                              additional_data_size;
         auto* master = reinterpret_cast<hako::data::HakoMasterDataType*>(&metadata->data[0]);
         master->master_pid = pid;
         std::ofstream file(master_path_, std::ios::binary);
@@ -114,6 +119,14 @@ TEST_F(RuntimeProbeTest, ReportsMissingMasterMemoryWithoutTakingALock)
 TEST_F(RuntimeProbeTest, AcceptsCompatibleMemoryOwnedByLiveMasterPid)
 {
     write_master(current_pid());
+    auto result = hako::command::probe_runtime();
+    EXPECT_EQ(result.status, hako::command::RuntimeProbeStatus::Running);
+    EXPECT_EQ(result.master_pid, current_pid());
+}
+
+TEST_F(RuntimeProbeTest, AcceptsCompatibleLargerCapacityMemory)
+{
+    write_master(current_pid(), HAKO_SHM_MAGIC, 4096);
     auto result = hako::command::probe_runtime();
     EXPECT_EQ(result.status, hako::command::RuntimeProbeStatus::Running);
     EXPECT_EQ(result.master_pid, current_pid());
