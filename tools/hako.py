@@ -268,11 +268,16 @@ def render_resolved_manifest(
     return "\n".join(lines) + "\n"
 
 
-def prepare_build_config(config_path: str | None) -> tuple[Path, Path, Dict[str, Any]]:
-    root = repo_root()
+def hako_state_dir(state_dir: str | Path | None = None) -> Path:
+    return Path(state_dir).expanduser().resolve() if state_dir else repo_root() / ".hako"
+
+
+def prepare_build_config(
+    config_path: str | None, state_dir: str | Path | None = None
+) -> tuple[Path, Path, Dict[str, Any]]:
     manifest = _manifest_path(config_path)
     cfg = resolve_config(load_simple_yaml(manifest))
-    output_dir = root / ".hako"
+    output_dir = hako_state_dir(state_dir)
     native_defaults = output_dir / "hako_build_defaults.conf"
     resolved_manifest = output_dir / "resolved-build.yaml"
     _atomic_write(native_defaults, render_native_defaults(cfg))
@@ -543,7 +548,7 @@ def _write_resolved_build_metadata(
 ) -> Dict[str, Any]:
     python_build = _python_build_metadata(build_dir, cfg["python"]["soabi"])
     _atomic_write(
-        repo_root() / ".hako" / "resolved-build.yaml",
+        native_defaults.parent / "resolved-build.yaml",
         render_resolved_manifest(manifest, native_defaults, cfg, python_build),
     )
     return python_build
@@ -623,12 +628,13 @@ def write_receipt(
     install_dir: Path,
     cfg: Mapping[str, Any],
     python_build: Mapping[str, Any],
+    state_dir: Path | None = None,
 ) -> Path:
     root = repo_root()
     receipt_root = install_dir / "share" / "hakoniwa" / "receipts"
     resolved_root = receipt_root / "resolved"
     resolved_root.mkdir(parents=True, exist_ok=True)
-    resolved_source = root / ".hako" / "resolved-build.yaml"
+    resolved_source = hako_state_dir(state_dir) / "resolved-build.yaml"
     resolved_relative = (
         Path("share")
         / "hakoniwa"
@@ -737,6 +743,7 @@ def install(
     configuration: str,
     cfg: Mapping[str, Any],
     python_build: Mapping[str, Any],
+    state_dir: Path | None = None,
 ) -> int:
     root = repo_root()
     if not (build_dir / "CMakeCache.txt").is_file():
@@ -751,7 +758,7 @@ def install(
     result = subprocess.run(cmd, cwd=root, check=False).returncode
     if result == 0:
         remove_stale_python_artifacts(install_dir, python_build)
-        receipt = write_receipt(build_dir, install_dir, cfg, python_build)
+        receipt = write_receipt(build_dir, install_dir, cfg, python_build, state_dir)
         print(f"Component Receipt: {receipt}")
     return result
 
@@ -792,12 +799,17 @@ def create_parser() -> argparse.ArgumentParser:
     install_parser.add_argument("--build-dir", default=None)
     install_parser.add_argument("--install-dir", required=True)
     install_parser.add_argument("--configuration", default="Release")
+    for command_parser in (doctor_parser, build_parser, install_parser):
+        command_parser.add_argument(
+            "--state-dir", default=None,
+            help="generated state directory (default: repository root/.hako; relative to cwd)",
+        )
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
     args = create_parser().parse_args(argv)
-    manifest, native_defaults, cfg = prepare_build_config(args.config)
+    manifest, native_defaults, cfg = prepare_build_config(args.config, args.state_dir)
     print(f"Build manifest          : {manifest}")
     print(f"Resolved native defaults: {native_defaults}")
 
@@ -877,6 +889,7 @@ def main(argv: list[str] | None = None) -> int:
             args.configuration,
             cfg,
             python_build,
+            native_defaults.parent,
         )
     raise HakoError(f"unsupported command: {args.command}")
 

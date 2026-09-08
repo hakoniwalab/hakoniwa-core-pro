@@ -512,5 +512,77 @@ validation:
                 )
 
 
+class StateDirectoryTests(unittest.TestCase):
+    def test_default_and_external_state_keep_separate_metadata(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            manifest = REPO_ROOT / "hakoniwa-build.yaml"
+            with patch.object(HAKO, "repo_root", return_value=root):
+                _, legacy_defaults, _ = HAKO.prepare_build_config(str(manifest))
+                legacy = legacy_defaults.parent / "resolved-build.yaml"
+                old = legacy.read_bytes()
+                states = [root / "host-state", root / "docker-state"]
+                for state in states:
+                    selected, defaults, cfg = HAKO.prepare_build_config(str(manifest), state)
+                    self.assertEqual(defaults, state / "hako_build_defaults.conf")
+                    with patch.object(HAKO, "_python_build_metadata", return_value={}):
+                        HAKO._write_resolved_build_metadata(selected, defaults, cfg, root / "build")
+                    self.assertTrue((state / "resolved-build.yaml").is_file())
+                self.assertEqual(legacy.read_bytes(), old)
+                self.assertNotEqual((states[0] / "resolved-build.yaml").read_bytes(),
+                                    (states[1] / "resolved-build.yaml").read_bytes())
+
+    def test_receipt_copies_selected_state_with_legacy_present(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            install = root / "install"
+            for name in ("bin/hako-cmd", "share/hakoniwa/python/hakopy.so"):
+                artifact = install / name
+                artifact.parent.mkdir(parents=True, exist_ok=True)
+                artifact.touch()
+            legacy = root / ".hako/resolved-build.yaml"
+            legacy.parent.mkdir()
+            legacy.write_text("legacy")
+            cfg = HAKO.resolve_config(HAKO.load_simple_yaml(REPO_ROOT / "hakoniwa-build.yaml"))
+            python_build = dict(implementation="CPython", executable=sys.executable, version="3.12.0", major=3,
+                                minor=12, abi="test", extension_suffix=".so")
+            with patch.object(HAKO, "repo_root", return_value=root):
+                for name in ("state-a", "state-b", "state-a"):
+                    state = root / name
+                    state.mkdir(exist_ok=True)
+                    (state / "resolved-build.yaml").write_text(name)
+                    receipt = HAKO.write_receipt(root / "build", install, cfg, python_build, state)
+                    self.assertEqual((receipt.parent / "resolved/hakoniwa-core-pro.yaml").read_text(), name)
+            self.assertEqual(legacy.read_text(), "legacy")
+
+    def test_cli_passes_selected_defaults_to_native_build(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            state = root / "external-state"
+            with patch.object(HAKO, "repo_root", return_value=root), patch.object(
+                HAKO, "build", return_value=0
+            ) as build, patch.object(HAKO, "_python_build_metadata", return_value={}):
+                result = HAKO.main(["build", "--config", str(REPO_ROOT / "hakoniwa-build.yaml"),
+                                    "--state-dir", str(state), "--build-dir", str(root / "build")])
+            self.assertEqual(result, 0)
+            self.assertEqual(build.call_args.args[0], state / "hako_build_defaults.conf")
+            self.assertFalse((root / ".hako").exists())
+
+    def test_relative_and_symlink_state_resolution(self):
+        import os
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            previous = Path.cwd()
+            try:
+                os.chdir(root)
+                self.assertEqual(HAKO.hako_state_dir("state"), root / "state")
+            finally:
+                os.chdir(previous)
+            if os.name != "nt":
+                (root / "real").mkdir()
+                (root / "alias").symlink_to(root / "real", target_is_directory=True)
+                self.assertEqual(HAKO.hako_state_dir(root / "alias"), root / "real")
+
+
 if __name__ == "__main__":
     unittest.main()
