@@ -828,3 +828,23 @@ target_link_libraries(my_app PRIVATE hakoniwa-core::hako hakoniwa-core::assets)
 ---
 
 💡 このルールを最初に決めておくと、**apt公開・PPA配布・ローカルテスト**の全部に対応できる。
+
+
+## Separate generated build state
+
+`tools/hako.py` accepts `--state-dir <directory>` on each operation. Without
+this option, generated state stays in `<repository>/.hako` for compatibility.
+An explicit path may be outside the repository; relative paths use the calling
+shell's current directory, and `~` and symlinks are resolved.
+
+Use the same state directory for every operation in a build/install sequence.
+Resolved configuration and the configuration copied into the Component Receipt
+come from that directory. Existing repository-local state is not moved or deleted.
+Build and install directories remain separate options/manifest settings and must
+also be distinct when sharing sources between environments.
+
+Business Pack supplies `<HAKONIWA_WORK_DIR>/foundation/state/<component>` explicitly;
+standalone invocations should supply their own `--state-dir`.
+
+Core also writes `hako_build_defaults.conf` into the selected state directory
+and passes that file to the native build driver.
