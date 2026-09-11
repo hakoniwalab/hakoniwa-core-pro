@@ -69,6 +69,22 @@ int hako_asset_attach_core_with_name(const char *asset_name, const char *config_
     std::cout << "INFO: Success for core attach with asset name." << std::endl;
     return 0;
 }
+int hako_asset_load_pdu_data(void)
+{
+    if (hako_asset_instance.is_initialized == false) {
+        std::cerr << "Error: not initialized." << std::endl;
+        return EINVAL;
+    }
+    if (hako_asset_instance.hako_asset == nullptr) {
+        std::cerr << "Error: asset controller is not initialized." << std::endl;
+        return EIO;
+    }
+    if (!hako_asset_instance.hako_asset->is_pdu_created()) {
+        std::cerr << "Error: PDU is not created." << std::endl;
+        return ENOENT;
+    }
+    return 0;
+}
 int hako_initialize_for_external(void)
 {
     if (!hako_asset_impl_initialize_for_external()) {
