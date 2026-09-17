@@ -620,6 +620,12 @@ class StateDirectoryTests(unittest.TestCase):
     def test_receipt_copies_selected_state_with_legacy_present(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary).resolve()
+            build = root / "build"
+            build.mkdir()
+            (build / "CMakeCache.txt").write_text(
+                "HAKO_CALLBACK_ASSETS_SHARED:BOOL=OFF\n",
+                encoding="utf-8",
+            )
             install = root / "install"
             for name in ("bin/hako-cmd", "share/hakoniwa/python/hakopy.so"):
                 artifact = install / name
@@ -631,12 +637,14 @@ class StateDirectoryTests(unittest.TestCase):
             cfg = HAKO.resolve_config(HAKO.load_simple_yaml(REPO_ROOT / "hakoniwa-build.yaml"))
             python_build = dict(implementation="CPython", executable=sys.executable, version="3.12.0", major=3,
                                 minor=12, abi="test", extension_suffix=".so")
-            with patch.object(HAKO, "repo_root", return_value=root):
+            with patch.object(HAKO, "repo_root", return_value=root), patch.object(
+                HAKO.platform, "system", return_value="Windows"
+            ):
                 for name in ("state-a", "state-b", "state-a"):
                     state = root / name
                     state.mkdir(exist_ok=True)
                     (state / "resolved-build.yaml").write_text(name)
-                    receipt = HAKO.write_receipt(root / "build", install, cfg, python_build, state)
+                    receipt = HAKO.write_receipt(build, install, cfg, python_build, state)
                     self.assertEqual((receipt.parent / "resolved/hakoniwa-core-pro.yaml").read_text(), name)
             self.assertEqual(legacy.read_text(), "legacy")
 
