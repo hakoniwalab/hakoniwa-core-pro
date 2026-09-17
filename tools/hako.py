@@ -495,6 +495,24 @@ def _cmake_cache_value(build_dir: Path, key: str) -> str:
     return "unknown"
 
 
+def _effective_callback_assets_shared(build_dir: Path) -> bool:
+    """Return the linkage of the callback assets artifact that was built."""
+    if platform.system() != "Windows":
+        return True
+
+    value = _cmake_cache_value(
+        build_dir, "HAKO_CALLBACK_ASSETS_SHARED"
+    ).strip().upper()
+    if value in {"1", "ON", "TRUE", "YES", "Y"}:
+        return True
+    if value in {"0", "OFF", "FALSE", "NO", "N"}:
+        return False
+    raise HakoError(
+        "configured callback assets linkage was not found in "
+        f"{build_dir / 'CMakeCache.txt'}: HAKO_CALLBACK_ASSETS_SHARED={value}"
+    )
+
+
 def _normalized_python_abi(soabi: str, extension_suffix: str) -> str:
     """Return the ABI tag reported directly or encoded in a tagged suffix."""
     if soabi:
@@ -675,6 +693,7 @@ def write_receipt(
     compiler = _cmake_cache_value(build_dir, "CMAKE_CXX_COMPILER")
     revision = _command_output(["git", "rev-parse", "HEAD"], root)
     limits = cfg["limits"]
+    callback_assets_shared = _effective_callback_assets_shared(build_dir)
     lines = [
         "schema_version: 1",
         "component:",
@@ -692,7 +711,7 @@ def write_receipt(
         "  hako_cmd: true",
         "  python_binding: true",
         "  callback_assets_shared: "
-        + ("true" if cfg["features"]["callback_assets_shared"] else "false"),
+        + ("true" if callback_assets_shared else "false"),
         "  measurement_library: true",
         "  cmake_package: true",
         "build_limits:",

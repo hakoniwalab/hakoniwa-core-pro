@@ -567,6 +567,35 @@ validation:
                     architecture,
                 )
 
+    def test_posix_callback_assets_capability_matches_shared_artifact(self):
+        with patch.object(HAKO.platform, "system", return_value="Linux"), patch.object(
+            HAKO, "_cmake_cache_value"
+        ) as cache_value:
+            self.assertTrue(
+                HAKO._effective_callback_assets_shared(Path("build"))
+            )
+        cache_value.assert_not_called()
+
+    def test_windows_callback_assets_capability_uses_cmake_cache(self):
+        for cached, expected in (("ON", True), ("OFF", False)):
+            with self.subTest(cached=cached), patch.object(
+                HAKO.platform, "system", return_value="Windows"
+            ), patch.object(
+                HAKO, "_cmake_cache_value", return_value=cached
+            ):
+                self.assertIs(
+                    HAKO._effective_callback_assets_shared(Path("build")),
+                    expected,
+                )
+
+    def test_windows_callback_assets_capability_rejects_unknown_cache(self):
+        with patch.object(
+            HAKO.platform, "system", return_value="Windows"
+        ), patch.object(
+            HAKO, "_cmake_cache_value", return_value="unknown"
+        ), self.assertRaisesRegex(HAKO.HakoError, "linkage was not found"):
+            HAKO._effective_callback_assets_shared(Path("build"))
+
 
 class StateDirectoryTests(unittest.TestCase):
     def test_default_and_external_state_keep_separate_metadata(self):
