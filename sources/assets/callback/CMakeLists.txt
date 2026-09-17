@@ -23,15 +23,33 @@ endif()
 
 
 
-if(WIN32)
-add_library(
-    assets STATIC
-    src/hako_asset.cpp
-    src/hako_asset_impl.cpp
-    ${HAKO_CORE_PRO_SOURCE_DIR}/assets/polling/src/hako_asset_service.cpp
-    ${HAKO_CORE_PRO_SOURCE_DIR}/assets/polling/src/hako_asset_service_server.cpp
-    ${HAKO_CORE_PRO_SOURCE_DIR}/assets/polling/src/hako_asset_service_client.cpp
+option(
+    HAKO_CALLBACK_ASSETS_SHARED
+    "Build the callback assets runtime as a shared library on Windows"
+    OFF
 )
+
+if(WIN32)
+    if(HAKO_CALLBACK_ASSETS_SHARED)
+        add_library(
+            assets SHARED
+            src/hako_asset.cpp
+            src/hako_asset_impl.cpp
+            ${HAKO_CORE_PRO_SOURCE_DIR}/assets/polling/src/hako_asset_service.cpp
+            ${HAKO_CORE_PRO_SOURCE_DIR}/assets/polling/src/hako_asset_service_server.cpp
+            ${HAKO_CORE_PRO_SOURCE_DIR}/assets/polling/src/hako_asset_service_client.cpp
+        )
+        set_target_properties(assets PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
+    else()
+        add_library(
+            assets STATIC
+            src/hako_asset.cpp
+            src/hako_asset_impl.cpp
+            ${HAKO_CORE_PRO_SOURCE_DIR}/assets/polling/src/hako_asset_service.cpp
+            ${HAKO_CORE_PRO_SOURCE_DIR}/assets/polling/src/hako_asset_service_server.cpp
+            ${HAKO_CORE_PRO_SOURCE_DIR}/assets/polling/src/hako_asset_service_client.cpp
+        )
+    endif()
 else()
     # ENABLE_HAKO_TIME_MEASURE のオプションに基づいて、条件付きで src/hako_asset_impl_measure.cpp を追加
     if(ENABLE_HAKO_TIME_MEASURE)

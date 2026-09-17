@@ -33,6 +33,8 @@ param(
 
     [string]$PythonWithSoabi = $env:HAKO_PYTHON_WITH_SOABI,
 
+    [string]$CallbackAssetsShared = $env:HAKO_CALLBACK_ASSETS_SHARED,
+
     [string]$EnableGTest = $env:HAKO_ENABLE_GTEST,
 
     [string]$CoreMmapPath = $env:HAKO_CORE_MMAP_PATH,
@@ -282,6 +284,9 @@ if (-not [string]::IsNullOrWhiteSpace($PythonExecutable)) {
 }
 if (-not [string]::IsNullOrWhiteSpace($PythonWithSoabi)) {
     $configureArgs += "-DHAKO_PYTHON_WITH_SOABI=$PythonWithSoabi"
+}
+if (-not [string]::IsNullOrWhiteSpace($CallbackAssetsShared)) {
+    $configureArgs += "-DHAKO_CALLBACK_ASSETS_SHARED=$CallbackAssetsShared"
 }
 if (-not [string]::IsNullOrWhiteSpace($EnableGTest)) {
     $configureArgs += "-DHAKO_ENABLE_GTEST=$EnableGTest"

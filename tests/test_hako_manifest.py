@@ -162,6 +162,29 @@ python:
         with self.assertRaisesRegex(HAKO.ConfigError, "unknown key"):
             self.load(base + "  soabi: false\n  extra: true\n")
 
+    def test_callback_assets_shared_is_explicit_opt_in(self):
+        base = """version: 1
+limits:
+  asset_num: 16
+  pdu_channel_max: 8192
+  recv_event_max: 4096
+  service_client_max: 256
+  service_max: 1024
+  client_name_len_max: 64
+  service_name_len_max: 128
+"""
+        self.assertFalse(
+            self.load(base)["features"]["callback_assets_shared"]
+        )
+        enabled = self.load(
+            base + "features:\n  callback_assets_shared: true\n"
+        )
+        self.assertTrue(enabled["features"]["callback_assets_shared"])
+        with self.assertRaisesRegex(HAKO.ConfigError, "must be a boolean"):
+            self.load(base + "features:\n  callback_assets_shared: yes\n")
+        with self.assertRaisesRegex(HAKO.ConfigError, "unknown key"):
+            self.load(base + "features:\n  extra: true\n")
+
     def test_validation_tests_default_to_thick_direct_build(self):
         config = self.load(
             """version: 1
@@ -277,6 +300,38 @@ validation:
                 self.assertEqual(result, 1)
                 self.assertEqual(observed, [expected])
 
+    def test_build_propagates_callback_assets_opt_in_to_native_driver(self):
+        base_config = HAKO.resolve_config(
+            HAKO.load_simple_yaml(REPO_ROOT / "hakoniwa-build.yaml")
+        )
+        for selected, expected in ((True, "ON"), (False, "OFF")):
+            with self.subTest(selected=selected):
+                config = {
+                    **base_config,
+                    "features": {"callback_assets_shared": selected},
+                }
+                observed: list[str | None] = []
+
+                def fake_build(_native_defaults, _native_args):
+                    observed.append(
+                        HAKO.os.environ.get("HAKO_CALLBACK_ASSETS_SHARED")
+                    )
+                    return 1
+
+                with patch.object(
+                    HAKO,
+                    "prepare_build_config",
+                    return_value=(
+                        REPO_ROOT / "hakoniwa-build.yaml",
+                        REPO_ROOT / ".hako" / "hako_build_defaults.conf",
+                        config,
+                    ),
+                ), patch.object(HAKO, "build", side_effect=fake_build):
+                    result = HAKO.main(["build"])
+
+                self.assertEqual(result, 1)
+                self.assertEqual(observed, [expected])
+
     def test_resolved_manifest_records_python_build_contract(self):
         config = HAKO.resolve_config(
             HAKO.load_simple_yaml(REPO_ROOT / "hakoniwa-build.yaml")
@@ -298,6 +353,7 @@ validation:
             },
         )
         self.assertIn("  soabi: true", rendered)
+        self.assertIn("  callback_assets_shared: false", rendered)
         self.assertIn("  tests: true", rendered)
         self.assertIn("    version: \"3.12.10\"", rendered)
         self.assertIn("    abi: \"cpython-312-darwin\"", rendered)

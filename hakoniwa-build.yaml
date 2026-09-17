@@ -17,6 +17,11 @@ limits:
 python:
   soabi: false
 
+# Experimental opt-in for Windows consumers that load callback-backed Endpoint
+# code from a DLL. The default preserves the historical static assets library.
+features:
+  callback_assets_shared: false
+
 # Direct Core PRO builds keep the full validation profile. Foundation adapters
 # may disable Component tests in their generated build-input manifest.
 validation:

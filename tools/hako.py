@@ -126,7 +126,7 @@ def load_simple_yaml(path: Path) -> Dict[str, Any]:
 
 
 def resolve_config(raw: Mapping[str, Any]) -> Dict[str, Any]:
-    root_keys = {"version", "limits", "python", "validation"}
+    root_keys = {"version", "limits", "python", "features", "validation"}
     unknown_root = sorted(set(raw) - root_keys)
     if unknown_root:
         raise ConfigError(f"unknown key(s) under root: {', '.join(unknown_root)}")
@@ -168,6 +168,17 @@ def resolve_config(raw: Mapping[str, Any]) -> Dict[str, Any]:
     soabi = python_config.get("soabi", False)
     if not isinstance(soabi, bool):
         raise ConfigError("python.soabi must be a boolean")
+    features_config = raw.get("features", {})
+    if not isinstance(features_config, Mapping):
+        raise ConfigError("features must be a mapping")
+    unknown_features = sorted(set(features_config) - {"callback_assets_shared"})
+    if unknown_features:
+        raise ConfigError(
+            "unknown key(s) under features: " + ", ".join(unknown_features)
+        )
+    callback_assets_shared = features_config.get("callback_assets_shared", False)
+    if not isinstance(callback_assets_shared, bool):
+        raise ConfigError("features.callback_assets_shared must be a boolean")
     validation_config = raw.get("validation", {})
     if not isinstance(validation_config, Mapping):
         raise ConfigError("validation must be a mapping")
@@ -183,6 +194,7 @@ def resolve_config(raw: Mapping[str, Any]) -> Dict[str, Any]:
         "version": 1,
         "limits": resolved_limits,
         "python": {"soabi": soabi},
+        "features": {"callback_assets_shared": callback_assets_shared},
         "validation": {"tests": tests},
     }
 
@@ -245,6 +257,9 @@ def render_resolved_manifest(
         lines.append(f"  {key}: {value}")
     lines.extend(
         [
+            "features:",
+            "  callback_assets_shared: "
+            + ("true" if cfg["features"]["callback_assets_shared"] else "false"),
             "python:",
             f"  soabi: {'true' if cfg['python']['soabi'] else 'false'}",
             "validation:",
@@ -368,6 +383,10 @@ def doctor(
     print(
         "Requested hakopy artifact: "
         + ("SOABI-tagged" if cfg["python"]["soabi"] else "legacy untagged")
+    )
+    print(
+        "Windows callback assets: "
+        + ("shared (experimental)" if cfg["features"]["callback_assets_shared"] else "static (default)")
     )
 
     if sys.platform == "win32":
@@ -672,6 +691,8 @@ def write_receipt(
         "  shared_memory: true",
         "  hako_cmd: true",
         "  python_binding: true",
+        "  callback_assets_shared: "
+        + ("true" if cfg["features"]["callback_assets_shared"] else "false"),
         "  measurement_library: true",
         "  cmake_package: true",
         "build_limits:",
@@ -843,6 +864,9 @@ def main(argv: list[str] | None = None) -> int:
             ),
             "HAKO_PYTHON_WITH_SOABI": (
                 "ON" if cfg["python"]["soabi"] else "OFF"
+            ),
+            "HAKO_CALLBACK_ASSETS_SHARED": (
+                "ON" if cfg["features"]["callback_assets_shared"] else "OFF"
             ),
             "HAKO_ENABLE_GTEST": (
                 "ON" if cfg["validation"]["tests"] else "OFF"
