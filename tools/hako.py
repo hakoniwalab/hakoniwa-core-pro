@@ -14,6 +14,10 @@ from typing import Any, Dict, Mapping
 
 
 DEFAULT_MANIFEST = "hakoniwa-build.yaml"
+# Optional build features. Every feature defaults to false so an omitted
+# ``features:`` section keeps the historical artifacts.
+FEATURE_KEYS_ORDERED = ("callback_assets_shared", "core_shared")
+FEATURE_KEYS = frozenset(FEATURE_KEYS_ORDERED)
 MANIFEST_TO_NATIVE_KEY = {
     "asset_num": "HAKO_DATA_MAX_ASSET_NUM",
     "pdu_channel_max": "HAKO_PDU_CHANNEL_MAX",
@@ -171,14 +175,17 @@ def resolve_config(raw: Mapping[str, Any]) -> Dict[str, Any]:
     features_config = raw.get("features", {})
     if not isinstance(features_config, Mapping):
         raise ConfigError("features must be a mapping")
-    unknown_features = sorted(set(features_config) - {"callback_assets_shared"})
+    unknown_features = sorted(set(features_config) - FEATURE_KEYS)
     if unknown_features:
         raise ConfigError(
             "unknown key(s) under features: " + ", ".join(unknown_features)
         )
-    callback_assets_shared = features_config.get("callback_assets_shared", False)
-    if not isinstance(callback_assets_shared, bool):
-        raise ConfigError("features.callback_assets_shared must be a boolean")
+    features: Dict[str, bool] = {}
+    for feature in FEATURE_KEYS_ORDERED:
+        selected = features_config.get(feature, False)
+        if not isinstance(selected, bool):
+            raise ConfigError(f"features.{feature} must be a boolean")
+        features[feature] = selected
     validation_config = raw.get("validation", {})
     if not isinstance(validation_config, Mapping):
         raise ConfigError("validation must be a mapping")
@@ -194,7 +201,7 @@ def resolve_config(raw: Mapping[str, Any]) -> Dict[str, Any]:
         "version": 1,
         "limits": resolved_limits,
         "python": {"soabi": soabi},
-        "features": {"callback_assets_shared": callback_assets_shared},
+        "features": features,
         "validation": {"tests": tests},
     }
 
@@ -260,6 +267,8 @@ def render_resolved_manifest(
             "features:",
             "  callback_assets_shared: "
             + ("true" if cfg["features"]["callback_assets_shared"] else "false"),
+            "  core_shared: "
+            + ("true" if cfg["features"]["core_shared"] else "false"),
             "python:",
             f"  soabi: {'true' if cfg['python']['soabi'] else 'false'}",
             "validation:",
@@ -388,6 +397,10 @@ def doctor(
         "Windows callback assets: "
         + ("shared (experimental)" if cfg["features"]["callback_assets_shared"] else "static (default)")
     )
+    print(
+        "Windows Core library: "
+        + ("shared hako.dll (experimental)" if cfg["features"]["core_shared"] else "static (default)")
+    )
 
     if sys.platform == "win32":
         win_build = root / "win-build.ps1"
@@ -510,6 +523,31 @@ def _effective_callback_assets_shared(build_dir: Path) -> bool:
     raise HakoError(
         "configured callback assets linkage was not found in "
         f"{build_dir / 'CMakeCache.txt'}: HAKO_CALLBACK_ASSETS_SHARED={value}"
+    )
+
+
+def _effective_core_shared(build_dir: Path) -> bool:
+    """Return whether one Core state is shared by every Core module in a process.
+
+    On Windows this is true only when ``hako`` itself was built as hako.dll
+    (HAKO_CORE_SHARED=ON). On POSIX the CMake graph is unchanged and the
+    option is ignored; the dynamic linker resolves the Core entry points of
+    hakopy, assets and shakoc to a single definition, so the capability is
+    reported as provided (the same contract as callback_assets_shared).
+    """
+    if platform.system() != "Windows":
+        return True
+
+    value = _cmake_cache_value(build_dir, "HAKO_CORE_SHARED").strip().upper()
+    if value in {"1", "ON", "TRUE", "YES", "Y"}:
+        return True
+    # A build tree configured before HAKO_CORE_SHARED existed has no cache
+    # entry; it can only have produced the historical static Core library.
+    if value in {"0", "OFF", "FALSE", "NO", "N", "UNKNOWN"}:
+        return False
+    raise HakoError(
+        "configured Core library linkage was not recognised in "
+        f"{build_dir / 'CMakeCache.txt'}: HAKO_CORE_SHARED={value}"
     )
 
 
@@ -694,6 +732,7 @@ def write_receipt(
     revision = _command_output(["git", "rev-parse", "HEAD"], root)
     limits = cfg["limits"]
     callback_assets_shared = _effective_callback_assets_shared(build_dir)
+    core_shared = _effective_core_shared(build_dir)
     lines = [
         "schema_version: 1",
         "component:",
@@ -712,6 +751,7 @@ def write_receipt(
         "  python_binding: true",
         "  callback_assets_shared: "
         + ("true" if callback_assets_shared else "false"),
+        "  core_shared: " + ("true" if core_shared else "false"),
         "  measurement_library: true",
         "  cmake_package: true",
         "build_limits:",
@@ -886,6 +926,9 @@ def main(argv: list[str] | None = None) -> int:
             ),
             "HAKO_CALLBACK_ASSETS_SHARED": (
                 "ON" if cfg["features"]["callback_assets_shared"] else "OFF"
+            ),
+            "HAKO_CORE_SHARED": (
+                "ON" if cfg["features"]["core_shared"] else "OFF"
             ),
             "HAKO_ENABLE_GTEST": (
                 "ON" if cfg["validation"]["tests"] else "OFF"

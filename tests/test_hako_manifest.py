@@ -185,6 +185,38 @@ limits:
         with self.assertRaisesRegex(HAKO.ConfigError, "unknown key"):
             self.load(base + "features:\n  extra: true\n")
 
+    def test_core_shared_is_explicit_opt_in(self):
+        base = """version: 1
+limits:
+  asset_num: 16
+  pdu_channel_max: 8192
+  recv_event_max: 4096
+  service_client_max: 256
+  service_max: 1024
+  client_name_len_max: 64
+  service_name_len_max: 128
+"""
+        self.assertFalse(self.load(base)["features"]["core_shared"])
+        self.assertFalse(
+            self.load(base + "features:\n  callback_assets_shared: true\n")[
+                "features"
+            ]["core_shared"]
+        )
+        enabled = self.load(base + "features:\n  core_shared: true\n")
+        self.assertTrue(enabled["features"]["core_shared"])
+        self.assertFalse(enabled["features"]["callback_assets_shared"])
+        with self.assertRaisesRegex(HAKO.ConfigError, "must be a boolean"):
+            self.load(base + "features:\n  core_shared: yes\n")
+
+    def test_repository_manifest_keeps_core_shared_off(self):
+        config = HAKO.resolve_config(
+            HAKO.load_simple_yaml(REPO_ROOT / "hakoniwa-build.yaml")
+        )
+        self.assertEqual(
+            config["features"],
+            {"callback_assets_shared": False, "core_shared": False},
+        )
+
     def test_validation_tests_default_to_thick_direct_build(self):
         config = self.load(
             """version: 1
@@ -308,7 +340,10 @@ validation:
             with self.subTest(selected=selected):
                 config = {
                     **base_config,
-                    "features": {"callback_assets_shared": selected},
+                    "features": {
+                        "callback_assets_shared": selected,
+                        "core_shared": False,
+                    },
                 }
                 observed: list[str | None] = []
 
@@ -332,6 +367,72 @@ validation:
                 self.assertEqual(result, 1)
                 self.assertEqual(observed, [expected])
 
+    def test_build_propagates_core_shared_opt_in_to_native_driver(self):
+        base_config = HAKO.resolve_config(
+            HAKO.load_simple_yaml(REPO_ROOT / "hakoniwa-build.yaml")
+        )
+        for selected, expected in ((True, "ON"), (False, "OFF")):
+            with self.subTest(selected=selected):
+                config = {
+                    **base_config,
+                    "features": {
+                        "callback_assets_shared": False,
+                        "core_shared": selected,
+                    },
+                }
+                observed: list[tuple[str | None, str | None]] = []
+
+                def fake_build(_native_defaults, _native_args):
+                    observed.append(
+                        (
+                            HAKO.os.environ.get("HAKO_CORE_SHARED"),
+                            HAKO.os.environ.get("HAKO_CALLBACK_ASSETS_SHARED"),
+                        )
+                    )
+                    return 1
+
+                with patch.object(
+                    HAKO,
+                    "prepare_build_config",
+                    return_value=(
+                        REPO_ROOT / "hakoniwa-build.yaml",
+                        REPO_ROOT / ".hako" / "hako_build_defaults.conf",
+                        config,
+                    ),
+                ), patch.object(HAKO, "build", side_effect=fake_build):
+                    result = HAKO.main(["build"])
+
+                self.assertEqual(result, 1)
+                self.assertEqual(observed, [(expected, "OFF")])
+                self.assertIsNone(HAKO.os.environ.get("HAKO_CORE_SHARED"))
+
+    def test_windows_driver_forwards_core_shared_to_cmake(self):
+        script = (REPO_ROOT / "win-build.ps1").read_text(encoding="utf-8")
+        self.assertIn("[string]$CoreShared = $env:HAKO_CORE_SHARED", script)
+        self.assertIn('"-DHAKO_CORE_SHARED=$CoreShared"', script)
+
+    def test_cmake_core_shared_is_windows_only_and_off_by_default(self):
+        cmake = (REPO_ROOT / "CMakeLists.txt").read_text(encoding="utf-8")
+        self.assertRegex(
+            cmake,
+            r"option\(\s*HAKO_CORE_SHARED\s+\"[^\"]+\"\s+OFF\s*\)",
+        )
+        self.assertRegex(
+            cmake,
+            r"if\(HAKO_CORE_SHARED\)\s+if\(WIN32\)\s+"
+            r"set\(HAKO_CORE_SHARED_EFFECTIVE ON\)",
+        )
+        # Every target-level change keys off the Windows-only effective flag.
+        for relative in (
+            "sources/core/CMakeLists.txt",
+            "sources/assets/polling/CMakeLists.txt",
+            "sources/command/CMakeLists.txt",
+            "tests/cpp/CMakeLists.txt",
+        ):
+            text = (REPO_ROOT / relative).read_text(encoding="utf-8")
+            self.assertNotRegex(text, r"if\(HAKO_CORE_SHARED\)", relative)
+            self.assertIn("HAKO_CORE_SHARED_EFFECTIVE", text, relative)
+
     def test_resolved_manifest_records_python_build_contract(self):
         config = HAKO.resolve_config(
             HAKO.load_simple_yaml(REPO_ROOT / "hakoniwa-build.yaml")
@@ -354,6 +455,7 @@ validation:
         )
         self.assertIn("  soabi: true", rendered)
         self.assertIn("  callback_assets_shared: false", rendered)
+        self.assertIn("  core_shared: false", rendered)
         self.assertIn("  tests: true", rendered)
         self.assertIn("    version: \"3.12.10\"", rendered)
         self.assertIn("    abi: \"cpython-312-darwin\"", rendered)
@@ -596,6 +698,42 @@ validation:
         ), self.assertRaisesRegex(HAKO.HakoError, "linkage was not found"):
             HAKO._effective_callback_assets_shared(Path("build"))
 
+    def test_posix_core_shared_capability_is_reported_without_cache(self):
+        for system in ("Linux", "Darwin"):
+            with self.subTest(system=system), patch.object(
+                HAKO.platform, "system", return_value=system
+            ), patch.object(HAKO, "_cmake_cache_value") as cache_value:
+                self.assertTrue(HAKO._effective_core_shared(Path("build")))
+            cache_value.assert_not_called()
+
+    def test_windows_core_shared_capability_uses_cmake_cache(self):
+        for cached, expected in (("ON", True), ("OFF", False)):
+            with self.subTest(cached=cached), patch.object(
+                HAKO.platform, "system", return_value="Windows"
+            ), patch.object(
+                HAKO, "_cmake_cache_value", return_value=cached
+            ) as cache_value:
+                self.assertIs(
+                    HAKO._effective_core_shared(Path("build")),
+                    expected,
+                )
+            cache_value.assert_called_once_with(Path("build"), "HAKO_CORE_SHARED")
+
+    def test_windows_core_shared_capability_treats_missing_cache_as_static(self):
+        # Build trees configured before the option existed built static hako.
+        with patch.object(
+            HAKO.platform, "system", return_value="Windows"
+        ), patch.object(HAKO, "_cmake_cache_value", return_value="unknown"):
+            self.assertFalse(HAKO._effective_core_shared(Path("build")))
+
+    def test_windows_core_shared_capability_rejects_invalid_cache(self):
+        with patch.object(
+            HAKO.platform, "system", return_value="Windows"
+        ), patch.object(
+            HAKO, "_cmake_cache_value", return_value="maybe"
+        ), self.assertRaisesRegex(HAKO.HakoError, "HAKO_CORE_SHARED"):
+            HAKO._effective_core_shared(Path("build"))
+
 
 class StateDirectoryTests(unittest.TestCase):
     def test_default_and_external_state_keep_separate_metadata(self):
@@ -623,7 +761,8 @@ class StateDirectoryTests(unittest.TestCase):
             build = root / "build"
             build.mkdir()
             (build / "CMakeCache.txt").write_text(
-                "HAKO_CALLBACK_ASSETS_SHARED:BOOL=OFF\n",
+                "HAKO_CALLBACK_ASSETS_SHARED:BOOL=OFF\n"
+                "HAKO_CORE_SHARED:BOOL=OFF\n",
                 encoding="utf-8",
             )
             install = root / "install"
@@ -646,7 +785,39 @@ class StateDirectoryTests(unittest.TestCase):
                     (state / "resolved-build.yaml").write_text(name)
                     receipt = HAKO.write_receipt(build, install, cfg, python_build, state)
                     self.assertEqual((receipt.parent / "resolved/hakoniwa-core-pro.yaml").read_text(), name)
+                    text = receipt.read_text()
+                    self.assertIn("  callback_assets_shared: false\n", text)
+                    self.assertIn("  core_shared: false\n", text)
             self.assertEqual(legacy.read_text(), "legacy")
+
+    def test_receipt_reports_windows_core_shared_opt_in(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            build = root / "build"
+            build.mkdir()
+            (build / "CMakeCache.txt").write_text(
+                "HAKO_CALLBACK_ASSETS_SHARED:BOOL=ON\n"
+                "HAKO_CORE_SHARED:BOOL=ON\n",
+                encoding="utf-8",
+            )
+            install = root / "install"
+            for name in ("bin/hako-cmd.exe", "share/hakoniwa/python/hakopy.pyd"):
+                artifact = install / name
+                artifact.parent.mkdir(parents=True, exist_ok=True)
+                artifact.touch()
+            state = root / "state"
+            state.mkdir()
+            (state / "resolved-build.yaml").write_text("state")
+            cfg = HAKO.resolve_config(HAKO.load_simple_yaml(REPO_ROOT / "hakoniwa-build.yaml"))
+            python_build = dict(implementation="CPython", executable=sys.executable, version="3.12.0", major=3,
+                                minor=12, abi="test", extension_suffix=".pyd")
+            with patch.object(HAKO, "repo_root", return_value=root), patch.object(
+                HAKO.platform, "system", return_value="Windows"
+            ):
+                receipt = HAKO.write_receipt(build, install, cfg, python_build, state)
+            text = receipt.read_text()
+            self.assertIn("  callback_assets_shared: true\n", text)
+            self.assertIn("  core_shared: true\n", text)
 
     def test_cli_passes_selected_defaults_to_native_build(self):
         with tempfile.TemporaryDirectory() as temporary:

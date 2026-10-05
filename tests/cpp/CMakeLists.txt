@@ -38,6 +38,16 @@ target_include_directories(
     PRIVATE ${PROJECT_SOURCE_DIR}/hakoniwa-core-cpp/src/hako
 )
 target_link_libraries(hako-command-lock-holder hako Threads::Threads)
+if(HAKO_CORE_SHARED_EFFECTIVE)
+    # Windows + HAKO_CORE_SHARED: copy hako.dll next to the build-tree test
+    # executables so ctest can load them.
+    foreach(_hako_test_target IN ITEMS hako-core-pro-test hako-command-lock-holder)
+        add_custom_command(TARGET ${_hako_test_target} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                $<TARGET_FILE:hako> $<TARGET_FILE_DIR:${_hako_test_target}>
+        )
+    endforeach()
+endif()
 
 add_test(
     NAME HakoCommandLockIntegration

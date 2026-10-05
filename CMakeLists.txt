@@ -92,6 +92,27 @@ message(STATUS "GCOV" ${GCOV})
 message(STATUS "CMAKE_C_FLAGS" ${CMAKE_C_FLAGS})
 message(STATUS "CMAKE_CXX_FLAGS" ${CMAKE_CXX_FLAGS})
 
+# Experimental Windows-only opt-in: build the Core library `hako` as one
+# hako.dll that every Core consumer (conductor, assets, shakoc, hakopy,
+# hako-cmd) imports, instead of each module carrying its own static copy of the
+# process-global Core state (see #64, #90, #92). Default OFF keeps the
+# historical static Core library. The option is ignored outside Windows so the
+# POSIX build graph never changes.
+option(
+    HAKO_CORE_SHARED
+    "Build the Core library hako as a shared library (hako.dll) on Windows"
+    OFF
+)
+set(HAKO_CORE_SHARED_EFFECTIVE OFF)
+if(HAKO_CORE_SHARED)
+    if(WIN32)
+        set(HAKO_CORE_SHARED_EFFECTIVE ON)
+        message(STATUS "HAKO_CORE_SHARED: building the Core library as hako.dll")
+    else()
+        message(STATUS "HAKO_CORE_SHARED is Windows-only and is ignored on ${CMAKE_SYSTEM_NAME}")
+    endif()
+endif()
+
 add_subdirectory(sources/core)
 option(HAKO_CORE_PRO_BUILD_COMMAND "Build hakoniwa-core-pro command tools" ON)
 if(HAKO_CORE_PRO_BUILD_COMMAND)

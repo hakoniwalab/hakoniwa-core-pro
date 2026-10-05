@@ -45,8 +45,16 @@ else()
     FetchContent_MakeAvailable(json)
 endif()
 
+# HAKO_CORE_SHARED_EFFECTIVE is ON only on Windows with HAKO_CORE_SHARED=ON
+# (see the top-level CMakeLists.txt). Every other configuration keeps the
+# historical static Core library.
+set(HAKO_CORE_LIBRARY_TYPE STATIC)
+if(HAKO_CORE_SHARED_EFFECTIVE)
+    set(HAKO_CORE_LIBRARY_TYPE SHARED)
+endif()
+
 add_library(
-    hako STATIC
+    hako ${HAKO_CORE_LIBRARY_TYPE}
     ${HAKO_CORE_SOURCE_DIR}/src/hako/hako_asset_impl.cpp
     ${HAKO_CORE_SOURCE_DIR}/src/hako/hako_simevent_impl.cpp
     ${HAKO_CORE_SOURCE_DIR}/src/hako/hako_master_impl.cpp
@@ -101,9 +109,25 @@ elseif(WIN32)
 else()
 endif()
 
-install(TARGETS hako
-    EXPORT hakoniwa-core-targets
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-)
+if(HAKO_CORE_SHARED_EFFECTIVE)
+    # The Core state lives in hako.dll. Core accessors are plain functions
+    # (no exported data symbols), so exporting every symbol is sufficient and
+    # consumers need no __declspec(dllimport) annotations.
+    set_target_properties(hako PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
+    # hako.dll goes next to the other runtime DLLs (bin) and hako.lib becomes
+    # its import library (lib).
+    install(TARGETS hako
+        EXPORT hakoniwa-core-targets
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    )
+else()
+    install(TARGETS hako
+        EXPORT hakoniwa-core-targets
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    )
+endif()

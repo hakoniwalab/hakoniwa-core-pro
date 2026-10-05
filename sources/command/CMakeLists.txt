@@ -56,6 +56,14 @@ target_include_directories(
     PRIVATE ${cxxopts_SOURCE_DIR}/include
 )
 target_compile_definitions(hako-cmd PRIVATE HAKO_CMD_VERSION="1.0.1")
+if(HAKO_CORE_SHARED_EFFECTIVE)
+    # Let the build-tree hako-cmd.exe find hako.dll; installed copies sit
+    # together in bin.
+    add_custom_command(TARGET hako-cmd POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            $<TARGET_FILE:hako> $<TARGET_FILE_DIR:hako-cmd>
+    )
+endif()
 install(TARGETS hako-cmd
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
