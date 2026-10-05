@@ -35,6 +35,8 @@ param(
 
     [string]$CallbackAssetsShared = $env:HAKO_CALLBACK_ASSETS_SHARED,
 
+    [string]$CoreShared = $env:HAKO_CORE_SHARED,
+
     [string]$EnableGTest = $env:HAKO_ENABLE_GTEST,
 
     [string]$CoreMmapPath = $env:HAKO_CORE_MMAP_PATH,
@@ -287,6 +289,9 @@ if (-not [string]::IsNullOrWhiteSpace($PythonWithSoabi)) {
 }
 if (-not [string]::IsNullOrWhiteSpace($CallbackAssetsShared)) {
     $configureArgs += "-DHAKO_CALLBACK_ASSETS_SHARED=$CallbackAssetsShared"
+}
+if (-not [string]::IsNullOrWhiteSpace($CoreShared)) {
+    $configureArgs += "-DHAKO_CORE_SHARED=$CoreShared"
 }
 if (-not [string]::IsNullOrWhiteSpace($EnableGTest)) {
     $configureArgs += "-DHAKO_ENABLE_GTEST=$EnableGTest"

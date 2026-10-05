@@ -52,6 +52,18 @@ set(SHARED_SRC
     ${HAKO_CORE_PRO_SOURCE_DIR}/core/src/hako_pro.cpp
 )
 
+if(HAKO_CORE_SHARED_EFFECTIVE)
+    # Windows + HAKO_CORE_SHARED: the Core state lives only in hako.dll, so
+    # shakoc compiles just the polling C API and links the shared Core
+    # library instead of embedding its own copy of the Core sources.
+    set(SHARED_SRC
+        src/hako_capi.cpp
+        src/hakoniwa_asset_polling.cpp
+        ${HAKO_CORE_PRO_SOURCE_DIR}/assets/polling/src/hako_asset_service.cpp
+        ${HAKO_CORE_PRO_SOURCE_DIR}/assets/polling/src/hako_asset_service_server.cpp
+        ${HAKO_CORE_PRO_SOURCE_DIR}/assets/polling/src/hako_asset_service_client.cpp
+    )
+endif()
 
 option(HAKO_SHAKOC_STATIC "Build shakoc as a static library" OFF)
 
@@ -87,6 +99,9 @@ target_link_libraries(
     ${PTHREAD_LIB}
     ${HAKO_PYTHON_LIBS}
 )
+if(HAKO_CORE_SHARED_EFFECTIVE)
+    target_link_libraries(shakoc hako)
+endif()
 
 
 target_include_directories(

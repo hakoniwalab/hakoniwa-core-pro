@@ -421,6 +421,43 @@ Foundationなど、Component testを必要としない管理buildは、生成す
 manifestで`validation.tests: false`を明示できます。`doctor`はtestsが有効な場合だけ
 GTestのCMake discoveryを確認し、無効な場合はGTestをhost prerequisiteとしません。
 
+#### Windows向けの実験的opt-in（`features`）
+
+```yaml
+features:
+  callback_assets_shared: false
+  core_shared: false
+```
+
+| マニフェスト項目 | CMake設定 | 既定値 | 用途 |
+| --- | --- | --- | --- |
+| `features.callback_assets_shared` | `HAKO_CALLBACK_ASSETS_SHARED` | `false` | Windowsでcallback `assets`をDLL（`assets.dll`）としてbuildする（#92） |
+| `features.core_shared` | `HAKO_CORE_SHARED` | `false` | WindowsでCoreライブラリ`hako`を1つのDLL（`hako.dll`）としてbuildする |
+
+どちらもWindows専用で、Linux/macOSでは無視されます（CMakeのbuild graphは変わりません）。
+既定値`false`では従来どおりのstatic libraryをbuildします。
+
+`core_shared`を有効にする理由: Coreはプロセス内グローバル状態（PRO data、master
+data、asset/simevent controllerなど。例: `sources/core/src/hako_pro.cpp`の
+`pro_data_ptr`）を持ちます。Windowsでは従来`hako`がstatic libraryのため、
+`assets.dll`、`shakoc.dll`、`hakopy.pyd`などのモジュールごとにCoreのコピーが
+埋め込まれ、同じプロセス内でもCore状態が分かれていました。例えば
+`assets.dll`側でservice登録したPRO dataを、`hakopy.pyd`内の別コピーから
+参照して`Failed to get pro data`となります（#64、#90、#92）。
+`core_shared: true`では`hako.dll`だけがCore状態を持ち、`conductor`、
+`assets`（callback/polling）、`shakoc`、`hakopy`、`hako-cmd`はすべて
+`hako.dll`をimportします。`shakoc`もCore sourceを直接compileせず`hako`をlinkします。
+`hako.dll`は他のDLLと同じ`bin`に、import library `hako.lib`は`lib`に
+installされます。DLL境界をまたぐcallback Endpointなどでは
+`callback_assets_shared: true`と併用してください。
+
+Component Receiptの`capabilities.core_shared`は、Windowsでは実際にbuildした
+`hako`のlinkage（`CMakeCache.txt`の`HAKO_CORE_SHARED`）を、Linux/macOSでは
+`true`を記録します。Business Pack Foundation doctorはこの値でrecipeの要求を
+検証できます。既存のWindows Foundationで有効化した場合は、`hako.lib`の意味が
+static libraryからimport libraryに変わるため、Core PROとそれをlinkする
+Component（`hakoniwa-pdu-endpoint`、`hakoniwa-pdu-bridge-core`など）を再buildしてください。
+
 Windows版CPythonでは`sysconfig.get_config_var("SOABI")`が空でも、標準の
 `EXT_SUFFIX`が`.cp312-win_amd64.pyd`のようなABIタグ付き名称を返す場合が
 あります。この場合、`hako.py`は`EXT_SUFFIX`から`cp312-win_amd64`を導出し、
@@ -482,6 +519,8 @@ POSIX 版と同様に、以下の環境変数でビルドパラメータを調�
 - `CHANNEL_MAX`
 - `ENABLE_HAKO_TIME_MEASURE_FLAG`
 - `BUILD_C_FLAGS`
+- `HAKO_CALLBACK_ASSETS_SHARED`（`-CallbackAssetsShared ON`）
+- `HAKO_CORE_SHARED`（`-CoreShared ON`、`hako.dll`をbuildする実験的opt-in）
 
 ビルドディレクトリを削除したい場合は以下を実行します。
 

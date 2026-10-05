@@ -19,8 +19,13 @@ python:
 
 # Experimental opt-in for Windows consumers that load callback-backed Endpoint
 # code from a DLL. The default preserves the historical static assets library.
+#
+# core_shared is a Windows-only experimental opt-in that builds the Core
+# library as one hako.dll so hakopy, assets, shakoc, conductor and hako-cmd
+# share a single Core state in one process. It is ignored on Linux/macOS.
 features:
   callback_assets_shared: false
+  core_shared: false
 
 # Direct Core PRO builds keep the full validation profile. Foundation adapters
 # may disable Component tests in their generated build-input manifest.
