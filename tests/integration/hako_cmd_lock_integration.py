@@ -45,7 +45,6 @@ def main() -> int:
     parser.add_argument("--holder", required=True)
     parser.add_argument("--hakopy-dir", required=True)
     parser.add_argument("--native-library-dir", required=True)
-    parser.add_argument("--python-executable", required=True)
     args = parser.parse_args()
 
     with tempfile.TemporaryDirectory(prefix="hako-cmd-lock-") as temp_dir:
@@ -57,6 +56,9 @@ def main() -> int:
         )
         env = dict(os.environ)
         env["HAKO_CONFIG_PATH"] = str(config_path)
+        # The hakopy assertion below runs in this process, while native helper
+        # commands receive the copied environment explicitly.
+        os.environ["HAKO_CONFIG_PATH"] = str(config_path)
 
         holder = subprocess.Popen(
             [args.holder],
@@ -142,44 +144,36 @@ def main() -> int:
             }),
             encoding="utf-8",
         )
-        python_env = dict(env)
-        python_env["PYTHONPATH"] = str(Path(args.hakopy_dir))
+        dll_directory = None
         if sys.platform == "win32":
-            python_env["PATH"] = (
-                str(Path(args.native_library_dir))
-                + os.pathsep
-                + python_env.get("PATH", "")
-            )
-        python_check = subprocess.run(
-            [
-                args.python_executable,
-                "-c",
-                (
-                    "import hakopy, sys\n"
-                    "callbacks={'on_initialize': None, 'on_reset': None, "
-                    "'on_simulation_step': None, 'on_manual_timing_control': None}\n"
-                    "try:\n"
-                    "    hakopy.asset_register('PythonAsset', sys.argv[1], callbacks, "
-                    "1000, hakopy.HAKO_ASSET_MODEL_CONTROLLER)\n"
-                    "except RuntimeError as error:\n"
-                    "    assert 'master lock owner process is no longer alive' in str(error), str(error)\n"
-                    "else:\n"
-                    "    raise AssertionError('hakopy did not raise RuntimeError')\n"
-                ),
-                str(pdudef_path),
-            ],
-            capture_output=True,
-            text=True,
-            env=python_env,
-            timeout=5,
-            check=False,
-        )
-        if python_check.returncode != 0:
-            raise AssertionError(
-                "hakopy fail-stop exception was not translated: "
-                f"rc={python_check.returncode}, stdout={python_check.stdout!r}, "
-                f"stderr={python_check.stderr!r}"
-            )
+            dll_directory = os.add_dll_directory(str(Path(args.native_library_dir)))
+        sys.path.insert(0, str(Path(args.hakopy_dir)))
+        try:
+            import hakopy
+
+            callbacks = {
+                "on_initialize": None,
+                "on_reset": None,
+                "on_simulation_step": None,
+                "on_manual_timing_control": None,
+            }
+            try:
+                hakopy.asset_register(
+                    "PythonAsset",
+                    str(pdudef_path),
+                    callbacks,
+                    1000,
+                    hakopy.HAKO_ASSET_MODEL_CONTROLLER,
+                )
+            except RuntimeError as error:
+                if "master lock owner process is no longer alive" not in str(error):
+                    raise AssertionError(f"unexpected hakopy RuntimeError: {error}") from error
+            else:
+                raise AssertionError("hakopy did not raise RuntimeError")
+        finally:
+            sys.path.pop(0)
+            if dll_directory is not None:
+                dll_directory.close()
 
         rc, recovered = command_json([args.hako_cmd, "recover"], env)
         if rc != 0 or recovered["status"] != "RECOVERED":
