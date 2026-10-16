@@ -37,6 +37,10 @@ set_tests_properties(${hako_core_pro_gtests} PROPERTIES TIMEOUT 15)
 
 add_executable(hako-command-lock-holder hako_command_lock_holder.cpp)
 add_executable(hako-runtime-c-api-probe hako_runtime_c_api_probe.cpp)
+add_executable(
+    hako-service-c-api-fail-stop-test
+    hako_service_c_api_fail_stop_test.cpp
+)
 target_include_directories(
     hako-command-lock-holder
     PRIVATE ${PROJECT_SOURCE_DIR}/hakoniwa-core-cpp/src/include
@@ -45,6 +49,13 @@ target_include_directories(
 )
 target_link_libraries(hako-command-lock-holder hako Threads::Threads)
 target_include_directories(
+    hako-service-c-api-fail-stop-test
+    PRIVATE ${PROJECT_SOURCE_DIR}/include
+    PRIVATE ${PROJECT_SOURCE_DIR}/hakoniwa-core-cpp/src/include
+    PRIVATE ${PROJECT_SOURCE_DIR}/hakoniwa-core-cpp/src/hako
+)
+target_link_libraries(hako-service-c-api-fail-stop-test assets)
+target_include_directories(
     hako-runtime-c-api-probe
     PRIVATE ${PROJECT_SOURCE_DIR}/include
 )
@@ -52,13 +63,19 @@ target_link_libraries(hako-runtime-c-api-probe assets)
 if(HAKO_CORE_SHARED_EFFECTIVE)
     # Windows + HAKO_CORE_SHARED: copy hako.dll next to the build-tree test
     # executables so ctest can load them.
-    foreach(_hako_test_target IN ITEMS hako-core-pro-test hako-command-lock-holder hako-runtime-c-api-probe)
+    foreach(_hako_test_target IN ITEMS hako-core-pro-test hako-command-lock-holder hako-runtime-c-api-probe hako-service-c-api-fail-stop-test)
         add_custom_command(TARGET ${_hako_test_target} POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_if_different
                 $<TARGET_FILE:hako> $<TARGET_FILE_DIR:${_hako_test_target}>
         )
     endforeach()
 endif()
+
+add_test(
+    NAME HakoServiceCApiFailStop
+    COMMAND $<TARGET_FILE:hako-service-c-api-fail-stop-test>
+)
+set_tests_properties(HakoServiceCApiFailStop PROPERTIES TIMEOUT 10)
 
 set(_hako_lock_integration_python "${Python3_EXECUTABLE}")
 set(_hako_lock_integration_binding_args)
