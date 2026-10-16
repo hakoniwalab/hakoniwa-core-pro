@@ -49,6 +49,7 @@ add_library(
     #for filelock && mmap
     ${HAKO_CORE_SOURCE_DIR}/src/hako/utils/hako_share/impl/hako_flock_wait.cpp
     ${HAKO_CORE_SOURCE_DIR}/src/hako/utils/hako_share/impl/hako_process_identity.cpp
+    ${HAKO_CORE_SOURCE_DIR}/src/hako/utils/hako_share/impl/hako_runtime_lifecycle.cpp
     ${HAKO_CORE_SOURCE_DIR}/src/hako/utils/hako_share/impl/hako_sem_flock.cpp
     ${HAKO_CORE_SOURCE_DIR}/src/hako/utils/hako_share/impl/hako_shared_memory_mmap.cpp
     ${HAKO_CORE_SOURCE_DIR}/src/hako/utils/hako_share/impl/${OS_TYPE}/hako_mmap.cpp

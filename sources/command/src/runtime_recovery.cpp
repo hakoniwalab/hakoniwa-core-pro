@@ -15,6 +15,7 @@
 #include "data/hako_master_data.hpp"
 #include "utils/hako_config_loader.hpp"
 #include "utils/hako_share/hako_master_lock.hpp"
+#include "utils/hako_share/hako_runtime_lifecycle.hpp"
 #include "utils/hako_share/hako_shared_memory.hpp"
 
 namespace {
@@ -81,17 +82,28 @@ hako::command::detail::remove_known_runtime_files(
     const std::vector<std::filesystem::path>& paths,
     const RemoveRuntimeFile& remove_file)
 {
+    std::vector<std::filesystem::path> ordered = paths;
+    std::stable_sort(
+        ordered.begin(), ordered.end(),
+        [](const auto& left, const auto& right) {
+            const bool left_flock = left.filename() == "flock.bin";
+            const bool right_flock = right.filename() == "flock.bin";
+            if (left_flock != right_flock) {
+                return !left_flock;
+            }
+            return left.filename().string() < right.filename().string();
+        });
     RuntimeRecoveryResult result{
         true, "RECOVERED", "runtime files removed", {}, {}, {}};
-    for (size_t index = 0; index < paths.size(); ++index) {
-        const auto& path = paths[index];
+    for (size_t index = 0; index < ordered.size(); ++index) {
+        const auto& path = ordered[index];
         std::error_code error;
         if (!remove_file(path, error) || error) {
             result.recovered = false;
             result.status = "PARTIAL";
             result.reason = "failed to remove one or more runtime files";
-            for (size_t remaining = index; remaining < paths.size(); ++remaining) {
-                result.remaining.push_back(paths[remaining].string());
+            for (size_t remaining = index; remaining < ordered.size(); ++remaining) {
+                result.remaining.push_back(ordered[remaining].string());
             }
             result.failures.push_back({
                 path.string(),
@@ -104,7 +116,8 @@ hako::command::detail::remove_known_runtime_files(
     return result;
 }
 
-hako::command::RuntimeRecoveryResult hako::command::recover_runtime_files()
+hako::command::RuntimeRecoveryResult hako::command::detail::recover_runtime_files(
+    const RemoveRuntimeFile& remove_file)
 {
     HakoConfigType config;
     try {
@@ -122,8 +135,23 @@ hako::command::RuntimeRecoveryResult hako::command::recover_runtime_files()
     }
     const std::filesystem::path root =
         config.param["core_mmap_path"].get<std::string>();
-    if (!std::filesystem::exists(root) || !std::filesystem::is_directory(root)) {
+    std::error_code root_error;
+    if (std::filesystem::is_symlink(root, root_error) || root_error ||
+        !std::filesystem::exists(root, root_error) || root_error ||
+        !std::filesystem::is_directory(root, root_error) || root_error) {
         return refusal("core_mmap_path does not exist or is not a directory");
+    }
+
+    using hako::utils::lifecycle::RuntimeLifecycleHealth;
+    hako::utils::lifecycle::RuntimeRecoveryGuard lifecycle_guard;
+    std::string lifecycle_reason;
+    const RuntimeLifecycleHealth lifecycle_health =
+        lifecycle_guard.acquire(root.string(), &lifecycle_reason);
+    if (lifecycle_health != RuntimeLifecycleHealth::Ok) {
+        return refusal(
+            std::string("runtime lifecycle is ") +
+            hako::utils::lifecycle::runtime_lifecycle_health_name(lifecycle_health) +
+            ": " + lifecycle_reason);
     }
 
     const std::filesystem::path flock_path = root / "flock.bin";
@@ -175,7 +203,9 @@ hako::command::RuntimeRecoveryResult hako::command::recover_runtime_files()
     if (directory_error) {
         return refusal("cannot enumerate core_mmap_path");
     }
-    std::sort(known_files.begin(), known_files.end());
+    for (const auto& lease : lifecycle_guard.inactive_leases()) {
+        known_files.emplace_back(lease);
+    }
 
     /* Validate the complete deletion set before changing anything. */
     for (const auto& path : known_files) {
@@ -185,8 +215,12 @@ hako::command::RuntimeRecoveryResult hako::command::recover_runtime_files()
             return refusal("known runtime path is not a regular file: " + path.string());
         }
     }
-    return detail::remove_known_runtime_files(
-        known_files,
+    return detail::remove_known_runtime_files(known_files, remove_file);
+}
+
+hako::command::RuntimeRecoveryResult hako::command::recover_runtime_files()
+{
+    return detail::recover_runtime_files(
         [](const std::filesystem::path& path, std::error_code& error) {
             return std::filesystem::remove(path, error);
         });

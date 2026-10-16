@@ -41,10 +41,37 @@ target_include_directories(
     PRIVATE ${nlohmann_json_SOURCE_DIR}/single_include
 )
 target_link_libraries(hako-command-lock-holder hako Threads::Threads)
+
+add_executable(
+    hako-recovery-lifecycle-helper
+    hako_recovery_lifecycle_helper.cpp
+)
+target_include_directories(
+    hako-recovery-lifecycle-helper
+    PRIVATE ${PROJECT_SOURCE_DIR}/include
+    PRIVATE ${PROJECT_SOURCE_DIR}/sources/command/src
+)
+target_link_libraries(
+    hako-recovery-lifecycle-helper
+    assets
+    hako-command-support
+    Threads::Threads
+)
+if(WIN32)
+    add_custom_command(TARGET hako-recovery-lifecycle-helper POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            $<TARGET_FILE:assets>
+            $<TARGET_FILE_DIR:hako-recovery-lifecycle-helper>
+    )
+endif()
 if(HAKO_CORE_SHARED_EFFECTIVE)
     # Windows + HAKO_CORE_SHARED: copy hako.dll next to the build-tree test
     # executables so ctest can load them.
-    foreach(_hako_test_target IN ITEMS hako-core-pro-test hako-command-lock-holder)
+    foreach(_hako_test_target IN ITEMS
+        hako-core-pro-test
+        hako-command-lock-holder
+        hako-recovery-lifecycle-helper
+    )
         add_custom_command(TARGET ${_hako_test_target} POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_if_different
                 $<TARGET_FILE:hako> $<TARGET_FILE_DIR:${_hako_test_target}>
@@ -70,3 +97,13 @@ add_test(
         ${_hako_lock_integration_binding_args}
 )
 set_tests_properties(HakoCommandLockIntegration PROPERTIES TIMEOUT 20)
+
+add_test(
+    NAME HakoRecoveryLifecycleIntegration
+    COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/../integration/hako_recovery_lifecycle_integration.py
+        --hako-cmd $<TARGET_FILE:hako-cmd>
+        --holder $<TARGET_FILE:hako-command-lock-holder>
+        --helper $<TARGET_FILE:hako-recovery-lifecycle-helper>
+)
+set_tests_properties(HakoRecoveryLifecycleIntegration PROPERTIES TIMEOUT 30)

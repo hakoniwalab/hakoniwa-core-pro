@@ -1,4 +1,6 @@
 #include <chrono>
+#include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <string>
 #include <thread>
@@ -14,6 +16,19 @@ int main(int argc, char **argv)
     if (!hako::init()) {
         std::cerr << "failed to initialize Hakoniwa master fixture" << std::endl;
         return 1;
+    }
+    if (argc == 2 && std::string(argv[1]) == "--session") {
+        std::cout << "READY" << std::endl;
+        while (true) {
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+        }
+    }
+    if (argc == 4 && std::string(argv[1]) == "--session") {
+        std::ofstream(argv[2]) << "ready\n";
+        while (!std::filesystem::exists(argv[3])) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        }
+        return 0;
     }
     if (argc == 2 && std::string(argv[1]) == "--os-lock") {
         HakoConfigType config;

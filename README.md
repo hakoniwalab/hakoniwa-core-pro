@@ -126,12 +126,26 @@ hako-cmd check --force-wait --lock-timeout-ms 1000
 hako-cmd recover
 ```
 
-`recover`はmaster/asset PIDまたはflock ownerが生存中、OS file lockが競合中、
-あるいは生存確認が不確実な場合には拒否します。削除対象は設定された
+`recover`はruntime lifecycle gateを処理完了まで保持し、master、asset、
+`init_for_external()`を含む全参加プロセスのprocess-lifetime leaseが解放済み
+であることを確認します。新しい参加処理は同じgateの外で待つため、確認から
+削除までの間に入ることはできません。master/asset PIDまたはflock ownerが
+生存中、leaseが使用中、OS file lockが競合中、世代が一致しない、あるいは
+生存確認が不確実な場合には拒否します。削除対象は設定された
 `core_mmap_path`内の既知runtimeファイル
-（`mmap-0x*.bin`、`flock.bin`、`pdu_init.lock`、`pro_init.lock`）だけで、
-シミュレーションを再起動しません。途中の削除に失敗した場合、JSONの
-`removed`、`remaining`、`failures`に部分復旧結果を保持します。
+（`mmap-0x*.bin`、participant lease、`pdu_init.lock`、`pro_init.lock`、
+`flock.bin`）だけで、シミュレーションを再起動しません。所有権の証拠である
+`flock.bin`は必ず最後に削除します。途中の削除に失敗した場合はそこで停止し、
+`flock.bin`を保持したままJSONの`removed`、`remaining`、`failures`に部分復旧
+結果を保持します。lifecycle markerとgateは次の安全なsessionでも使うため残します。
+
+旧形式の`flock.bin`やlifecycle markerのないlayout v2 runtimeは、quiescenceを
+証明できないため`recover`の対象になりません。全関連プロセスをOS側でも停止
+確認し、runtime directory全体を同一filesystem内の日時付きdirectoryへrename
+して証拠保存した後、同じowner/permissionで空の`core_mmap_path`を作り直して
+ください。個別ファイルを削除したり、新旧binaryを同じdirectoryで混在させたり
+してはいけません。詳細はsubmoduleの
+`docs/runtime-lifecycle-recovery.md`を参照してください。
 
 ### 基本的なシミュレーションの流れ
 
@@ -639,10 +653,12 @@ HAKO_INSTALL_PREFIX=/path/to/install \
 curl -fsSL https://raw.githubusercontent.com/hakoniwalab/hakoniwa-core-pro/main/install-hakoniwa.bash | bash
 ```
 
-バージョンタグやインストール先を指定する場合は以下のように実行します。
+公開済みの安定版タグとインストール先を指定する場合は以下のように実行します。
+リポジトリの開発中コード版は`1.4.0`ですが、`v1.4.0`タグはまだ公開されて
+いないため、ここでは実在する最新リリース`v1.3.0`を指定しています。
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/hakoniwalab/hakoniwa-core-pro/main/install-hakoniwa.bash | bash -s -- --version v1.4.0 --prefix /usr/local/hakoniwa
+curl -fsSL https://raw.githubusercontent.com/hakoniwalab/hakoniwa-core-pro/main/install-hakoniwa.bash | bash -s -- --version v1.3.0 --prefix /usr/local/hakoniwa
 ```
 
 アンインストールも同じ installer から実行できます。
