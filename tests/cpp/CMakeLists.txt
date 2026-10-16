@@ -30,7 +30,8 @@ target_link_libraries(
     Threads::Threads
 )
 
-gtest_add_tests(TARGET hako-core-pro-test)
+gtest_add_tests(TARGET hako-core-pro-test TEST_LIST hako_core_pro_gtests)
+set_tests_properties(${hako_core_pro_gtests} PROPERTIES TIMEOUT 15)
 
 add_executable(hako-command-lock-holder hako_command_lock_holder.cpp)
 target_include_directories(
