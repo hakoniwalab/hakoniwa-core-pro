@@ -37,24 +37,40 @@ bool read_runtime_pids(
         return true;
     }
     const std::streamsize size = file.tellg();
-    const size_t required = sizeof(hako::utils::SharedMemoryMetaDataType) +
-                            sizeof(hako::data::HakoMasterDataType);
-    if (size < 0 || static_cast<size_t>(size) < required) {
-        *error = "master memory is too small to prove that no process remains";
+    const size_t header = sizeof(hako::utils::SharedMemoryMetaDataType);
+    const size_t required = header + sizeof(hako::data::HakoMasterDataType);
+    if (size < 0) {
+        *error = "master memory cannot be read";
         return false;
     }
     std::vector<unsigned char> bytes(static_cast<size_t>(size));
     file.seekg(0, std::ios::beg);
-    if (!file.read(reinterpret_cast<char*>(bytes.data()), size)) {
+    if (size > 0 && !file.read(reinterpret_cast<char*>(bytes.data()), size)) {
         *error = "master memory cannot be read";
         return false;
     }
     const auto *metadata =
-        reinterpret_cast<const hako::utils::SharedMemoryMetaDataType*>(bytes.data());
-    if (metadata->magic != HAKO_SHM_MAGIC ||
-        metadata->version != HAKO_SHM_LAYOUT_VERSION ||
+        static_cast<size_t>(size) >= header
+            ? reinterpret_cast<const hako::utils::SharedMemoryMetaDataType*>(bytes.data())
+            : nullptr;
+    // Master memory written by an older Core: another layout version, or no
+    // header at all (before the layout header existed) with at least the old
+    // master data size. Its process table cannot be read, and recovery is an
+    // operator action that requires every process to be stopped (mixed Core
+    // versions are unsupported), so it is removed like a legacy flock.bin.
+    // A current-layout file that is truncated or inconsistent stays a refusal.
+    const bool other_layout =
+        metadata != nullptr && metadata->magic == HAKO_SHM_MAGIC &&
+        metadata->version != HAKO_SHM_LAYOUT_VERSION;
+    const bool no_header =
+        (metadata == nullptr || metadata->magic != HAKO_SHM_MAGIC) &&
+        static_cast<size_t>(size) >= sizeof(hako::data::HakoMasterDataType);
+    if (other_layout || no_header) {
+        return true;
+    }
+    if (static_cast<size_t>(size) < required ||
         metadata->data_size < sizeof(hako::data::HakoMasterDataType)) {
-        *error = "master memory layout is incompatible; process state is uncertain";
+        *error = "master memory is too small or inconsistent to prove that no process remains";
         return false;
     }
     const auto *master = reinterpret_cast<const hako::data::HakoMasterDataType*>(

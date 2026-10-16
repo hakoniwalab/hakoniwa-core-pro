@@ -133,7 +133,7 @@ Launcher、master、asset、external clientを含む全Hakoniwaプロセスを�
 
 削除対象は設定された`core_mmap_path`内の既知runtimeファイル
 （`mmap-0x*.bin`、`pdu_init.lock`、`pro_init.lock`、`flock.bin`）だけで、
-旧形式の`flock.bin`も明示的な復旧対象です。所有権の証拠である`flock.bin`は
+旧形式の`flock.bin`と、古いCoreが作ったmaster memory（別のlayout version、またはlayout headerを持たない旧形式）も明示的な復旧対象です。旧形式のmaster memoryからはプロセス表を読めないため、全プロセスが停止していることが前提です（現行layoutなのに短い・不整合なファイルは拒否します）。所有権の証拠である`flock.bin`は
 必ず最後に削除します。途中の削除に失敗した場合はそこで停止し、JSONの
 `removed`、`remaining`、`failures`に部分復旧結果を保持します。空の
 `core_mmap_path`に対する`recover`も成功します。

@@ -132,6 +132,35 @@ TEST_F(RuntimeRecoveryTest, RefusesUncertainMasterLayout)
     EXPECT_TRUE(std::filesystem::exists(root_ / "mmap-0xff.bin"));
 }
 
+TEST_F(RuntimeRecoveryTest, RemovesMasterMemoryOfAnotherLayoutVersion)
+{
+    // An older Core's master memory (another layout version): its process
+    // table cannot be read; recovery assumes every process is stopped.
+    std::vector<char> bytes(sizeof(hako::utils::SharedMemoryMetaDataType) +
+                            sizeof(hako::data::HakoMasterDataType), 0);
+    auto *metadata =
+        reinterpret_cast<hako::utils::SharedMemoryMetaDataType*>(bytes.data());
+    metadata->magic = HAKO_SHM_MAGIC;
+    metadata->version = HAKO_SHM_LAYOUT_VERSION + 1;
+    std::ofstream(root_ / "mmap-0xff.bin", std::ios::binary)
+        .write(bytes.data(), static_cast<std::streamsize>(bytes.size()));
+    create_unlocked_flock();
+    const auto result = hako::command::recover_runtime_files();
+    ASSERT_TRUE(result.recovered) << result.reason;
+    EXPECT_FALSE(std::filesystem::exists(root_ / "mmap-0xff.bin"));
+}
+
+TEST_F(RuntimeRecoveryTest, RemovesHeaderlessMasterMemoryOfAnOlderCore)
+{
+    // Before the layout header: the master data alone, no magic.
+    std::vector<char> bytes(sizeof(hako::data::HakoMasterDataType), 0x5a);
+    std::ofstream(root_ / "mmap-0xff.bin", std::ios::binary)
+        .write(bytes.data(), static_cast<std::streamsize>(bytes.size()));
+    const auto result = hako::command::recover_runtime_files();
+    ASSERT_TRUE(result.recovered) << result.reason;
+    EXPECT_FALSE(std::filesystem::exists(root_ / "mmap-0xff.bin"));
+}
+
 TEST_F(RuntimeRecoveryTest, RefusesLiveFlockOwnerWithoutMasterMemory)
 {
     ASSERT_GE(hako::utils::sem::flock::create(0x00FF), 0);
