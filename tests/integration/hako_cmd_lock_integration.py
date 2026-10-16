@@ -43,6 +43,9 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--hako-cmd", required=True)
     parser.add_argument("--holder", required=True)
+    parser.add_argument("--hakopy-dir", required=True)
+    parser.add_argument("--native-library-dir", required=True)
+    parser.add_argument("--python-executable", required=True)
     args = parser.parse_args()
 
     with tempfile.TemporaryDirectory(prefix="hako-cmd-lock-") as temp_dir:
@@ -119,6 +122,64 @@ def main() -> int:
         rc, check = command_json([args.hako_cmd, "check"], env)
         if rc != 2 or check["status"] != "ABORT":
             raise AssertionError(f"abandoned lock was not detected: rc={rc}, json={check!r}")
+
+        (root / "pdutypes.json").write_text(
+            json.dumps([
+                {
+                    "channel_id": 0,
+                    "pdu_size": 8,
+                    "name": "test",
+                    "type": "test/Test",
+                }
+            ]),
+            encoding="utf-8",
+        )
+        pdudef_path = root / "pdudef.json"
+        pdudef_path.write_text(
+            json.dumps({
+                "paths": [{"id": "default", "path": "pdutypes.json"}],
+                "robots": [{"name": "Robot1", "pdutypes_id": "default"}],
+            }),
+            encoding="utf-8",
+        )
+        python_env = dict(env)
+        python_env["PYTHONPATH"] = str(Path(args.hakopy_dir))
+        if sys.platform == "win32":
+            python_env["PATH"] = (
+                str(Path(args.native_library_dir))
+                + os.pathsep
+                + python_env.get("PATH", "")
+            )
+        python_check = subprocess.run(
+            [
+                args.python_executable,
+                "-c",
+                (
+                    "import hakopy, sys\n"
+                    "callbacks={'on_initialize': None, 'on_reset': None, "
+                    "'on_simulation_step': None, 'on_manual_timing_control': None}\n"
+                    "try:\n"
+                    "    hakopy.asset_register('PythonAsset', sys.argv[1], callbacks, "
+                    "1000, hakopy.HAKO_ASSET_MODEL_CONTROLLER)\n"
+                    "except RuntimeError as error:\n"
+                    "    assert 'master lock owner process is no longer alive' in str(error), str(error)\n"
+                    "else:\n"
+                    "    raise AssertionError('hakopy did not raise RuntimeError')\n"
+                ),
+                str(pdudef_path),
+            ],
+            capture_output=True,
+            text=True,
+            env=python_env,
+            timeout=5,
+            check=False,
+        )
+        if python_check.returncode != 0:
+            raise AssertionError(
+                "hakopy fail-stop exception was not translated: "
+                f"rc={python_check.returncode}, stdout={python_check.stdout!r}, "
+                f"stderr={python_check.stderr!r}"
+            )
 
         rc, recovered = command_json([args.hako_cmd, "recover"], env)
         if rc != 0 or recovered["status"] != "RECOVERED":

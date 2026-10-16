@@ -84,6 +84,10 @@ hako-cmd check
 - `ABORT`: lock ownerの終了またはPID再利用を検出したため、実行継続禁止
 - `UNKNOWN`: 旧形式、破損、OS lock競合などにより安全性を証明できない
 
+同じ異常を`hakopy.asset_register()`の20ms待機中に検出した場合、待機を
+継続したりPython processを異常終了させたりせず、理由を含む`RuntimeError`
+としてPython側へ通知します。
+
 OS file lockの解放を限定時間だけ待って再検査する場合に限り、明示的に
 `--force-wait`を付けます。
 

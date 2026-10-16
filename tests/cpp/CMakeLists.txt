@@ -57,5 +57,8 @@ add_test(
         ${CMAKE_CURRENT_SOURCE_DIR}/../integration/hako_cmd_lock_integration.py
         --hako-cmd $<TARGET_FILE:hako-cmd>
         --holder $<TARGET_FILE:hako-command-lock-holder>
+        --hakopy-dir $<TARGET_FILE_DIR:hako_asset_python>
+        --native-library-dir $<TARGET_FILE_DIR:assets>
+        --python-executable ${HAKO_PYTHON_RUNTIME_EXECUTABLE}
 )
 set_tests_properties(HakoCommandLockIntegration PROPERTIES TIMEOUT 20)
