@@ -159,47 +159,29 @@ def main() -> int:
             encoding="utf-8",
         )
         if args.hakopy_dir is not None:
-            dll_directory = None
-            if sys.platform == "win32":
-                if args.native_library_dir is None:
-                    raise AssertionError("native library directory is required on Windows")
-                dll_directory = os.add_dll_directory(str(Path(args.native_library_dir)))
-            sys.path.insert(0, str(Path(args.hakopy_dir)))
-            try:
-                import hakopy
-
-                callbacks = {
-                    "on_initialize": None,
-                    "on_reset": None,
-                    "on_simulation_step": None,
-                    "on_manual_timing_control": None,
-                }
-                try:
-                    hakopy.init_for_external()
-                except RuntimeError as error:
-                    if "master lock owner process is no longer alive" not in str(error):
-                        raise AssertionError(
-                            f"unexpected init_for_external RuntimeError: {error}"
-                        ) from error
-                else:
-                    raise AssertionError("init_for_external did not raise RuntimeError")
-                try:
-                    hakopy.asset_register(
-                        "PythonAsset",
-                        str(pdudef_path),
-                        callbacks,
-                        1000,
-                        hakopy.HAKO_ASSET_MODEL_CONTROLLER,
-                    )
-                except RuntimeError as error:
-                    if "master lock owner process is no longer alive" not in str(error):
-                        raise AssertionError(f"unexpected hakopy RuntimeError: {error}") from error
-                else:
-                    raise AssertionError("hakopy did not raise RuntimeError")
-            finally:
-                sys.path.pop(0)
-                if dll_directory is not None:
-                    dll_directory.close()
+            probe_command = [
+                sys.executable,
+                str(Path(__file__).with_name("hakopy_fail_stop_probe.py")),
+                "--hakopy-dir", args.hakopy_dir,
+                "--pdudef", str(pdudef_path),
+            ]
+            if args.native_library_dir is not None:
+                probe_command.extend([
+                    "--native-library-dir", args.native_library_dir,
+                ])
+            probe = subprocess.run(
+                probe_command,
+                capture_output=True,
+                text=True,
+                env=env,
+                timeout=5,
+                check=False,
+            )
+            if probe.returncode != 0:
+                raise AssertionError(
+                    f"hakopy fail-stop probe failed: rc={probe.returncode}, "
+                    f"stdout={probe.stdout!r}, stderr={probe.stderr!r}"
+                )
 
         rc, recovered = command_json([args.hako_cmd, "recover"], env)
         if rc != 0 or recovered["status"] != "RECOVERED":
