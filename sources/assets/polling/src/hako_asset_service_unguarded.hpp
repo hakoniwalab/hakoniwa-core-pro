@@ -1,0 +1,36 @@
+#pragma once
+
+/*
+ * Parse the public C declarations before renaming the implementation symbols.
+ *
+ * On MSVC with /EHsc an extern "C" function is assumed not to throw.  If the
+ * public header is parsed after these macros, it accidentally declares every
+ * *_unguarded implementation with C linkage.  A MasterLockStateError can then
+ * bypass the public wrapper's catch block and terminate the process.  Keeping
+ * the implementation functions as ordinary C++ functions is part of the
+ * exception boundary contract; only the public wrappers have C linkage.
+ */
+#include "hako_asset_service.h"
+
+/* Rename implementation symbols; public wrappers live in hako_asset_service_guard.cpp. */
+#define hako_asset_service_initialize hako_asset_service_initialize_unguarded
+#define hako_asset_service_server_create hako_asset_service_server_create_unguarded
+#define hako_asset_service_server_poll hako_asset_service_server_poll_unguarded
+#define hako_asset_service_server_get_current_client_id hako_asset_service_server_get_current_client_id_unguarded
+#define hako_asset_service_server_get_current_channel_id hako_asset_service_server_get_current_channel_id_unguarded
+#define hako_asset_service_server_status hako_asset_service_server_status_unguarded
+#define hako_asset_service_server_get_request hako_asset_service_server_get_request_unguarded
+#define hako_asset_service_server_get_response_buffer hako_asset_service_server_get_response_buffer_unguarded
+#define hako_asset_service_server_put_response hako_asset_service_server_put_response_unguarded
+#define hako_asset_service_server_is_canceled hako_asset_service_server_is_canceled_unguarded
+#define hako_asset_service_server_set_progress hako_asset_service_server_set_progress_unguarded
+#define hako_asset_service_client_create hako_asset_service_client_create_unguarded
+#define hako_asset_service_client_poll hako_asset_service_client_poll_unguarded
+#define hako_asset_service_client_get_channel_id hako_asset_service_client_get_channel_id_unguarded
+#define hako_asset_service_client_get_channel_id_by_handle hako_asset_service_client_get_channel_id_by_handle_unguarded
+#define hako_asset_service_client_get_request_buffer hako_asset_service_client_get_request_buffer_unguarded
+#define hako_asset_service_client_call_request hako_asset_service_client_call_request_unguarded
+#define hako_asset_service_client_get_response hako_asset_service_client_get_response_unguarded
+#define hako_asset_service_client_cancel_request hako_asset_service_client_cancel_request_unguarded
+#define hako_asset_service_client_get_progress hako_asset_service_client_get_progress_unguarded
+#define hako_asset_service_client_status hako_asset_service_client_status_unguarded

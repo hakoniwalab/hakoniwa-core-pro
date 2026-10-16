@@ -1,3 +1,4 @@
+#include "hako_asset_service_unguarded.hpp"
 #include "hako_pro.hpp"
 #include "hako_asset_service.h"
 #include "hako_service_protocol.hpp"

@@ -1,4 +1,5 @@
 #include "hako_pro_data.hpp"
+#include "utils/hako_share/hako_master_lock.hpp"
 #include <fstream>
 #include <iostream>
 using namespace hako::data;
@@ -130,6 +131,11 @@ int hako::data::pro::HakoProData::get_service_id(const std::string& service_name
          }
          this->master_data_->unlock();
          master_locked = false;
+     } catch (const hako::utils::sem::flock::MasterLockStateError&) {
+         if (master_locked) {
+             this->master_data_->unlock();
+         }
+         throw;
      } catch (const std::exception& e) {
          if (master_locked) {
              this->master_data_->unlock();

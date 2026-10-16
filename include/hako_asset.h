@@ -2,6 +2,7 @@
 
 #include "hako_primitive_types.h"
 #include "hako_asset_service.h"
+#include "hako_runtime_error.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -40,7 +41,7 @@ static inline int hako_asset_usleep(hako_time_t sleep_time_usec) {
 }
 
 extern int hako_initialize_for_external(void);
-/* Thread-local diagnostic for the most recent guarded C API call. */
+/* Backwards-compatible alias of hako_runtime_last_error(). */
 extern const char* hako_asset_last_error(void);
 extern int hako_asset_pdu_create(const char *robo_name, HakoPduChannelIdType lchannel, size_t pdu_size);
 

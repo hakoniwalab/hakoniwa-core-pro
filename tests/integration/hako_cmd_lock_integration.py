@@ -18,7 +18,16 @@ def wait_until_ready(process: subprocess.Popen[str], timeout_sec: float = 10.0) 
     while time.monotonic() < deadline:
         line = process.stdout.readline()
         if line == "":
-            raise AssertionError(f"lock holder exited early: rc={process.poll()}")
+            try:
+                returncode = process.wait(timeout=0.2)
+            except subprocess.TimeoutExpired:
+                returncode = process.poll()
+            stderr = ""
+            if process.stderr is not None:
+                stderr = process.stderr.read()
+            raise AssertionError(
+                f"process exited before READY: rc={returncode}, stderr={stderr!r}"
+            )
         if line.strip() == "READY":
             return
     raise AssertionError("lock holder did not become ready")
@@ -57,8 +66,10 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--hako-cmd", required=True)
     parser.add_argument("--holder", required=True)
+    parser.add_argument("--runtime-c-api-probe", required=True)
     parser.add_argument("--hakopy-dir")
     parser.add_argument("--native-library-dir")
+    parser.add_argument("--hakopy-running-probe")
     args = parser.parse_args()
 
     with tempfile.TemporaryDirectory(prefix="hako-cmd-lock-") as temp_dir:
@@ -250,6 +261,149 @@ def main() -> int:
         finally:
             restarted.kill()
             restarted.wait(timeout=5)
+
+        rc, recovered = command_json([args.hako_cmd, "recover"], env)
+        if rc != 0:
+            raise AssertionError(f"pre-running-probe recovery failed: {recovered!r}")
+
+        if args.hakopy_running_probe is not None:
+            service_config = root / "service.json"
+            service_config.write_text(
+                json.dumps({
+                    "pduMetaDataSize": 8,
+                    "services": [{
+                        "name": "RuntimeProbeService",
+                        "type": "test/RuntimeProbe",
+                        "maxClients": 1,
+                        "pduSize": {
+                            "server": {"baseSize": 8, "heapSize": 0},
+                            "client": {"baseSize": 8, "heapSize": 0},
+                        },
+                    }],
+                }),
+                encoding="utf-8",
+            )
+            running_probe_command = [
+                sys.executable,
+                args.hakopy_running_probe,
+                "--hakopy-dir", args.hakopy_dir,
+                "--service-config", str(service_config),
+            ]
+            if args.native_library_dir is not None:
+                running_probe_command.extend([
+                    "--native-library-dir", args.native_library_dir,
+                ])
+            idle_master = subprocess.Popen(
+                [args.holder, "--master-abandonable"],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                env=env,
+            )
+            running_probe = None
+            native_probe = None
+            try:
+                wait_until_ready(idle_master)
+                running_probe = subprocess.Popen(
+                    running_probe_command,
+                    stdin=subprocess.PIPE,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    env=env,
+                )
+                wait_until_ready(running_probe)
+                native_probe = subprocess.Popen(
+                    [args.runtime_c_api_probe, str(service_config)],
+                    stdin=subprocess.PIPE,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    env=env,
+                )
+                wait_until_ready(native_probe)
+                assert idle_master.stdin is not None
+                idle_master.stdin.write("ABANDON\n")
+                idle_master.stdin.flush()
+                idle_master.wait(timeout=5)
+                if idle_master.returncode != 0:
+                    raise AssertionError(
+                        "master fixture did not abandon the lock cleanly: "
+                        f"rc={idle_master.returncode}"
+                    )
+                assert running_probe.stdin is not None
+                running_probe.stdin.write("CHECK\n")
+                running_probe.stdin.flush()
+                assert native_probe.stdin is not None
+                native_probe.stdin.write("CHECK\n")
+                native_probe.stdin.flush()
+                stdout, stderr = running_probe.communicate(timeout=5)
+                if running_probe.returncode != 0 or "ABORT_OK" not in stdout:
+                    raise AssertionError(
+                        "attached hakopy process did not contain runtime failure: "
+                        f"rc={running_probe.returncode}, stdout={stdout!r}, "
+                        f"stderr={stderr!r}"
+                    )
+                native_stdout, native_stderr = native_probe.communicate(timeout=5)
+                if native_probe.returncode != 0 or "ABORT_OK" not in native_stdout:
+                    raise AssertionError(
+                        "attached native process did not contain runtime failure: "
+                        f"rc={native_probe.returncode}, stdout={native_stdout!r}, "
+                        f"stderr={native_stderr!r}"
+                    )
+            finally:
+                if running_probe is not None and running_probe.poll() is None:
+                    running_probe.kill()
+                    running_probe.wait(timeout=5)
+                if native_probe is not None and native_probe.poll() is None:
+                    native_probe.kill()
+                    native_probe.wait(timeout=5)
+                if idle_master.poll() is None:
+                    idle_master.kill()
+                    idle_master.wait(timeout=5)
+
+            rc, recovered = command_json([args.hako_cmd, "recover"], env)
+            if rc != 0:
+                raise AssertionError(
+                    f"pre-UNKNOWN-probe recovery failed: {recovered!r}"
+                )
+            legacy_master = subprocess.Popen(
+                [args.holder, "--master-idle"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                env=env,
+            )
+            wait_until_ready(legacy_master)
+            legacy_master.kill()
+            legacy_master.wait(timeout=5)
+            (root / "flock.bin").write_bytes(bytes(4096))
+            unknown_probe = subprocess.run(
+                [
+                    sys.executable,
+                    str(Path(__file__).with_name("hakopy_fail_stop_probe.py")),
+                    "--hakopy-dir", args.hakopy_dir,
+                    "--pdudef", str(pdudef_path),
+                    "--expected-status", "UNKNOWN",
+                    *(
+                        ["--native-library-dir", args.native_library_dir]
+                        if args.native_library_dir is not None else []
+                    ),
+                ],
+                capture_output=True,
+                text=True,
+                env=env,
+                timeout=5,
+                check=False,
+            )
+            if unknown_probe.returncode != 0:
+                raise AssertionError(
+                    "hakopy UNKNOWN probe failed: "
+                    f"rc={unknown_probe.returncode}, "
+                    f"stdout={unknown_probe.stdout!r}, "
+                    f"stderr={unknown_probe.stderr!r}"
+                )
     return 0
 
 

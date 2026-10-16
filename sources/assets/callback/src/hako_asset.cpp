@@ -1,30 +1,14 @@
 #include "hako_asset_impl.hpp"
 #include "hako_asset_state_check.hpp"
-
-#include <exception>
-#include <string>
+#include "hako_runtime_error_internal.hpp"
 
 namespace {
-
-thread_local std::string hako_asset_error;
 
 template <typename Function>
 int guard_c_api(Function&& function) noexcept
 {
-    hako_asset_error.clear();
-    try {
-        return function();
-    }
-    catch (const std::exception& error) {
-        hako_asset_error = error.what();
-        std::cerr << "Hakoniwa runtime failure: " << hako_asset_error << std::endl;
-        return EIO;
-    }
-    catch (...) {
-        hako_asset_error = "unknown native exception";
-        std::cerr << "Hakoniwa runtime failure: " << hako_asset_error << std::endl;
-        return EIO;
-    }
+    return hako::runtime::error::guard(
+        std::forward<Function>(function), EIO);
 }
 
 } // namespace
@@ -74,7 +58,7 @@ int hako_asset_register(const char *asset_name, const char *config_path, hako_as
             asset_name, config_path, callbacks, delta_usec, model);
     });
 }
-int hako_asset_attach_core(void)
+static int hako_asset_attach_core_impl(void)
 {
     if (hako_asset_instance.is_initialized) {
         return 0;
@@ -85,7 +69,11 @@ int hako_asset_attach_core(void)
     std::cout << "INFO: Success for core attach." << std::endl;
     return 0;
 }
-int hako_asset_attach_core_with_name(const char *asset_name, const char *config_path)
+int hako_asset_attach_core(void)
+{
+    return guard_c_api([]() { return hako_asset_attach_core_impl(); });
+}
+static int hako_asset_attach_core_with_name_impl(const char *asset_name, const char *config_path)
 {
     if (hako_asset_instance.is_initialized) {
         return 0;
@@ -104,7 +92,13 @@ int hako_asset_attach_core_with_name(const char *asset_name, const char *config_
     std::cout << "INFO: Success for core attach with asset name." << std::endl;
     return 0;
 }
-int hako_asset_load_pdu_data(void)
+int hako_asset_attach_core_with_name(const char *asset_name, const char *config_path)
+{
+    return guard_c_api([&]() {
+        return hako_asset_attach_core_with_name_impl(asset_name, config_path);
+    });
+}
+static int hako_asset_load_pdu_data_impl(void)
 {
     if (hako_asset_instance.is_initialized == false) {
         std::cerr << "Error: not initialized." << std::endl;
@@ -120,6 +114,10 @@ int hako_asset_load_pdu_data(void)
     }
     return 0;
 }
+int hako_asset_load_pdu_data(void)
+{
+    return guard_c_api([]() { return hako_asset_load_pdu_data_impl(); });
+}
 static int hako_initialize_for_external_impl()
 {
     if (!hako_asset_impl_initialize_for_external()) {
@@ -134,13 +132,19 @@ int hako_initialize_for_external(void)
 }
 const char* hako_asset_last_error(void)
 {
-    return hako_asset_error.c_str();
+    return hako_runtime_last_error();
 }
-int hako_asset_pdu_create(const char *robo_name, HakoPduChannelIdType lchannel, size_t pdu_size)
+static int hako_asset_pdu_create_impl(const char *robo_name, HakoPduChannelIdType lchannel, size_t pdu_size)
 {
     return hako_asset_impl_pdu_create(robo_name, lchannel, pdu_size);
 }
-int hako_asset_start_no_wait(int (*is_force_stop)(void) = nullptr) {
+int hako_asset_pdu_create(const char *robo_name, HakoPduChannelIdType lchannel, size_t pdu_size)
+{
+    return guard_c_api([&]() {
+        return hako_asset_pdu_create_impl(robo_name, lchannel, pdu_size);
+    });
+}
+static int hako_asset_start_no_wait_impl(int (*is_force_stop)(void)) {
     if (hako_asset_instance.is_initialized == false) {
         std::cerr << "Error: not initialized." << std::endl;
         return EINVAL;
@@ -170,8 +174,14 @@ int hako_asset_start_no_wait(int (*is_force_stop)(void) = nullptr) {
     }
     return 0;
 }
+int hako_asset_start_no_wait(int (*is_force_stop)(void))
+{
+    return guard_c_api([&]() {
+        return hako_asset_start_no_wait_impl(is_force_stop);
+    });
+}
 
-int hako_asset_pdu_read(const char *robo_name, HakoPduChannelIdType lchannel, char *buffer, size_t buffer_len) {
+static int hako_asset_pdu_read_impl(const char *robo_name, HakoPduChannelIdType lchannel, char *buffer, size_t buffer_len) {
     if (hako_asset_instance.is_initialized == false) {
         std::cerr << "Error: not initialized." << std::endl;
         return EINVAL;
@@ -192,8 +202,14 @@ int hako_asset_pdu_read(const char *robo_name, HakoPduChannelIdType lchannel, ch
     }
     return 0;
 }
+int hako_asset_pdu_read(const char *robo_name, HakoPduChannelIdType lchannel, char *buffer, size_t buffer_len)
+{
+    return guard_c_api([&]() {
+        return hako_asset_pdu_read_impl(robo_name, lchannel, buffer, buffer_len);
+    });
+}
 
-int hako_asset_pdu_write(const char *robo_name, HakoPduChannelIdType lchannel, const char *buffer, size_t buffer_len) {
+static int hako_asset_pdu_write_impl(const char *robo_name, HakoPduChannelIdType lchannel, const char *buffer, size_t buffer_len) {
     if (hako_asset_instance.is_initialized == false) {
         std::cerr << "Error: not initialized." << std::endl;
         return EINVAL;
@@ -214,18 +230,30 @@ int hako_asset_pdu_write(const char *robo_name, HakoPduChannelIdType lchannel, c
     }
     return 0;
 }
+int hako_asset_pdu_write(const char *robo_name, HakoPduChannelIdType lchannel, const char *buffer, size_t buffer_len)
+{
+    return guard_c_api([&]() {
+        return hako_asset_pdu_write_impl(robo_name, lchannel, buffer, buffer_len);
+    });
+}
 
 hako_time_t hako_asset_simulation_time(void) {
-    return hako_asset_impl_get_world_time();
+    return hako::runtime::error::guard(
+        []() { return hako_asset_impl_get_world_time(); },
+        static_cast<hako_time_t>(0));
 }
 hako_time_t hako_asset_current_time(void) {
-    return hako_asset_impl_get_current_time();
+    return hako::runtime::error::guard(
+        []() { return hako_asset_impl_get_current_time(); },
+        static_cast<hako_time_t>(0));
 }
 hako_time_t hako_asset_min_asset_time(void) {
-    return hako_asset_impl_get_min_asset_time();
+    return hako::runtime::error::guard(
+        []() { return hako_asset_impl_get_min_asset_time(); },
+        static_cast<hako_time_t>(0));
 }
 
-int hako_asset_usleep_no_wait(hako_time_t sleep_time_usec, int (*is_force_stop)() = nullptr)
+static int hako_asset_usleep_no_wait_impl(hako_time_t sleep_time_usec, int (*is_force_stop)())
 {
     if (hako_asset_instance.external_use) {
         //nothing to do
@@ -243,7 +271,13 @@ int hako_asset_usleep_no_wait(hako_time_t sleep_time_usec, int (*is_force_stop)(
     }
     return EINTR;
 }
-int hako_asset_register_data_recv_event(const char *robo_name, HakoPduChannelIdType lchannel, void (*on_recv)(int), int* recv_event_id)
+int hako_asset_usleep_no_wait(hako_time_t sleep_time_usec, int (*is_force_stop)())
+{
+    return guard_c_api([&]() {
+        return hako_asset_usleep_no_wait_impl(sleep_time_usec, is_force_stop);
+    });
+}
+static int hako_asset_register_data_recv_event_impl(const char *robo_name, HakoPduChannelIdType lchannel, void (*on_recv)(int), int* recv_event_id)
 {
     if (hako_asset_instance.is_initialized == false) {
         std::cerr << "Error: not initialized." << std::endl;
@@ -264,7 +298,14 @@ int hako_asset_register_data_recv_event(const char *robo_name, HakoPduChannelIdT
     }
     return 0;
 }
-int hako_asset_check_data_recv_event(const char *robo_name, HakoPduChannelIdType lchannel)
+int hako_asset_register_data_recv_event(const char *robo_name, HakoPduChannelIdType lchannel, void (*on_recv)(int), int* recv_event_id)
+{
+    return guard_c_api([&]() {
+        return hako_asset_register_data_recv_event_impl(
+            robo_name, lchannel, on_recv, recv_event_id);
+    });
+}
+static int hako_asset_check_data_recv_event_impl(const char *robo_name, HakoPduChannelIdType lchannel)
 {
     if (hako_asset_instance.is_initialized == false) {
         std::cerr << "Error: not initialized." << std::endl;
@@ -280,8 +321,14 @@ int hako_asset_check_data_recv_event(const char *robo_name, HakoPduChannelIdType
     }
     return 0;
 }
+int hako_asset_check_data_recv_event(const char *robo_name, HakoPduChannelIdType lchannel)
+{
+    return guard_c_api([&]() {
+        return hako_asset_check_data_recv_event_impl(robo_name, lchannel);
+    });
+}
 
-int hako_asset_set_data_recv_event_pending(int recv_event_id)
+static int hako_asset_set_data_recv_event_pending_impl(int recv_event_id)
 {
     if (hako_asset_instance.is_initialized == false) {
         std::cerr << "Error: not initialized." << std::endl;
@@ -297,8 +344,14 @@ int hako_asset_set_data_recv_event_pending(int recv_event_id)
     }
     return 0;
 }
+int hako_asset_set_data_recv_event_pending(int recv_event_id)
+{
+    return guard_c_api([&]() {
+        return hako_asset_set_data_recv_event_pending_impl(recv_event_id);
+    });
+}
 
-int hako_asset_set_data_recv_event_resume(int recv_event_id)
+static int hako_asset_set_data_recv_event_resume_impl(int recv_event_id)
 {
     if (hako_asset_instance.is_initialized == false) {
         std::cerr << "Error: not initialized." << std::endl;
@@ -314,8 +367,14 @@ int hako_asset_set_data_recv_event_resume(int recv_event_id)
     }
     return 0;
 }
+int hako_asset_set_data_recv_event_resume(int recv_event_id)
+{
+    return guard_c_api([&]() {
+        return hako_asset_set_data_recv_event_resume_impl(recv_event_id);
+    });
+}
 
-int hako_trigger_event(int event)
+static int hako_trigger_event_impl(int event)
 {
     if (hako_asset_instance.is_initialized == false) {
         std::cerr << "Error: not initialized." << std::endl;
@@ -352,4 +411,8 @@ int hako_trigger_event(int event)
     }
     std::cout << "INFO: start simulation" << std::endl;
     return 0;
+}
+int hako_trigger_event(int event)
+{
+    return guard_c_api([&]() { return hako_trigger_event_impl(event); });
 }
