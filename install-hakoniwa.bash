@@ -39,6 +39,7 @@ Options:
 
 Examples:
   curl -fsSL https://raw.githubusercontent.com/hakoniwalab/hakoniwa-core-pro/main/install-hakoniwa.bash | bash
+  # v1.3.0 is the latest published tag; source on main is versioned 1.4.0 until release.
   curl -fsSL https://raw.githubusercontent.com/hakoniwalab/hakoniwa-core-pro/main/install-hakoniwa.bash | bash -s -- --version v1.3.0
   curl -fsSL https://raw.githubusercontent.com/hakoniwalab/hakoniwa-core-pro/main/install-hakoniwa.bash | bash -s -- uninstall
 USAGE

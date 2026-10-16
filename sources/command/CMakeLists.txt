@@ -58,7 +58,9 @@ target_include_directories(
     PRIVATE ${nlohmann_json_SOURCE_DIR}/single_include
     PRIVATE ${cxxopts_SOURCE_DIR}/include
 )
-target_compile_definitions(hako-cmd PRIVATE HAKO_CMD_VERSION="1.1.0")
+target_compile_definitions(
+    hako-cmd PRIVATE HAKO_CMD_VERSION="${HAKO_CORE_PRO_VERSION}"
+)
 if(HAKO_CORE_SHARED_EFFECTIVE)
     # Let the build-tree hako-cmd.exe find hako.dll; installed copies sit
     # together in bin.

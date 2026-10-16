@@ -7,6 +7,7 @@ project(hakoniwa-core-pro
     DESCRIPTION "hakoniwa-core-pro project"
     LANGUAGES C CXX
 )
+set(HAKO_CORE_PRO_VERSION "${PROJECT_VERSION}")
 
 # Define the standard install directory variables before any subdirectory creates
 # install/export usage requirements. In particular, assets and shakoc publish

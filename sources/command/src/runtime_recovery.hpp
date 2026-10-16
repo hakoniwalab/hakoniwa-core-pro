@@ -31,6 +31,7 @@ using RemoveRuntimeFile = std::function<bool(
 RuntimeRecoveryResult remove_known_runtime_files(
     const std::vector<std::filesystem::path>& paths,
     const RemoveRuntimeFile& remove_file);
+RuntimeRecoveryResult recover_runtime_files(const RemoveRuntimeFile& remove_file);
 } // namespace detail
 
 } // namespace hako::command

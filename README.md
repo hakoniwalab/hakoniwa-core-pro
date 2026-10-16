@@ -126,12 +126,21 @@ hako-cmd check --force-wait --lock-timeout-ms 1000
 hako-cmd recover
 ```
 
-`recover`はmaster/asset PIDまたはflock ownerが生存中、OS file lockが競合中、
-あるいは生存確認が不確実な場合には拒否します。削除対象は設定された
-`core_mmap_path`内の既知runtimeファイル
-（`mmap-0x*.bin`、`flock.bin`、`pdu_init.lock`、`pro_init.lock`）だけで、
-シミュレーションを再起動しません。途中の削除に失敗した場合、JSONの
-`removed`、`remaining`、`failures`に部分復旧結果を保持します。
+`recover`は、記録されているmaster/asset PIDが生存中、flock ownerが生存中、
+OS file lockが競合中、または生存確認が不確実な場合には拒否します。実行前に
+Launcher、master、asset、external clientを含む全Hakoniwaプロセスを停止して
+ください。
+
+削除対象は設定された`core_mmap_path`内の既知runtimeファイル
+（`mmap-0x*.bin`、`pdu_init.lock`、`pro_init.lock`、`flock.bin`）だけで、
+旧形式の`flock.bin`と、古いCoreが作ったmaster memory（別のlayout version、またはlayout headerを持たない旧形式）も明示的な復旧対象です。旧形式のmaster memoryからはプロセス表を読めないため、全プロセスが停止していることが前提です（現行layoutなのに短い・不整合なファイルは拒否します）。所有権の証拠である`flock.bin`は
+必ず最後に削除します。途中の削除に失敗した場合はそこで停止し、JSONの
+`removed`、`remaining`、`failures`に部分復旧結果を保持します。空の
+`core_mmap_path`に対する`recover`も成功します。
+
+同じ`core_mmap_path`で新旧Coreを混在させる運用はサポートしません。更新時は
+全プロセス停止、全Core componentの更新、`hako-cmd recover`、再起動の順に
+実行してください。Coreは自動移行を行いません。
 
 ### 基本的なシミュレーションの流れ
 
@@ -639,10 +648,12 @@ HAKO_INSTALL_PREFIX=/path/to/install \
 curl -fsSL https://raw.githubusercontent.com/hakoniwalab/hakoniwa-core-pro/main/install-hakoniwa.bash | bash
 ```
 
-バージョンタグやインストール先を指定する場合は以下のように実行します。
+公開済みの安定版タグとインストール先を指定する場合は以下のように実行します。
+リポジトリの開発中コード版は`1.4.0`ですが、`v1.4.0`タグはまだ公開されて
+いないため、ここでは実在する最新リリース`v1.3.0`を指定しています。
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/hakoniwalab/hakoniwa-core-pro/main/install-hakoniwa.bash | bash -s -- --version v1.4.0 --prefix /usr/local/hakoniwa
+curl -fsSL https://raw.githubusercontent.com/hakoniwalab/hakoniwa-core-pro/main/install-hakoniwa.bash | bash -s -- --version v1.3.0 --prefix /usr/local/hakoniwa
 ```
 
 アンインストールも同じ installer から実行できます。
