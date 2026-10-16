@@ -15,6 +15,17 @@ int main(int argc, char **argv)
         std::cerr << "failed to initialize Hakoniwa master fixture" << std::endl;
         return 1;
     }
+    if (argc == 2 && std::string(argv[1]) == "--master-idle") {
+        auto master = hako::create_master();
+        if (master == nullptr) {
+            std::cerr << "failed to create Hakoniwa master" << std::endl;
+            return 3;
+        }
+        std::cout << "READY" << std::endl;
+        while (true) {
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+        }
+    }
     if (argc == 2 && std::string(argv[1]) == "--os-lock") {
         HakoConfigType config;
         hako_config_load(config);

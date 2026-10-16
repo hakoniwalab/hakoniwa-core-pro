@@ -1,5 +1,6 @@
 #include "hako_pro.hpp"
 #include "hako_capi.h"
+#include "hako_runtime_error_internal.hpp"
 #include <fstream>
 #include <iostream>
 #ifdef ENABLE_HAKO_TIME_MEASURE
@@ -16,6 +17,7 @@ static std::shared_ptr<hako::IHakoAssetController>  hako_asset = nullptr;
  */
 bool hako_master_init()
 {
+    hako_runtime_clear_error();
     try {
         hako::init();
         hako_master = hako::create_master();
@@ -28,57 +30,71 @@ bool hako_master_init()
         }
         return true;
     } catch (const std::exception &) {
+        hako::runtime::error::capture_current_exception();
         //hako::logger::get("core")->error(e->what());
         return false;
     } catch (...) {
+        hako::runtime::error::capture_current_exception();
         return false;
     }
 }
 
 bool hako_master_execute()
 {
+    hako_runtime_clear_error();
     try {
         return hako_master->execute();
     } catch (const std::exception &) {
+        hako::runtime::error::capture_current_exception();
         //hako::logger::get("core")->error(e->what());
         return false;
     } catch (...) {
+        hako::runtime::error::capture_current_exception();
         return false;
     }
 }
 
 void hako_master_set_config_simtime(hako_time_t max_delay_time_usec, hako_time_t delta_time_usec)
 {
+    hako_runtime_clear_error();
     try {
         //hako::logger::get("master")->info("max_delay={0} usec delta={1} usec", max_delay_time_usec, delta_time_usec);
         hako_master->set_config_simtime(max_delay_time_usec, delta_time_usec);
     } catch (const std::exception &) {
+        hako::runtime::error::capture_current_exception();
         //hako::logger::get("core")->error(e->what());
         return;
     } catch (...) {
+        hako::runtime::error::capture_current_exception();
         return;
     }
     return;
 }
 hako_time_t hako_master_get_max_deltay_time_usec()
 {
+    hako_runtime_clear_error();
     try {
         return hako_master->get_max_deltay_time_usec();
     } catch (const std::exception &) {
+        hako::runtime::error::capture_current_exception();
         //hako::logger::get("core")->error(e->what());
         return 0;
     } catch (...) {
+        hako::runtime::error::capture_current_exception();
         return 0;
     }
 }
 hako_time_t hako_master_get_delta_time_usec()
 {
+    hako_runtime_clear_error();
     try {
         return hako_master->get_delta_time_usec();
     } catch (const std::exception &) {
+        hako::runtime::error::capture_current_exception();
         //hako::logger::get("core")->error(e->what());
         return 0;
     } catch (...) {
+        hako::runtime::error::capture_current_exception();
         return 0;
     }
 }
@@ -88,6 +104,7 @@ hako_time_t hako_master_get_delta_time_usec()
  */
 bool hako_asset_init()
 {
+    hako_runtime_clear_error();
     static bool log_is_initalized = false;
     try {
         if (hako_asset != nullptr) {
@@ -107,23 +124,28 @@ bool hako_asset_init()
         }
         return true;
     } catch (const std::exception &) {
+        hako::runtime::error::capture_current_exception();
         //hako::logger::get("core")->error(e->what());
         return false;
     } catch (...) {
+        hako::runtime::error::capture_current_exception();
         return false;
     }
 }
 bool hako_asset_endpoint_attach_core()
 {
+    hako_runtime_clear_error();
     try {
         if (hako_asset != nullptr) {
             return true;
         }
         return hako_asset_init();
     } catch (const std::exception &) {
+        hako::runtime::error::capture_current_exception();
         //hako::logger::get("core")->error(e->what());
         return false;
     } catch (...) {
+        hako::runtime::error::capture_current_exception();
         return false;
     }
 }
@@ -133,6 +155,7 @@ static bool hako_asset_is_ready()
 }
 static bool hako_asset_ensure_ready()
 {
+    hako_runtime_clear_error();
     if (hako_asset_is_ready()) {
         return true;
     }
@@ -144,6 +167,7 @@ static bool hako_simevent_is_ready()
 }
 static bool hako_simevent_ensure_ready()
 {
+    hako_runtime_clear_error();
     if (hako_simevent_is_ready()) {
         return true;
     }
@@ -172,9 +196,11 @@ bool hako_capi_asset_register(const char* name, hako_asset_callback_t *callbacks
         }
     }
     catch (const std::exception &) {
+        hako::runtime::error::capture_current_exception();
         //hako::logger::get("core")->error(e->what());
         return false;
     } catch (...) {
+        hako::runtime::error::capture_current_exception();
         return false;
     }
 }
@@ -191,9 +217,11 @@ int  hako_asset_get_event(const char* name)
         return (int)hako_asset->asset_get_event(name);
     }
     catch (const std::exception &) {
+        hako::runtime::error::capture_current_exception();
         //hako::logger::get("core")->error(e->what());
         return (int)HakoSimulationAssetEventType::HakoSimAssetEvent_Error;
     } catch (...) {
+        hako::runtime::error::capture_current_exception();
         return (int)HakoSimulationAssetEventType::HakoSimAssetEvent_Error;
     }
 }
@@ -207,9 +235,11 @@ bool hako_asset_unregister(const char* name)
         std::string asset_name(name);
         return hako_asset->asset_unregister(asset_name);
     } catch (const std::exception &) {
+        hako::runtime::error::capture_current_exception();
         //hako::logger::get("core")->error(e->what());
         return false;
     } catch (...) {
+        hako::runtime::error::capture_current_exception();
         return false;
     }
 }
@@ -229,9 +259,11 @@ void hako_asset_notify_simtime(const char* name, hako_time_t simtime)
         hako_asset->notify_simtime(asset_name, (HakoTimeType)simtime);
     }
     catch (const std::exception &) {
+        hako::runtime::error::capture_current_exception();
         //hako::logger::get("core")->error(e->what());
         return;
     } catch (...) {
+        hako::runtime::error::capture_current_exception();
         return;
     }
 }
@@ -244,9 +276,11 @@ hako_time_t hako_asset_get_worldtime()
         }
         return (hako_time_t)hako_asset->get_worldtime();
     } catch (const std::exception &) {
+        hako::runtime::error::capture_current_exception();
         //hako::logger::get("core")->error(e->what());
         return 0;
     } catch (...) {
+        hako::runtime::error::capture_current_exception();
         return 0;
     }
 }
@@ -258,9 +292,11 @@ hako_time_t hako_asset_get_min_asset_time()
         }
         return (hako_time_t)hako_asset->get_min_asset_time();
     } catch (const std::exception &) {
+        hako::runtime::error::capture_current_exception();
         //hako::logger::get("core")->error(e->what());
         return 0;
     } catch (...) {
+        hako::runtime::error::capture_current_exception();
         return 0;
     }
 }
@@ -275,9 +311,11 @@ bool hako_asset_start_feedback(const char* asset_name, bool isOk)
         std::string hako_asset_name(asset_name);
         return hako_asset->start_feedback(hako_asset_name, isOk);
     } catch (const std::exception &) {
+        hako::runtime::error::capture_current_exception();
         //hako::logger::get("core")->error(e->what());
         return false;
     } catch (...) {
+        hako::runtime::error::capture_current_exception();
         return false;
     }
 }
@@ -294,9 +332,11 @@ bool hako_asset_stop_feedback(const char* asset_name, bool isOk)
         std::string hako_asset_name(asset_name);
         return hako_asset->stop_feedback(hako_asset_name, isOk);
     } catch (const std::exception &) {
+        hako::runtime::error::capture_current_exception();
         //hako::logger::get("core")->error(e->what());
         return false;
     } catch (...) {
+        hako::runtime::error::capture_current_exception();
         return false;
     }
 }
@@ -310,9 +350,11 @@ bool hako_asset_reset_feedback(const char* asset_name, bool isOk)
         std::string hako_asset_name(asset_name);
         return hako_asset->reset_feedback(hako_asset_name, isOk);
     } catch (const std::exception &) {
+        hako::runtime::error::capture_current_exception();
         //hako::logger::get("core")->error(e->what());
         return false;
     } catch (...) {
+        hako::runtime::error::capture_current_exception();
         return false;
     }
 }
@@ -325,9 +367,11 @@ bool hako_asset_create_pdu_channel(HakoPduChannelIdType channel_id, size_t pdu_s
         }
         return hako_asset->create_pdu_channel(channel_id, pdu_size);
     } catch (const std::exception &) {
+        hako::runtime::error::capture_current_exception();
         //hako::logger::get("core")->error(e->what());
         return false;
     } catch (...) {
+        hako::runtime::error::capture_current_exception();
         return false;
     }
 }
@@ -340,9 +384,11 @@ bool hako_asset_create_pdu_lchannel(const char* robo_name, HakoPduChannelIdType 
         }
         return hako_asset->create_pdu_lchannel(hako_robo_name, channel_id, pdu_size);
     } catch (const std::exception &) {
+        hako::runtime::error::capture_current_exception();
         //hako::logger::get("core")->error(e->what());
         return false;
     } catch (...) {
+        hako::runtime::error::capture_current_exception();
         return false;
     }
 }
@@ -355,9 +401,11 @@ HakoPduChannelIdType hako_asset_get_pdu_channel(const char* robo_name, HakoPduCh
         }
         return hako_asset->get_pdu_channel(hako_robo_name, channel_id);
     } catch (const std::exception &) {
+        hako::runtime::error::capture_current_exception();
         //hako::logger::get("core")->error(e->what());
         return -1;
     } catch (...) {
+        hako::runtime::error::capture_current_exception();
         return -1;
     }
 }
@@ -372,9 +420,11 @@ bool hako_asset_is_pdu_dirty(const char* asset_name, const char* robo_name, Hako
         }
         return hako_asset->is_pdu_dirty(hako_asset_name, hako_robo_name, channel_id);
     } catch (const std::exception &) {
+        hako::runtime::error::capture_current_exception();
         //hako::logger::get("core")->error(e->what());
         return false;
     } catch (...) {
+        hako::runtime::error::capture_current_exception();
         return false;
     }
 }
@@ -389,9 +439,11 @@ bool hako_asset_write_pdu(const char* asset_name, const char* robo_name, HakoPdu
         std::string hako_robo_name(robo_name);
         return hako_asset->write_pdu(hako_asset_name, hako_robo_name, channel_id, pdu_data, len);
     } catch (const std::exception &) {
+        hako::runtime::error::capture_current_exception();
         //hako::logger::get("core")->error(e->what());
         return false;
     } catch (...) {
+        hako::runtime::error::capture_current_exception();
         return false;
     }
 }
@@ -406,9 +458,11 @@ bool hako_asset_read_pdu(const char* asset_name, const char* robo_name, HakoPduC
         std::string hako_robo_name(robo_name);
         return hako_asset->read_pdu(hako_asset_name, hako_robo_name, channel_id, pdu_data, len);
     } catch (const std::exception &) {
+        hako::runtime::error::capture_current_exception();
         //hako::logger::get("core")->error(e->what());
         return false;
     } catch (...) {
+        hako::runtime::error::capture_current_exception();
         return false;
     }
 }
@@ -422,9 +476,11 @@ bool hako_asset_write_pdu_nolock(const char* robo_name, HakoPduChannelIdType cha
         std::string hako_robo_name(robo_name);
         return hako_asset->write_pdu_nolock(hako_robo_name, channel_id, pdu_data, len);
     } catch (const std::exception &) {
+        hako::runtime::error::capture_current_exception();
         //hako::logger::get("core")->error(e->what());
         return false;
     } catch (...) {
+        hako::runtime::error::capture_current_exception();
         return false;
     }
 }
@@ -438,9 +494,11 @@ bool hako_asset_read_pdu_nolock(const char* robo_name, HakoPduChannelIdType chan
         std::string hako_robo_name(robo_name);
         return hako_asset->read_pdu_nolock(hako_robo_name, channel_id, pdu_data, len);
     } catch (const std::exception &) {
+        hako::runtime::error::capture_current_exception();
         //hako::logger::get("core")->error(e->what());
         return false;
     } catch (...) {
+        hako::runtime::error::capture_current_exception();
         return false;
     }
 }
@@ -454,8 +512,10 @@ void hako_asset_notify_read_pdu_done(const char* asset_name)
         std::string hako_asset_name(asset_name);
         hako_asset->notify_read_pdu_done(hako_asset_name);
     } catch (const std::exception &) {
+        hako::runtime::error::capture_current_exception();
         return;
     } catch (...) {
+        hako::runtime::error::capture_current_exception();
         return;
     }
 }
@@ -469,8 +529,10 @@ void hako_asset_notify_write_pdu_done(const char* asset_name)
         std::string hako_asset_name(asset_name);
         hako_asset->notify_write_pdu_done(hako_asset_name);
     } catch (const std::exception &) {
+        hako::runtime::error::capture_current_exception();
         return;
     } catch (...) {
+        hako::runtime::error::capture_current_exception();
         return;
     }
 }
@@ -484,9 +546,11 @@ bool hako_asset_is_pdu_sync_mode(const char* asset_name)
         std::string hako_asset_name(asset_name);
         return hako_asset->is_pdu_sync_mode(hako_asset_name);
     } catch (const std::exception &) {
+        hako::runtime::error::capture_current_exception();
         //hako::logger::get("core")->error(e->what());
         return false;
     } catch (...) {
+        hako::runtime::error::capture_current_exception();
         return false;
     }
 }
@@ -499,9 +563,11 @@ bool hako_asset_is_simulation_mode()
         }
         return hako_asset->is_simulation_mode();
     } catch (const std::exception &) {
+        hako::runtime::error::capture_current_exception();
         //hako::logger::get("core")->error(e->what());
         return false;
     } catch (...) {
+        hako::runtime::error::capture_current_exception();
         return false;
     }
 }
@@ -514,15 +580,18 @@ bool hako_asset_is_pdu_created()
         }
         return hako_asset->is_pdu_created();
     } catch (const std::exception &) {
+        hako::runtime::error::capture_current_exception();
         //hako::logger::get("core")->error(e->what());
         return false;
     } catch (...) {
+        hako::runtime::error::capture_current_exception();
         return false;
     }
     
 }
 bool hako_capi_asset_register_data_recv_event(const char *robo_name, HakoPduChannelIdType lchannel)
 {
+    hako_runtime_clear_error();
     try {
         auto pro_data = hako::data::pro::hako_pro_get_data();
         if (!pro_data) {
@@ -531,13 +600,16 @@ bool hako_capi_asset_register_data_recv_event(const char *robo_name, HakoPduChan
         int recv_event_id = -1;
         return pro_data->register_data_recv_event(robo_name, lchannel, nullptr, recv_event_id);
     } catch (const std::exception &) {
+        hako::runtime::error::capture_current_exception();
         return false;
     } catch (...) {
+        hako::runtime::error::capture_current_exception();
         return false;
     }
 }
 bool hako_capi_asset_check_data_recv_event(const char* asset_name, const char *robo_name, HakoPduChannelIdType lchannel)
 {
+    hako_runtime_clear_error();
     try {
         auto pro_data = hako::data::pro::hako_pro_get_data();
         if (!pro_data) {
@@ -546,14 +618,17 @@ bool hako_capi_asset_check_data_recv_event(const char* asset_name, const char *r
         int recv_event_id;
         return pro_data->get_recv_event(asset_name, robo_name, lchannel, recv_event_id);    
     } catch (const std::exception &) {
+        hako::runtime::error::capture_current_exception();
         return false;
     } catch (...) {
+        hako::runtime::error::capture_current_exception();
         return false;
     }
 }
 
 bool hako_capi_asset_set_data_recv_event_pending(const char* robo_name, HakoPduChannelIdType lchannel)
 {
+    hako_runtime_clear_error();
     try {
         auto pro_data = hako::data::pro::hako_pro_get_data();
         if (!pro_data) {
@@ -561,14 +636,17 @@ bool hako_capi_asset_set_data_recv_event_pending(const char* robo_name, HakoPduC
         }
         return pro_data->set_recv_event_pending(robo_name, lchannel, true);
     } catch (const std::exception &) {
+        hako::runtime::error::capture_current_exception();
         return false;
     } catch (...) {
+        hako::runtime::error::capture_current_exception();
         return false;
     }
 }
 
 bool hako_capi_asset_set_data_recv_event_resume(const char* robo_name, HakoPduChannelIdType lchannel)
 {
+    hako_runtime_clear_error();
     try {
         auto pro_data = hako::data::pro::hako_pro_get_data();
         if (!pro_data) {
@@ -576,8 +654,10 @@ bool hako_capi_asset_set_data_recv_event_resume(const char* robo_name, HakoPduCh
         }
         return pro_data->set_recv_event_pending(robo_name, lchannel, false);
     } catch (const std::exception &) {
+        hako::runtime::error::capture_current_exception();
         return false;
     } catch (...) {
+        hako::runtime::error::capture_current_exception();
         return false;
     }
 }
@@ -589,6 +669,7 @@ bool hako_capi_asset_set_data_recv_event_resume(const char* robo_name, HakoPduCh
  */
 bool hako_simevent_init()
 {
+    hako_runtime_clear_error();
     try {
         hako_simevent = hako::get_simevent_controller();
         if (hako_simevent == nullptr) {
@@ -596,8 +677,10 @@ bool hako_simevent_init()
         }
         return true;
     } catch (const std::exception &) {
+        hako::runtime::error::capture_current_exception();
         return false;
     } catch (...) {
+        hako::runtime::error::capture_current_exception();
         return false;
     }
 }
@@ -610,8 +693,10 @@ int hako_simevent_get_state()
         }
         return (int)hako_simevent->state();
     } catch (const std::exception &) {
+        hako::runtime::error::capture_current_exception();
         return -1;
     } catch (...) {
+        hako::runtime::error::capture_current_exception();
         return -1;
     }
 }
@@ -624,8 +709,10 @@ bool hako_simevent_start()
         }
         return hako_simevent->start();
     } catch (const std::exception &) {
+        hako::runtime::error::capture_current_exception();
         return false;
     } catch (...) {
+        hako::runtime::error::capture_current_exception();
         return false;
     }
 }
@@ -638,8 +725,10 @@ bool hako_simevent_stop()
         }
         return hako_simevent->stop();
     } catch (const std::exception &) {
+        hako::runtime::error::capture_current_exception();
         return false;
     } catch (...) {
+        hako::runtime::error::capture_current_exception();
         return false;
     }
 }
@@ -652,8 +741,10 @@ bool hako_simevent_reset()
         }
         return hako_simevent->reset();
     } catch (const std::exception&) {
+        hako::runtime::error::capture_current_exception();
         return false;
     } catch (...) {
+        hako::runtime::error::capture_current_exception();
         return false;
     }
 }

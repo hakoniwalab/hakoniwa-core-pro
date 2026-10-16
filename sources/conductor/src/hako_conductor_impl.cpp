@@ -1,4 +1,5 @@
 #include "hako_conductor_impl.hpp"
+#include "hako_runtime_error_internal.hpp"
 #include <thread>
 #ifdef WIN32
 #else
@@ -16,6 +17,8 @@ void hako_conductor_impl_thread_run()
         }
         catch (const std::exception& e) {
             std::cerr << "ERROR: hako_conductor.execute() Failed: " << e.what() << std::endl;
+            hako::runtime::error::capture_current_exception();
+            hako_conductor = nullptr;
             return;
         }
     }
@@ -38,7 +41,8 @@ bool hako_conductor_impl_start(hako_time_t delta_usec, hako_time_t max_delay_use
         hako_conductor->set_config_simtime(max_delay_usec, delta_usec);
     } catch (std::exception& e) {
         std::cout << "INFO: hako::create_master() Failed: " << e.what() << std::endl;
-        return false;
+        hako_conductor = nullptr;
+        throw;
     }
     
     std::thread thread(hako_conductor_impl_thread_run);

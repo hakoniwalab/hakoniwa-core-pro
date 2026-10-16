@@ -35,6 +35,7 @@ if(WIN32)
             assets SHARED
             src/hako_asset.cpp
             src/hako_asset_impl.cpp
+            ${HAKO_CORE_PRO_SOURCE_DIR}/assets/polling/src/hako_asset_service_guard.cpp
             ${HAKO_CORE_PRO_SOURCE_DIR}/assets/polling/src/hako_asset_service.cpp
             ${HAKO_CORE_PRO_SOURCE_DIR}/assets/polling/src/hako_asset_service_server.cpp
             ${HAKO_CORE_PRO_SOURCE_DIR}/assets/polling/src/hako_asset_service_client.cpp
@@ -45,6 +46,7 @@ if(WIN32)
             assets STATIC
             src/hako_asset.cpp
             src/hako_asset_impl.cpp
+            ${HAKO_CORE_PRO_SOURCE_DIR}/assets/polling/src/hako_asset_service_guard.cpp
             ${HAKO_CORE_PRO_SOURCE_DIR}/assets/polling/src/hako_asset_service.cpp
             ${HAKO_CORE_PRO_SOURCE_DIR}/assets/polling/src/hako_asset_service_server.cpp
             ${HAKO_CORE_PRO_SOURCE_DIR}/assets/polling/src/hako_asset_service_client.cpp
@@ -58,12 +60,17 @@ else()
             src/hako_asset.cpp
             src/hako_asset_impl.cpp
             src/hako_asset_impl_measure.cpp # 計測機能が有効な場合にビルド
+            ${HAKO_CORE_PRO_SOURCE_DIR}/assets/polling/src/hako_asset_service_guard.cpp
+            ${HAKO_CORE_PRO_SOURCE_DIR}/assets/polling/src/hako_asset_service.cpp
+            ${HAKO_CORE_PRO_SOURCE_DIR}/assets/polling/src/hako_asset_service_server.cpp
+            ${HAKO_CORE_PRO_SOURCE_DIR}/assets/polling/src/hako_asset_service_client.cpp
         )
     else()
         add_library(
             assets SHARED
             src/hako_asset.cpp
             src/hako_asset_impl.cpp
+            ${HAKO_CORE_PRO_SOURCE_DIR}/assets/polling/src/hako_asset_service_guard.cpp
             ${HAKO_CORE_PRO_SOURCE_DIR}/assets/polling/src/hako_asset_service.cpp
             ${HAKO_CORE_PRO_SOURCE_DIR}/assets/polling/src/hako_asset_service_server.cpp
             ${HAKO_CORE_PRO_SOURCE_DIR}/assets/polling/src/hako_asset_service_client.cpp

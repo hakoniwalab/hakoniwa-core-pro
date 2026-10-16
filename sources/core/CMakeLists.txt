@@ -61,6 +61,7 @@ add_library(
     ${HAKO_CORE_SOURCE_DIR}/src/hako/utils/hako_string.cpp
     ${HAKO_CORE_SOURCE_DIR}/src/hako/utils/hako_logger.cpp
     src/hako_pro_data.cpp
+    src/hako_runtime_error.cpp
     src/hako_pro_data_recv_event.cpp
     src/service/hako_pro_data_service.cpp
     src/service/hako_service_impl.cpp

@@ -3,6 +3,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include "hako_export.h"
+#include "hako_runtime_error.h"
 
 #ifdef __cplusplus
 extern "C" {

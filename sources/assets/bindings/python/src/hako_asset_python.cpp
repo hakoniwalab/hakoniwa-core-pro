@@ -4,8 +4,10 @@
 #include "hako_asset_service.h"
 #include "hako_conductor.h"
 #include "hako_pro.hpp"
+#include "hako_runtime_error_internal.hpp"
 
 #include <exception>
+#include <string>
 
 #ifdef __cplusplus
 extern "C" {
@@ -90,15 +92,51 @@ static PyObject* raise_unknown_hakoniwa_runtime_error()
     return NULL;
 }
 
-static PyObject* raise_last_hakoniwa_runtime_error()
+static PyObject* raise_hakoniwa_runtime_status(
+    HakoRuntimeErrorStatus status,
+    const char *message)
 {
-    const char *message = hako_asset_last_error();
-    if (message != NULL && message[0] != '\0') {
-        PyErr_Format(PyExc_RuntimeError, "Hakoniwa runtime failure: %s", message);
+    if (status == HAKO_RUNTIME_ERROR_NONE) {
         return NULL;
     }
+    const char *status_name = hako_runtime_error_status_name(status);
+    std::string display = "Hakoniwa runtime failure: ";
+    display += message != NULL && message[0] != '\0'
+        ? message : "unknown native failure";
+    PyObject *exception = PyObject_CallFunction(
+        PyExc_RuntimeError, "s", display.c_str());
+    if (exception == NULL) {
+        return NULL;
+    }
+    PyObject *code = PyLong_FromLong(static_cast<long>(status));
+    PyObject *name = PyUnicode_FromString(status_name);
+    if (code == NULL || name == NULL ||
+        PyObject_SetAttrString(exception, "hako_status_code", code) != 0 ||
+        PyObject_SetAttrString(exception, "hako_status", name) != 0) {
+        Py_XDECREF(code);
+        Py_XDECREF(name);
+        Py_DECREF(exception);
+        return NULL;
+    }
+    Py_DECREF(code);
+    Py_DECREF(name);
+    PyErr_SetObject(PyExc_RuntimeError, exception);
+    Py_DECREF(exception);
     return NULL;
 }
+
+static PyObject* raise_last_hakoniwa_runtime_error()
+{
+    return raise_hakoniwa_runtime_status(
+        hako_runtime_last_error_status(), hako_runtime_last_error());
+}
+
+#define HAKO_PY_RAISE_IF_RUNTIME_ERROR() \
+    do { \
+        if (hako_runtime_last_error_status() != HAKO_RUNTIME_ERROR_NONE) { \
+            return raise_last_hakoniwa_runtime_error(); \
+        } \
+    } while (false)
 
 //asset_register
 static PyObject* asset_register(PyObject*, PyObject* args) {
@@ -164,6 +202,8 @@ static PyObject* asset_register(PyObject*, PyObject* args) {
         return raise_unknown_hakoniwa_runtime_error();
     }
 
+    HAKO_PY_RAISE_IF_RUNTIME_ERROR();
+
     if (result == 0) {
         Py_RETURN_TRUE;
     } else {
@@ -210,6 +250,7 @@ static PyObject* py_hako_asset_start(PyObject*, PyObject* args) {
     }
 
     int result = hako_asset_start_no_wait(is_force_stop);
+    HAKO_PY_RAISE_IF_RUNTIME_ERROR();
     if (result == 0) {
         Py_RETURN_TRUE;
     } else {
@@ -218,16 +259,19 @@ static PyObject* py_hako_asset_start(PyObject*, PyObject* args) {
 }
 static PyObject* py_hako_asset_simulation_time(PyObject*, PyObject*) {
     hako_time_t sim_time = hako_asset_simulation_time();
+    HAKO_PY_RAISE_IF_RUNTIME_ERROR();
 
     return PyLong_FromLongLong(sim_time);
 }
 static PyObject* py_hako_asset_current_time(PyObject*, PyObject*) {
     hako_time_t current_time = hako_asset_current_time();
+    HAKO_PY_RAISE_IF_RUNTIME_ERROR();
 
     return PyLong_FromLongLong(current_time);
 }
 static PyObject* py_hako_asset_min_asset_time(PyObject*, PyObject*) {
     hako_time_t min_asset_time = hako_asset_min_asset_time();
+    HAKO_PY_RAISE_IF_RUNTIME_ERROR();
 
     return PyLong_FromLongLong(min_asset_time);
 }
@@ -239,6 +283,7 @@ static PyObject* py_hako_asset_usleep(PyObject*, PyObject* args) {
     }
 
     int result = hako_asset_usleep_no_wait(sleep_time_usec, is_force_stop);
+    HAKO_PY_RAISE_IF_RUNTIME_ERROR();
 
     if (result == 0) {
         Py_RETURN_TRUE;
@@ -263,6 +308,10 @@ static PyObject* py_hako_asset_pdu_read(PyObject*, PyObject* args) {
     }
 
     int result = hako_asset_pdu_read(robo_name, lchannel, buffer, (size_t)buffer_len);
+    if (hako_runtime_last_error_status() != HAKO_RUNTIME_ERROR_NONE) {
+        free(buffer);
+        return raise_last_hakoniwa_runtime_error();
+    }
 
     if (result != 0) {
         free(buffer);
@@ -286,6 +335,7 @@ static PyObject* py_hako_asset_pdu_write(PyObject*, PyObject* args) {
     }
     char* pdu_data = PyByteArray_AsString(py_pdu_data);
     int ret = hako_asset_pdu_write(robo_name, lchannel, pdu_data, len);
+    HAKO_PY_RAISE_IF_RUNTIME_ERROR();
     if (ret == 0) {
         return Py_BuildValue("O", Py_True);
     }
@@ -303,6 +353,7 @@ static PyObject* py_hako_asset_pdu_create(PyObject*, PyObject* args) {
     }
 
     int result = hako_asset_pdu_create(robo_name, lchannel, pdu_size);
+    HAKO_PY_RAISE_IF_RUNTIME_ERROR();
 
     if (result == 0) {
         Py_RETURN_TRUE;
@@ -318,6 +369,10 @@ static PyObject* py_hako_conductor_start(PyObject*, PyObject* args) {
     }
 
     int result = hako_conductor_start(delta_usec, max_delay_usec);
+    if (hako_conductor_last_error_status() != HAKO_RUNTIME_ERROR_NONE) {
+        return raise_hakoniwa_runtime_status(
+            hako_conductor_last_error_status(), hako_conductor_last_error());
+    }
     if (result == 0) {
         Py_RETURN_TRUE;
     } else {
@@ -372,6 +427,7 @@ static PyObject* py_hako_asset_register_data_recv_event(PyObject*, PyObject* arg
     else {
         result = hako_asset_register_data_recv_event(robo_name, lchannel, NULL, &recv_event_id);
     }
+    HAKO_PY_RAISE_IF_RUNTIME_ERROR();
     if (result != 0) {
         PyErr_SetString(PyExc_RuntimeError, "hako_asset_register_data_recv_event failed");
         return NULL;
@@ -398,6 +454,7 @@ static PyObject* py_hako_asset_check_data_recv_event(PyObject*, PyObject* args) 
     }
 
     int result = hako_asset_check_data_recv_event(robo_name, lchannel);
+    HAKO_PY_RAISE_IF_RUNTIME_ERROR();
     if (result == 0) {
         Py_RETURN_TRUE;
     } else {
@@ -413,6 +470,7 @@ static PyObject* py_hako_asset_set_data_recv_event_pending(PyObject*, PyObject* 
     }
 
     int result = hako_asset_set_data_recv_event_pending(recv_event_id);
+    HAKO_PY_RAISE_IF_RUNTIME_ERROR();
     if (result == 0) {
         Py_RETURN_TRUE;
     } else {
@@ -428,6 +486,7 @@ static PyObject* py_hako_asset_set_data_recv_event_resume(PyObject*, PyObject* a
     }
 
     int result = hako_asset_set_data_recv_event_resume(recv_event_id);
+    HAKO_PY_RAISE_IF_RUNTIME_ERROR();
     if (result == 0) {
         Py_RETURN_TRUE;
     } else {
@@ -437,10 +496,15 @@ static PyObject* py_hako_asset_set_data_recv_event_resume(PyObject*, PyObject* a
 
 static PyObject* py_hako_conductor_stop(PyObject*, PyObject*) {
     hako_conductor_stop();
+    if (hako_conductor_last_error_status() != HAKO_RUNTIME_ERROR_NONE) {
+        return raise_hakoniwa_runtime_status(
+            hako_conductor_last_error_status(), hako_conductor_last_error());
+    }
     Py_RETURN_NONE;
 }
 static PyObject* py_init_for_external(PyObject*, PyObject*) {
     int result = hako_initialize_for_external();
+    HAKO_PY_RAISE_IF_RUNTIME_ERROR();
     if (result == 0) {
         Py_RETURN_TRUE;
     } else {
@@ -457,6 +521,7 @@ static PyObject* py_hako_asset_service_initialize(PyObject*, PyObject* args) {
         return NULL;
     }
     int result = hako_asset_service_initialize(service_config_path);
+    HAKO_PY_RAISE_IF_RUNTIME_ERROR();
     if (result == 0) {
         Py_RETURN_TRUE;
     } else {
@@ -486,6 +551,7 @@ static PyObject* py_hako_asset_service_server_create(PyObject*, PyObject* args) 
     }
 
     int service_id = hako_asset_service_server_create(asset_name, service_name);
+    HAKO_PY_RAISE_IF_RUNTIME_ERROR();
     if (service_id < 0) {
         Py_RETURN_NONE;
     }
@@ -502,6 +568,7 @@ static PyObject* py_hako_asset_service_server_poll(PyObject*, PyObject* args) {
     }
 
     int event = hako_asset_service_server_poll(service_id);
+    HAKO_PY_RAISE_IF_RUNTIME_ERROR();
     return PyLong_FromLong(event);
 }
 //#HAKO_API int hako_asset_service_server_get_current_client_id(int service_id);
@@ -513,6 +580,7 @@ static PyObject* py_hako_asset_service_server_get_current_client_id(PyObject*, P
     }
 
     int result = hako_asset_service_server_get_current_client_id(service_id);
+    HAKO_PY_RAISE_IF_RUNTIME_ERROR();
     return PyLong_FromLong(result);
 }
 //#HAKO_API int hako_asset_service_server_get_current_channel_id(int service_id, int* request_channel_id, int* response_channel_id);
@@ -526,6 +594,7 @@ static PyObject* py_hako_asset_service_server_get_current_channel_id(PyObject*, 
     }
 
     int result = hako_asset_service_server_get_current_channel_id(service_id, &request_channel_id, &response_channel_id);
+    HAKO_PY_RAISE_IF_RUNTIME_ERROR();
     if (result == 0) {
         return Py_BuildValue("(ii)", request_channel_id, response_channel_id);
     } else {
@@ -542,6 +611,7 @@ static PyObject* py_hako_asset_service_server_status(PyObject*, PyObject* args) 
     }
 
     int result = hako_asset_service_server_status(service_id, &status);
+    HAKO_PY_RAISE_IF_RUNTIME_ERROR();
     if (result == 0) {
         return PyLong_FromLong(status);
     } else {
@@ -559,6 +629,7 @@ static PyObject* py_hako_asset_service_server_get_request(PyObject*, PyObject* a
     }
 
     int result = hako_asset_service_server_get_request(service_id, &packet, &packet_len);
+    HAKO_PY_RAISE_IF_RUNTIME_ERROR();
     if (result == 0) {
         PyObject* py_data = PyByteArray_FromStringAndSize(packet, packet_len);
         return py_data;
@@ -586,6 +657,7 @@ static PyObject* py_hako_asset_service_server_get_response_buffer(PyObject*, PyO
         status,
         result_code
     );
+    HAKO_PY_RAISE_IF_RUNTIME_ERROR();
 
     if (result == 0 && packet != NULL) {
         return PyByteArray_FromStringAndSize(packet, packet_len);
@@ -612,6 +684,7 @@ static PyObject* py_hako_asset_service_server_put_response(PyObject*, PyObject* 
     }
 
     int result = hako_asset_service_server_put_response(service_id, packet, (size_t)packet_len);
+    HAKO_PY_RAISE_IF_RUNTIME_ERROR();
     if (result == 0) {
         Py_RETURN_TRUE;
     } else {
@@ -628,6 +701,7 @@ static PyObject* py_hako_asset_service_server_is_canceled(PyObject*, PyObject* a
     }
 
     int result = hako_asset_service_server_is_canceled(service_id);
+    HAKO_PY_RAISE_IF_RUNTIME_ERROR();
     if (result == 0) {
         Py_RETURN_TRUE;
     } else {
@@ -644,6 +718,7 @@ static PyObject* py_hako_asset_service_server_set_progress(PyObject*, PyObject* 
     }
 
     int result = hako_asset_service_server_set_progress(service_id, percentage);
+    HAKO_PY_RAISE_IF_RUNTIME_ERROR();
     if (result == 0) {
         Py_RETURN_TRUE;
     } else {
@@ -674,6 +749,7 @@ static PyObject* py_hako_asset_service_client_create(PyObject*, PyObject* args) 
     }
 
     int result = hako_asset_service_client_create(asset_name, service_name, client_name, &handle);
+    HAKO_PY_RAISE_IF_RUNTIME_ERROR();
     if (result != 0) {
         Py_RETURN_NONE;
     }
@@ -703,6 +779,7 @@ static PyObject* py_hako_asset_service_client_poll(PyObject*, PyObject* args) {
     handle.client_id = (int)PyLong_AsLong(py_client_id);
 
     int result = hako_asset_service_client_poll(&handle);
+    HAKO_PY_RAISE_IF_RUNTIME_ERROR();
 
     // poll() の戻り値をそのまま Python の int に変換して返す
     return PyLong_FromLong(result);
@@ -730,6 +807,7 @@ static PyObject* py_hako_asset_service_client_get_channel_id(PyObject*, PyObject
     int response_channel_id = 0;
 
     int result = hako_asset_service_client_get_channel_id_by_handle(&handle, &request_channel_id, &response_channel_id);
+    HAKO_PY_RAISE_IF_RUNTIME_ERROR();
     if (result == 0) {
         return Py_BuildValue("(ii)", request_channel_id, response_channel_id);
     } else {
@@ -769,6 +847,7 @@ static PyObject* py_hako_asset_service_client_get_request_buffer(PyObject*, PyOb
         opcode,
         poll_interval_msec
     );
+    HAKO_PY_RAISE_IF_RUNTIME_ERROR();
 
     if (result == 0 && packet != NULL) {
         return PyByteArray_FromStringAndSize(packet, packet_len);
@@ -807,6 +886,7 @@ static PyObject* py_hako_asset_service_client_call_request(PyObject*, PyObject* 
     }
 
     int result = hako_asset_service_client_call_request(&handle, packet, (size_t)packet_len, timeout_msec);
+    HAKO_PY_RAISE_IF_RUNTIME_ERROR();
     if (result == 0) {
         Py_RETURN_TRUE;
     }
@@ -838,6 +918,7 @@ static PyObject* py_hako_asset_service_client_get_response(PyObject*, PyObject* 
     size_t packet_len = 0;
 
     int result = hako_asset_service_client_get_response(&handle, &packet, &packet_len, timeout);
+    HAKO_PY_RAISE_IF_RUNTIME_ERROR();
     //std::cout << "result: " << result << std::endl;
     if (result == 0 && packet != NULL) {
         return PyByteArray_FromStringAndSize(packet, packet_len);
@@ -866,6 +947,7 @@ static PyObject* py_hako_asset_service_client_cancel_request(PyObject*, PyObject
     handle.client_id = (int)PyLong_AsLong(py_client_id);
 
     int result = hako_asset_service_client_cancel_request(&handle);
+    HAKO_PY_RAISE_IF_RUNTIME_ERROR();
     if (result == 0) {
         Py_RETURN_TRUE;
     } else {
@@ -893,6 +975,7 @@ static PyObject* py_hako_asset_service_client_get_progress(PyObject*, PyObject* 
     handle.client_id = (int)PyLong_AsLong(py_client_id);
 
     int progress = hako_asset_service_client_get_progress(&handle);
+    HAKO_PY_RAISE_IF_RUNTIME_ERROR();
     return PyLong_FromLong(progress);
 }
 
@@ -917,6 +1000,7 @@ static PyObject* py_hako_asset_service_client_status(PyObject*, PyObject* args) 
 
     int status = 0;
     int result = hako_asset_service_client_status(&handle, &status);
+    HAKO_PY_RAISE_IF_RUNTIME_ERROR();
     if (result == 0) {
         return PyLong_FromLong(status);
     }
@@ -932,21 +1016,27 @@ static PyObject* py_hako_asset_service_get_channel_id(PyObject*, PyObject* args)
         return NULL;
     }
 
-    auto pro_data = hako::data::pro::hako_pro_get_data();
-    if (pro_data == nullptr) {
-        PyErr_SetString(PyExc_RuntimeError, "Failed to get pro data");
-        return NULL;
-    }
-    //std::cout << "service_id: " << service_id << ", client_id: " << client_id << std::endl;
-    auto& service_entry = pro_data->get_service_entry(service_id);
-    int req_id = service_entry.clientChannelMap[client_id].requestChannelId;
-    int res_id = service_entry.clientChannelMap[client_id].responseChannelId;
+    hako_runtime_clear_error();
+    try {
+        auto pro_data = hako::data::pro::hako_pro_get_data();
+        if (pro_data == nullptr) {
+            PyErr_SetString(PyExc_RuntimeError, "Failed to get pro data");
+            return NULL;
+        }
+        auto& service_entry = pro_data->get_service_entry(service_id);
+        int req_id = service_entry.clientChannelMap[client_id].requestChannelId;
+        int res_id = service_entry.clientChannelMap[client_id].responseChannelId;
 
-    if (req_id < 0 || res_id < 0) {
-        Py_RETURN_NONE;
-    }
+        if (req_id < 0 || res_id < 0) {
+            Py_RETURN_NONE;
+        }
 
-    return Py_BuildValue("(ii)", req_id, res_id);
+        return Py_BuildValue("(ii)", req_id, res_id);
+    }
+    catch (...) {
+        hako::runtime::error::capture_current_exception();
+        return raise_last_hakoniwa_runtime_error();
+    }
 }
 static PyObject* py_hako_trigger_event(PyObject*, PyObject* args) {
     int event_id;
@@ -955,6 +1045,7 @@ static PyObject* py_hako_trigger_event(PyObject*, PyObject* args) {
     }
 
     int result = hako_trigger_event(event_id);
+    HAKO_PY_RAISE_IF_RUNTIME_ERROR();
     if (result == 0) {
         Py_RETURN_TRUE;
     } else {

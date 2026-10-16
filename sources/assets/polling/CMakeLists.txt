@@ -24,6 +24,7 @@ endif()
 set(SHARED_SRC
     src/hako_capi.cpp
     src/hakoniwa_asset_polling.cpp
+    src/hako_asset_service_guard.cpp
     ${HAKO_CORE_SOURCE_DIR}/src/hako/hako_asset_impl.cpp
     ${HAKO_CORE_SOURCE_DIR}/src/hako/hako_simevent_impl.cpp
     ${HAKO_CORE_SOURCE_DIR}/src/hako/hako_master_impl.cpp
@@ -40,6 +41,7 @@ set(SHARED_SRC
     ${HAKO_CORE_SOURCE_DIR}/src/hako/utils/hako_string.cpp
     ${HAKO_CORE_SOURCE_DIR}/src/hako/utils/hako_logger.cpp
     ${HAKO_CORE_PRO_SOURCE_DIR}/core/src/hako_pro_data.cpp
+    ${HAKO_CORE_PRO_SOURCE_DIR}/core/src/hako_runtime_error.cpp
     ${HAKO_CORE_PRO_SOURCE_DIR}/core/src/hako_pro_data_recv_event.cpp
     ${HAKO_CORE_PRO_SOURCE_DIR}/core/src/service/hako_pro_data_service.cpp
     ${HAKO_CORE_PRO_SOURCE_DIR}/core/src/service/hako_service_impl_client.cpp
@@ -60,6 +62,7 @@ if(HAKO_CORE_SHARED_EFFECTIVE)
     set(SHARED_SRC
         src/hako_capi.cpp
         src/hakoniwa_asset_polling.cpp
+        src/hako_asset_service_guard.cpp
         ${HAKO_CORE_PRO_SOURCE_DIR}/assets/polling/src/hako_asset_service.cpp
         ${HAKO_CORE_PRO_SOURCE_DIR}/assets/polling/src/hako_asset_service_server.cpp
         ${HAKO_CORE_PRO_SOURCE_DIR}/assets/polling/src/hako_asset_service_client.cpp
