@@ -18,6 +18,7 @@
 #include "config/hako_config.hpp"
 #include "data/hako_master_data.hpp"
 #include "runtime_recovery.hpp"
+#include "utils/hako_share/hako_sem_flock.hpp"
 #include "utils/hako_share/hako_shared_memory.hpp"
 
 namespace {
@@ -82,6 +83,12 @@ protected:
         output.write(reinterpret_cast<const char*>(bytes.data()), bytes.size());
     }
 
+    void create_unlocked_flock()
+    {
+        ASSERT_GE(hako::utils::sem::flock::create(0x00FF), 0);
+        hako::utils::sem::flock::destroy(0x00FF);
+    }
+
     std::filesystem::path root_;
     std::filesystem::path config_;
     bool had_previous_ = false;
@@ -110,17 +117,57 @@ TEST_F(RuntimeRecoveryTest, RefusesUncertainMasterLayout)
     EXPECT_TRUE(std::filesystem::exists(root_ / "mmap-0xff.bin"));
 }
 
+TEST_F(RuntimeRecoveryTest, RefusesLiveFlockOwnerWithoutMasterMemory)
+{
+    ASSERT_GE(hako::utils::sem::flock::create(0x00FF), 0);
+    hako::utils::sem::flock::master_lock(0x00FF);
+    const auto result = hako::command::recover_runtime_files();
+    EXPECT_FALSE(result.recovered);
+    EXPECT_EQ(result.status, "REFUSED");
+    EXPECT_NE(result.reason.find("live process"), std::string::npos);
+    EXPECT_TRUE(std::filesystem::exists(root_ / "flock.bin"));
+    hako::utils::sem::flock::master_unlock(0x00FF);
+    hako::utils::sem::flock::destroy(0x00FF);
+}
+
 TEST_F(RuntimeRecoveryTest, RemovesAllKnownPatternsButPreservesUnrelatedFiles)
 {
     write_master(0);
     for (const char *name : {
              "mmap-0x100.bin", "mmap-0xabcdef.bin",
-             "flock.bin", "pdu_init.lock", "pro_init.lock"}) {
+             "pdu_init.lock", "pro_init.lock"}) {
         std::ofstream(root_ / name) << "runtime";
     }
+    create_unlocked_flock();
     std::ofstream(root_ / "operator-notes.txt") << "keep";
     const auto result = hako::command::recover_runtime_files();
     ASSERT_TRUE(result.recovered) << result.reason;
     EXPECT_EQ(result.removed.size(), 6U);
     EXPECT_TRUE(std::filesystem::exists(root_ / "operator-notes.txt"));
+}
+
+TEST(RuntimeRecoveryRemovalTest, PreservesProgressWhenRemovalPartiallyFails)
+{
+    const std::vector<std::filesystem::path> paths = {
+        "first.bin", "second.bin", "third.bin",
+    };
+    const auto result = hako::command::detail::remove_known_runtime_files(
+        paths,
+        [](const std::filesystem::path& path, std::error_code& error) {
+            if (path == "second.bin") {
+                error = std::make_error_code(std::errc::permission_denied);
+                return false;
+            }
+            return true;
+        });
+    EXPECT_FALSE(result.recovered);
+    EXPECT_EQ(result.status, "PARTIAL");
+    ASSERT_EQ(result.removed.size(), 1U);
+    EXPECT_EQ(result.removed[0], "first.bin");
+    ASSERT_EQ(result.remaining.size(), 2U);
+    EXPECT_EQ(result.remaining[0], "second.bin");
+    EXPECT_EQ(result.remaining[1], "third.bin");
+    ASSERT_EQ(result.failures.size(), 1U);
+    EXPECT_EQ(result.failures[0].path, "second.bin");
+    EXPECT_FALSE(result.failures[0].reason.empty());
 }

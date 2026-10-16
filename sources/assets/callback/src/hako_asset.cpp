@@ -1,6 +1,34 @@
 #include "hako_asset_impl.hpp"
 #include "hako_asset_state_check.hpp"
 
+#include <exception>
+#include <string>
+
+namespace {
+
+thread_local std::string hako_asset_error;
+
+template <typename Function>
+int guard_c_api(Function&& function) noexcept
+{
+    hako_asset_error.clear();
+    try {
+        return function();
+    }
+    catch (const std::exception& error) {
+        hako_asset_error = error.what();
+        std::cerr << "Hakoniwa runtime failure: " << hako_asset_error << std::endl;
+        return EIO;
+    }
+    catch (...) {
+        hako_asset_error = "unknown native exception";
+        std::cerr << "Hakoniwa runtime failure: " << hako_asset_error << std::endl;
+        return EIO;
+    }
+}
+
+} // namespace
+
 struct hako_asset_context_s {
     void *data;
 };
@@ -10,7 +38,7 @@ static inline bool file_exists(const char* path) {
     return file.good();
 }
 
-int hako_asset_register(const char *asset_name, const char *config_path, hako_asset_callbacks_t *callbacks, hako_time_t delta_usec, HakoAssetModelType model) {
+static int hako_asset_register_impl(const char *asset_name, const char *config_path, hako_asset_callbacks_t *callbacks, hako_time_t delta_usec, HakoAssetModelType model) {
     std::cout << "INFO: hako_asset_register :" << asset_name << std::endl;
     if (asset_name == nullptr || *asset_name == '\0') {
         std::cerr << "Error: Asset name is not set." << std::endl;
@@ -38,6 +66,13 @@ int hako_asset_register(const char *asset_name, const char *config_path, hako_as
     hako_asset_impl_register_callback(callbacks);
     std::cout << "INFO: asset(" << asset_name << ") is registered." << std::endl;
     return 0;
+}
+int hako_asset_register(const char *asset_name, const char *config_path, hako_asset_callbacks_t *callbacks, hako_time_t delta_usec, HakoAssetModelType model)
+{
+    return guard_c_api([&]() {
+        return hako_asset_register_impl(
+            asset_name, config_path, callbacks, delta_usec, model);
+    });
 }
 int hako_asset_attach_core(void)
 {
@@ -85,13 +120,21 @@ int hako_asset_load_pdu_data(void)
     }
     return 0;
 }
-int hako_initialize_for_external(void)
+static int hako_initialize_for_external_impl()
 {
     if (!hako_asset_impl_initialize_for_external()) {
         return EIO;
     }
     std::cout << "INFO: Success for external initialization." << std::endl;
     return 0;
+}
+int hako_initialize_for_external(void)
+{
+    return guard_c_api([]() { return hako_initialize_for_external_impl(); });
+}
+const char* hako_asset_last_error(void)
+{
+    return hako_asset_error.c_str();
 }
 int hako_asset_pdu_create(const char *robo_name, HakoPduChannelIdType lchannel, size_t pdu_size)
 {

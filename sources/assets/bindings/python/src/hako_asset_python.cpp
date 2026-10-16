@@ -90,6 +90,16 @@ static PyObject* raise_unknown_hakoniwa_runtime_error()
     return NULL;
 }
 
+static PyObject* raise_last_hakoniwa_runtime_error()
+{
+    const char *message = hako_asset_last_error();
+    if (message != NULL && message[0] != '\0') {
+        PyErr_Format(PyExc_RuntimeError, "Hakoniwa runtime failure: %s", message);
+        return NULL;
+    }
+    return NULL;
+}
+
 //asset_register
 static PyObject* asset_register(PyObject*, PyObject* args) {
     const char *asset_name;
@@ -157,6 +167,9 @@ static PyObject* asset_register(PyObject*, PyObject* args) {
     if (result == 0) {
         Py_RETURN_TRUE;
     } else {
+        if (hako_asset_last_error()[0] != '\0') {
+            return raise_last_hakoniwa_runtime_error();
+        }
         Py_RETURN_FALSE;
     }
 }
@@ -431,6 +444,9 @@ static PyObject* py_init_for_external(PyObject*, PyObject*) {
     if (result == 0) {
         Py_RETURN_TRUE;
     } else {
+        if (hako_asset_last_error()[0] != '\0') {
+            return raise_last_hakoniwa_runtime_error();
+        }
         Py_RETURN_FALSE;
     }
 }

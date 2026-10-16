@@ -219,18 +219,20 @@ int do_check(uint32_t timeout_ms, bool force_wait)
     const MasterLockInspection value =
         inspect_master_lock(timeout_ms, force_wait);
     json master_lock = {
+        {"name", "master_lock"},
         {"status", master_lock_health_name(value.health)},
+        {"reason", value.reason},
         {"state", master_lock_state_name(value.state)},
         {"counter", value.counter},
         {"owner_pid", value.owner_pid},
         {"owner_start_token", value.owner_start_token},
         {"generation", value.generation},
-        {"reason", value.reason},
     };
     json output = {
+        {"schema_version", 1},
         {"status", master_lock_health_name(value.health)},
         {"reason", value.reason},
-        {"checks", {{"master_lock", master_lock}}},
+        {"checks", json::array({master_lock})},
     };
     std::cout << output.dump() << std::endl;
     switch (value.health) {
@@ -250,7 +252,15 @@ int do_recover()
         {"recovered", value.recovered},
         {"reason", value.reason},
         {"removed", value.removed},
+        {"remaining", value.remaining},
+        {"failures", json::array()},
     };
+    for (const auto& failure : value.failures) {
+        output["failures"].push_back({
+            {"path", failure.path},
+            {"reason", failure.reason},
+        });
+    }
     std::cout << output.dump() << std::endl;
     return value.recovered ? 0 : 4;
 }

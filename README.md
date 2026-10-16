@@ -84,7 +84,31 @@ hako-cmd check
 - `ABORT`: lock ownerの終了またはPID再利用を検出したため、実行継続禁止
 - `UNKNOWN`: 旧形式、破損、OS lock競合などにより安全性を証明できない
 
-同じ異常を`hakopy.asset_register()`の20ms待機中に検出した場合、待機を
+JSON契約の`schema_version`は`1`です。`checks`は将来の検査追加に備えた
+配列で、各要素は最低限`name`、`status`、`reason`を持ちます。
+
+```json
+{
+  "schema_version": 1,
+  "status": "OK",
+  "reason": "master lock is unlocked",
+  "checks": [
+    {
+      "name": "master_lock",
+      "status": "OK",
+      "reason": "master lock is unlocked",
+      "owner_pid": 0
+    }
+  ]
+}
+```
+
+`check`の終了コードは、`0=OK`、`2=ABORT`、`3=UNKNOWN`です。
+コマンド構文などの一般エラーは`1`です。`recover`は成功時`0`、拒否または
+部分失敗時`4`を返します。
+
+同じ異常を`hakopy.asset_register()`または`hakopy.init_for_external()`の
+20ms待機中に検出した場合、待機を
 継続したりPython processを異常終了させたりせず、理由を含む`RuntimeError`
 としてPython側へ通知します。
 
@@ -102,10 +126,12 @@ hako-cmd check --force-wait --lock-timeout-ms 1000
 hako-cmd recover
 ```
 
-`recover`はmaster/asset PIDが生存中、または生存確認が不確実な場合には拒否
-します。削除対象は設定された`core_mmap_path`内の既知runtimeファイル
+`recover`はmaster/asset PIDまたはflock ownerが生存中、OS file lockが競合中、
+あるいは生存確認が不確実な場合には拒否します。削除対象は設定された
+`core_mmap_path`内の既知runtimeファイル
 （`mmap-0x*.bin`、`flock.bin`、`pdu_init.lock`、`pro_init.lock`）だけで、
-シミュレーションを再起動しません。
+シミュレーションを再起動しません。途中の削除に失敗した場合、JSONの
+`removed`、`remaining`、`failures`に部分復旧結果を保持します。
 
 ### 基本的なシミュレーションの流れ
 

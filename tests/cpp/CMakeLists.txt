@@ -51,13 +51,21 @@ if(HAKO_CORE_SHARED_EFFECTIVE)
     endforeach()
 endif()
 
+set(_hako_lock_integration_python "${Python3_EXECUTABLE}")
+set(_hako_lock_integration_binding_args)
+if(TARGET hako_asset_python)
+    set(_hako_lock_integration_python "${HAKO_PYTHON_RUNTIME_EXECUTABLE}")
+    list(APPEND _hako_lock_integration_binding_args
+        --hakopy-dir $<TARGET_FILE_DIR:hako_asset_python>
+        --native-library-dir $<TARGET_FILE_DIR:assets>
+    )
+endif()
 add_test(
     NAME HakoCommandLockIntegration
-    COMMAND ${HAKO_PYTHON_RUNTIME_EXECUTABLE}
+    COMMAND ${_hako_lock_integration_python}
         ${CMAKE_CURRENT_SOURCE_DIR}/../integration/hako_cmd_lock_integration.py
         --hako-cmd $<TARGET_FILE:hako-cmd>
         --holder $<TARGET_FILE:hako-command-lock-holder>
-        --hakopy-dir $<TARGET_FILE_DIR:hako_asset_python>
-        --native-library-dir $<TARGET_FILE_DIR:assets>
+        ${_hako_lock_integration_binding_args}
 )
 set_tests_properties(HakoCommandLockIntegration PROPERTIES TIMEOUT 20)

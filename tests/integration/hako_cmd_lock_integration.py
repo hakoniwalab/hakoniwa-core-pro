@@ -39,12 +39,26 @@ def command_json(command: list[str], env: dict[str, str]) -> tuple[int, dict]:
     return result.returncode, payload
 
 
+def check_named(payload: dict, name: str) -> dict:
+    if payload.get("schema_version") != 1:
+        raise AssertionError(f"unexpected check schema: {payload!r}")
+    checks = payload.get("checks")
+    if not isinstance(checks, list):
+        raise AssertionError(f"checks must be an array: {payload!r}")
+    for check in checks:
+        if check.get("name") == name:
+            if not all(key in check for key in ("status", "reason")):
+                raise AssertionError(f"incomplete check entry: {check!r}")
+            return check
+    raise AssertionError(f"missing check {name!r}: {payload!r}")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--hako-cmd", required=True)
     parser.add_argument("--holder", required=True)
-    parser.add_argument("--hakopy-dir", required=True)
-    parser.add_argument("--native-library-dir", required=True)
+    parser.add_argument("--hakopy-dir")
+    parser.add_argument("--native-library-dir")
     args = parser.parse_args()
 
     with tempfile.TemporaryDirectory(prefix="hako-cmd-lock-") as temp_dir:
@@ -72,7 +86,7 @@ def main() -> int:
 
             rc, check = command_json([args.hako_cmd, "check"], env)
             if (rc != 0 or check["status"] != "OK" or
-                    check["checks"]["master_lock"]["state"] != "LOCKED"):
+                    check_named(check, "master_lock")["state"] != "LOCKED"):
                 raise AssertionError(f"live lock check failed: rc={rc}, json={check!r}")
 
             started = time.monotonic()
@@ -144,36 +158,48 @@ def main() -> int:
             }),
             encoding="utf-8",
         )
-        dll_directory = None
-        if sys.platform == "win32":
-            dll_directory = os.add_dll_directory(str(Path(args.native_library_dir)))
-        sys.path.insert(0, str(Path(args.hakopy_dir)))
-        try:
-            import hakopy
-
-            callbacks = {
-                "on_initialize": None,
-                "on_reset": None,
-                "on_simulation_step": None,
-                "on_manual_timing_control": None,
-            }
+        if args.hakopy_dir is not None:
+            dll_directory = None
+            if sys.platform == "win32":
+                if args.native_library_dir is None:
+                    raise AssertionError("native library directory is required on Windows")
+                dll_directory = os.add_dll_directory(str(Path(args.native_library_dir)))
+            sys.path.insert(0, str(Path(args.hakopy_dir)))
             try:
-                hakopy.asset_register(
-                    "PythonAsset",
-                    str(pdudef_path),
-                    callbacks,
-                    1000,
-                    hakopy.HAKO_ASSET_MODEL_CONTROLLER,
-                )
-            except RuntimeError as error:
-                if "master lock owner process is no longer alive" not in str(error):
-                    raise AssertionError(f"unexpected hakopy RuntimeError: {error}") from error
-            else:
-                raise AssertionError("hakopy did not raise RuntimeError")
-        finally:
-            sys.path.pop(0)
-            if dll_directory is not None:
-                dll_directory.close()
+                import hakopy
+
+                callbacks = {
+                    "on_initialize": None,
+                    "on_reset": None,
+                    "on_simulation_step": None,
+                    "on_manual_timing_control": None,
+                }
+                try:
+                    hakopy.init_for_external()
+                except RuntimeError as error:
+                    if "master lock owner process is no longer alive" not in str(error):
+                        raise AssertionError(
+                            f"unexpected init_for_external RuntimeError: {error}"
+                        ) from error
+                else:
+                    raise AssertionError("init_for_external did not raise RuntimeError")
+                try:
+                    hakopy.asset_register(
+                        "PythonAsset",
+                        str(pdudef_path),
+                        callbacks,
+                        1000,
+                        hakopy.HAKO_ASSET_MODEL_CONTROLLER,
+                    )
+                except RuntimeError as error:
+                    if "master lock owner process is no longer alive" not in str(error):
+                        raise AssertionError(f"unexpected hakopy RuntimeError: {error}") from error
+                else:
+                    raise AssertionError("hakopy did not raise RuntimeError")
+            finally:
+                sys.path.pop(0)
+                if dll_directory is not None:
+                    dll_directory.close()
 
         rc, recovered = command_json([args.hako_cmd, "recover"], env)
         if rc != 0 or recovered["status"] != "RECOVERED":
@@ -201,6 +227,14 @@ def main() -> int:
                 raise AssertionError(f"try-lock check did not return UNKNOWN: {check!r}")
             if time.monotonic() - started >= 2:
                 raise AssertionError("non-blocking check waited for the OS lock")
+
+            rc, recovery = command_json([args.hako_cmd, "recover"], env)
+            if rc != 4 or recovery["status"] != "REFUSED":
+                raise AssertionError(
+                    f"recovery did not refuse busy OS lock: rc={rc}, json={recovery!r}"
+                )
+            if not (root / "flock.bin").exists():
+                raise AssertionError("recovery removed a busy flock.bin")
 
             started = time.monotonic()
             rc, check = command_json(

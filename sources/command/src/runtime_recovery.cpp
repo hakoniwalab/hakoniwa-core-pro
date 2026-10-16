@@ -14,6 +14,7 @@
 #include "config/hako_config.hpp"
 #include "data/hako_master_data.hpp"
 #include "utils/hako_config_loader.hpp"
+#include "utils/hako_share/hako_master_lock.hpp"
 #include "utils/hako_share/hako_shared_memory.hpp"
 
 namespace {
@@ -23,7 +24,7 @@ using hako::command::RuntimeRecoveryResult;
 
 RuntimeRecoveryResult refusal(const std::string& reason)
 {
-    return {false, "REFUSED", reason, {}};
+    return {false, "REFUSED", reason, {}, {}, {}};
 }
 
 bool read_runtime_pids(
@@ -75,6 +76,34 @@ bool read_runtime_pids(
 
 } // namespace
 
+hako::command::RuntimeRecoveryResult
+hako::command::detail::remove_known_runtime_files(
+    const std::vector<std::filesystem::path>& paths,
+    const RemoveRuntimeFile& remove_file)
+{
+    RuntimeRecoveryResult result{
+        true, "RECOVERED", "runtime files removed", {}, {}, {}};
+    for (size_t index = 0; index < paths.size(); ++index) {
+        const auto& path = paths[index];
+        std::error_code error;
+        if (!remove_file(path, error) || error) {
+            result.recovered = false;
+            result.status = "PARTIAL";
+            result.reason = "failed to remove one or more runtime files";
+            for (size_t remaining = index; remaining < paths.size(); ++remaining) {
+                result.remaining.push_back(paths[remaining].string());
+            }
+            result.failures.push_back({
+                path.string(),
+                error ? error.message() : "remove operation returned false",
+            });
+            return result;
+        }
+        result.removed.push_back(path.string());
+    }
+    return result;
+}
+
 hako::command::RuntimeRecoveryResult hako::command::recover_runtime_files()
 {
     HakoConfigType config;
@@ -95,6 +124,23 @@ hako::command::RuntimeRecoveryResult hako::command::recover_runtime_files()
         config.param["core_mmap_path"].get<std::string>();
     if (!std::filesystem::exists(root) || !std::filesystem::is_directory(root)) {
         return refusal("core_mmap_path does not exist or is not a directory");
+    }
+
+    const std::filesystem::path flock_path = root / "flock.bin";
+    if (std::filesystem::exists(flock_path)) {
+        using namespace hako::utils::sem::flock;
+        const MasterLockInspection lock = inspect_master_lock(0, false);
+        if (lock.health == MasterLockHealth::Unknown) {
+            return refusal(
+                "master lock ownership cannot be verified: " + lock.reason);
+        }
+        if (lock.health == MasterLockHealth::Ok &&
+            (lock.state != MasterLockState::Unlocked || lock.owner_pid != 0 ||
+             lock.owner_start_token != 0)) {
+            return refusal(
+                "master lock is owned by a live process: pid=" +
+                std::to_string(lock.owner_pid));
+        }
     }
 
     std::set<pid_type> pids;
@@ -139,13 +185,9 @@ hako::command::RuntimeRecoveryResult hako::command::recover_runtime_files()
             return refusal("known runtime path is not a regular file: " + path.string());
         }
     }
-    RuntimeRecoveryResult result{true, "RECOVERED", "runtime files removed", {}};
-    for (const auto& path : known_files) {
-        std::error_code error;
-        if (!std::filesystem::remove(path, error) || error) {
-            return refusal("failed to remove runtime file: " + path.string());
-        }
-        result.removed.push_back(path.string());
-    }
-    return result;
+    return detail::remove_known_runtime_files(
+        known_files,
+        [](const std::filesystem::path& path, std::error_code& error) {
+            return std::filesystem::remove(path, error);
+        });
 }
