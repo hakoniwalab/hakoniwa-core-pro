@@ -59,6 +59,22 @@ hako_set_cache_default(HAKO_SERVICE_MAX "${HAKO_DEFAULT_HAKO_SERVICE_MAX}" "Maxi
 hako_set_cache_default(HAKO_CLIENT_NAMELEN_MAX "${HAKO_DEFAULT_HAKO_CLIENT_NAMELEN_MAX}" "Maximum client name length in Hakoniwa service tables")
 hako_set_cache_default(HAKO_SERVICE_NAMELEN_MAX "${HAKO_DEFAULT_HAKO_SERVICE_NAMELEN_MAX}" "Maximum service name length in Hakoniwa service tables")
 
+# These values define shared-memory and service-table ABI layouts.  Apply them
+# at the repository root so every target that includes Core data headers uses
+# the same layout, including command tools, tests, and targets that compile
+# Core sources directly outside sources/core.
+foreach(_hako_limit_var IN ITEMS
+    HAKO_DATA_MAX_ASSET_NUM
+    HAKO_PDU_CHANNEL_MAX
+    HAKO_RECV_EVENT_MAX
+    HAKO_SERVICE_CLIENT_MAX
+    HAKO_SERVICE_MAX
+    HAKO_CLIENT_NAMELEN_MAX
+    HAKO_SERVICE_NAMELEN_MAX
+)
+    add_compile_definitions(${_hako_limit_var}=${${_hako_limit_var}})
+endforeach()
+
 message(STATUS
     "Hakoniwa build limits: "
     "asset_num=${HAKO_DATA_MAX_ASSET_NUM} "
