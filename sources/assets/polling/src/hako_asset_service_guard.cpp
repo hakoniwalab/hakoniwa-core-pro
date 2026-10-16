@@ -1,29 +1,6 @@
 #include "hako_asset_service.h"
+#include "hako_asset_service_unguarded_declarations.hpp"
 #include "hako_runtime_error_internal.hpp"
-
-extern "C" {
-int hako_asset_service_initialize_unguarded(const char*);
-int hako_asset_service_server_create_unguarded(const char*, const char*);
-int hako_asset_service_server_poll_unguarded(int);
-int hako_asset_service_server_get_current_client_id_unguarded(int);
-int hako_asset_service_server_get_current_channel_id_unguarded(int, int*, int*);
-int hako_asset_service_server_status_unguarded(int, int*);
-int hako_asset_service_server_get_request_unguarded(int, char**, size_t*);
-int hako_asset_service_server_get_response_buffer_unguarded(int, char**, size_t*, int, int);
-int hako_asset_service_server_put_response_unguarded(int, char*, size_t);
-int hako_asset_service_server_is_canceled_unguarded(int);
-int hako_asset_service_server_set_progress_unguarded(int, int);
-int hako_asset_service_client_create_unguarded(const char*, const char*, const char*, HakoServiceHandleType*);
-int hako_asset_service_client_poll_unguarded(const HakoServiceHandleType*);
-int hako_asset_service_client_get_channel_id_unguarded(int, int*, int*);
-int hako_asset_service_client_get_channel_id_by_handle_unguarded(const HakoServiceHandleType*, int*, int*);
-int hako_asset_service_client_get_request_buffer_unguarded(const HakoServiceHandleType*, char**, size_t*, int, int);
-int hako_asset_service_client_call_request_unguarded(const HakoServiceHandleType*, char*, size_t, int);
-int hako_asset_service_client_get_response_unguarded(const HakoServiceHandleType*, char**, size_t*, int);
-int hako_asset_service_client_cancel_request_unguarded(const HakoServiceHandleType*);
-int hako_asset_service_client_get_progress_unguarded(const HakoServiceHandleType*);
-int hako_asset_service_client_status_unguarded(const HakoServiceHandleType*, int*);
-}
 
 namespace {
 
@@ -62,4 +39,3 @@ HAKO_GUARD_SERVICE_1(hako_asset_service_client_get_progress, const HakoServiceHa
 int hako_asset_service_client_status(const HakoServiceHandleType* handle, int* status) { return guard_service([&]() { return hako_asset_service_client_status_unguarded(handle, status); }); }
 
 #undef HAKO_GUARD_SERVICE_1
-
