@@ -143,10 +143,6 @@ const hako::asset::PduReader* find_reader(const hako::asset::Robot& robot, const
 
 TEST(HakoAssetPduConfigTest, CompactConfigBuildsLegacyView)
 {
-    // CTest runs each discovered gtest in a separate process. On Windows the
-    // prior process must exit before its mmap/lifecycle handles can be
-    // removed, so clean the fixed fixture directory at the next test's start.
-    cleanup_test_dirs();
     std::cerr << "TEST: init" << std::endl;
     auto core_config = write_core_config();
     set_env_var("HAKO_CONFIG_PATH", core_config.string().c_str());
@@ -214,7 +210,6 @@ TEST(HakoAssetPduConfigTest, CompactConfigBuildsLegacyView)
 
 TEST(HakoAssetPduConfigTest, LegacyConfigBuildsCompactView)
 {
-    cleanup_test_dirs();
     std::cerr << "TEST: init" << std::endl;
     auto core_config = write_core_config();
     set_env_var("HAKO_CONFIG_PATH", core_config.string().c_str());

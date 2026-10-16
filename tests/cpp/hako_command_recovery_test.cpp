@@ -19,7 +19,6 @@
 #include "data/hako_master_data.hpp"
 #include "runtime_recovery.hpp"
 #include "utils/hako_share/hako_sem_flock.hpp"
-#include "utils/hako_share/hako_runtime_lifecycle.hpp"
 #include "utils/hako_share/hako_shared_memory.hpp"
 #include "utils/hako_share/hako_shared_memory_factory.hpp"
 
@@ -54,11 +53,6 @@ protected:
 #else
         setenv("HAKO_CONFIG_PATH", config_.string().c_str(), 1);
 #endif
-        {
-            hako::utils::lifecycle::RuntimeParticipantLease participant;
-            participant.join(root_.string(), true);
-            generation_ = participant.generation();
-        }
     }
 
     void TearDown() override
@@ -73,7 +67,7 @@ protected:
         std::filesystem::remove_all(root_, error);
     }
 
-    void write_master(pid_type pid)
+    void write_master(pid_type master_pid, pid_type asset_pid = 0)
     {
         const size_t size = sizeof(hako::utils::SharedMemoryMetaDataType) +
                             sizeof(hako::data::HakoMasterDataType);
@@ -83,10 +77,13 @@ protected:
         metadata->magic = HAKO_SHM_MAGIC;
         metadata->version = HAKO_SHM_LAYOUT_VERSION;
         metadata->data_size = sizeof(hako::data::HakoMasterDataType);
-        metadata->lifecycle_generation = generation_;
         auto *master = reinterpret_cast<hako::data::HakoMasterDataType*>(
             &metadata->data[0]);
-        master->master_pid = pid;
+        master->master_pid = master_pid;
+        if (asset_pid > 0) {
+            master->asset_num = 1;
+            master->assets_ev[0].pid = asset_pid;
+        }
         std::ofstream output(root_ / "mmap-0xff.bin", std::ios::binary);
         output.write(reinterpret_cast<const char*>(bytes.data()), bytes.size());
     }
@@ -101,7 +98,6 @@ protected:
     std::filesystem::path config_;
     bool had_previous_ = false;
     std::string previous_;
-    uint64_t generation_ = 0;
 };
 
 } // namespace
@@ -115,6 +111,16 @@ TEST_F(RuntimeRecoveryTest, RefusesWhileKnownProcessIsAlive)
     EXPECT_EQ(result.status, "REFUSED");
     EXPECT_TRUE(std::filesystem::exists(root_ / "mmap-0xff.bin"));
     EXPECT_TRUE(std::filesystem::exists(root_ / "flock.bin"));
+}
+
+TEST_F(RuntimeRecoveryTest, RefusesWhileRecordedAssetIsAlive)
+{
+    write_master(0, current_pid());
+    const auto result = hako::command::recover_runtime_files();
+    EXPECT_FALSE(result.recovered);
+    EXPECT_EQ(result.status, "REFUSED");
+    EXPECT_NE(result.reason.find("still alive"), std::string::npos);
+    EXPECT_TRUE(std::filesystem::exists(root_ / "mmap-0xff.bin"));
 }
 
 TEST_F(RuntimeRecoveryTest, RefusesUncertainMasterLayout)
@@ -151,12 +157,10 @@ TEST_F(RuntimeRecoveryTest, RemovesAllKnownPatternsButPreservesUnrelatedFiles)
     std::ofstream(root_ / "operator-notes.txt") << "keep";
     const auto result = hako::command::recover_runtime_files();
     ASSERT_TRUE(result.recovered) << result.reason;
-    EXPECT_EQ(result.removed.size(), 7U);
+    EXPECT_EQ(result.removed.size(), 6U);
     EXPECT_TRUE(std::filesystem::exists(root_ / "operator-notes.txt"));
     ASSERT_FALSE(result.removed.empty());
     EXPECT_EQ(std::filesystem::path(result.removed.back()).filename(), "flock.bin");
-    EXPECT_TRUE(std::filesystem::exists(root_ / "runtime-lifecycle-v1.gate"));
-    EXPECT_TRUE(std::filesystem::exists(root_ / "runtime-lifecycle-v1.bin"));
 }
 
 TEST(RuntimeRecoveryRemovalTest, PreservesProgressWhenRemovalPartiallyFails)
@@ -186,38 +190,30 @@ TEST(RuntimeRecoveryRemovalTest, PreservesProgressWhenRemovalPartiallyFails)
     EXPECT_FALSE(result.failures[0].reason.empty());
 }
 
-TEST_F(RuntimeRecoveryTest, RefusesLegacyRuntimeWithoutLifecycleMarker)
+TEST_F(RuntimeRecoveryTest, RemovesLegacyRuntime)
 {
-    std::filesystem::remove(root_ / "runtime-lifecycle-v1.bin");
     write_master(0);
-    std::ofstream(root_ / "flock.bin") << "legacy";
+    std::ofstream legacy(root_ / "flock.bin", std::ios::binary);
+    std::vector<unsigned char> counters(4096, 0);
+    legacy.write(
+        reinterpret_cast<const char*>(counters.data()), counters.size());
+    legacy.close();
 
     const auto result = hako::command::recover_runtime_files();
 
-    EXPECT_FALSE(result.recovered);
-    EXPECT_EQ(result.status, "REFUSED");
-    EXPECT_NE(result.reason.find("UNKNOWN"), std::string::npos);
-    EXPECT_TRUE(std::filesystem::exists(root_ / "mmap-0xff.bin"));
-    EXPECT_TRUE(std::filesystem::exists(root_ / "flock.bin"));
+    EXPECT_TRUE(result.recovered) << result.reason;
+    EXPECT_EQ(result.status, "RECOVERED");
+    EXPECT_FALSE(std::filesystem::exists(root_ / "mmap-0xff.bin"));
+    EXPECT_FALSE(std::filesystem::exists(root_ / "flock.bin"));
 }
 
-TEST_F(RuntimeRecoveryTest, RefusesMixedLifecycleGeneration)
+TEST_F(RuntimeRecoveryTest, EmptyRuntimeDirectoryIsAlreadyRecovered)
 {
-    write_master(0);
-    std::fstream stream(root_ / "mmap-0xff.bin",
-                        std::ios::binary | std::ios::in | std::ios::out);
-    hako::utils::SharedMemoryMetaDataType metadata{};
-    stream.read(reinterpret_cast<char*>(&metadata), sizeof(metadata));
-    metadata.lifecycle_generation++;
-    stream.seekp(0);
-    stream.write(reinterpret_cast<const char*>(&metadata), sizeof(metadata));
-    stream.close();
-
     const auto result = hako::command::recover_runtime_files();
 
-    EXPECT_FALSE(result.recovered);
-    EXPECT_EQ(result.status, "REFUSED");
-    EXPECT_NE(result.reason.find("generation"), std::string::npos);
+    EXPECT_TRUE(result.recovered) << result.reason;
+    EXPECT_EQ(result.status, "RECOVERED");
+    EXPECT_TRUE(result.removed.empty());
 }
 
 TEST_F(RuntimeRecoveryTest, FreshSessionCanStartAfterSafeRecovery)
@@ -254,4 +250,31 @@ TEST_F(RuntimeRecoveryTest, RefusesKnownRuntimeSymlinkWithoutTouchingTarget)
     EXPECT_EQ(std::filesystem::file_size(target), 4U);
     EXPECT_TRUE(std::filesystem::exists(root_ / "mmap-0xff.bin"));
     EXPECT_TRUE(std::filesystem::exists(root_ / "flock.bin"));
+}
+
+TEST_F(RuntimeRecoveryTest, RefusesSymlinkedRuntimeRoot)
+{
+    const auto real_root =
+        root_.parent_path() / (root_.filename().string() + "-real");
+    std::error_code error;
+    std::filesystem::rename(root_, real_root, error);
+    ASSERT_FALSE(error) << error.message();
+    std::filesystem::create_directory_symlink(real_root, root_, error);
+    if (error) {
+        std::filesystem::rename(real_root, root_);
+        GTEST_SKIP() << "directory symlink creation unavailable: "
+                     << error.message();
+    }
+
+    const auto result = hako::command::recover_runtime_files();
+
+    EXPECT_FALSE(result.recovered);
+    EXPECT_EQ(result.status, "REFUSED");
+    EXPECT_NE(result.reason.find("does not exist or is not a directory"),
+              std::string::npos);
+
+    std::filesystem::remove(root_, error);
+    ASSERT_FALSE(error) << error.message();
+    std::filesystem::rename(real_root, root_, error);
+    ASSERT_FALSE(error) << error.message();
 }

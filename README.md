@@ -126,26 +126,21 @@ hako-cmd check --force-wait --lock-timeout-ms 1000
 hako-cmd recover
 ```
 
-`recover`はruntime lifecycle gateを処理完了まで保持し、master、asset、
-`init_for_external()`を含む全参加プロセスのprocess-lifetime leaseが解放済み
-であることを確認します。新しい参加処理は同じgateの外で待つため、確認から
-削除までの間に入ることはできません。master/asset PIDまたはflock ownerが
-生存中、leaseが使用中、OS file lockが競合中、世代が一致しない、あるいは
-生存確認が不確実な場合には拒否します。削除対象は設定された
-`core_mmap_path`内の既知runtimeファイル
-（`mmap-0x*.bin`、participant lease、`pdu_init.lock`、`pro_init.lock`、
-`flock.bin`）だけで、シミュレーションを再起動しません。所有権の証拠である
-`flock.bin`は必ず最後に削除します。途中の削除に失敗した場合はそこで停止し、
-`flock.bin`を保持したままJSONの`removed`、`remaining`、`failures`に部分復旧
-結果を保持します。lifecycle markerとgateは次の安全なsessionでも使うため残します。
+`recover`は、記録されているmaster/asset PIDが生存中、flock ownerが生存中、
+OS file lockが競合中、または生存確認が不確実な場合には拒否します。実行前に
+Launcher、master、asset、external clientを含む全Hakoniwaプロセスを停止して
+ください。
 
-旧形式の`flock.bin`やlifecycle markerのないlayout v2 runtimeは、quiescenceを
-証明できないため`recover`の対象になりません。全関連プロセスをOS側でも停止
-確認し、runtime directory全体を同一filesystem内の日時付きdirectoryへrename
-して証拠保存した後、同じowner/permissionで空の`core_mmap_path`を作り直して
-ください。個別ファイルを削除したり、新旧binaryを同じdirectoryで混在させたり
-してはいけません。詳細はsubmoduleの
-`docs/runtime-lifecycle-recovery.md`を参照してください。
+削除対象は設定された`core_mmap_path`内の既知runtimeファイル
+（`mmap-0x*.bin`、`pdu_init.lock`、`pro_init.lock`、`flock.bin`）だけで、
+旧形式の`flock.bin`も明示的な復旧対象です。所有権の証拠である`flock.bin`は
+必ず最後に削除します。途中の削除に失敗した場合はそこで停止し、JSONの
+`removed`、`remaining`、`failures`に部分復旧結果を保持します。空の
+`core_mmap_path`に対する`recover`も成功します。
+
+同じ`core_mmap_path`で新旧Coreを混在させる運用はサポートしません。更新時は
+全プロセス停止、全Core componentの更新、`hako-cmd recover`、再起動の順に
+実行してください。Coreは自動移行を行いません。
 
 ### 基本的なシミュレーションの流れ
 

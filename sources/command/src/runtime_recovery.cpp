@@ -15,7 +15,6 @@
 #include "data/hako_master_data.hpp"
 #include "utils/hako_config_loader.hpp"
 #include "utils/hako_share/hako_master_lock.hpp"
-#include "utils/hako_share/hako_runtime_lifecycle.hpp"
 #include "utils/hako_share/hako_shared_memory.hpp"
 
 namespace {
@@ -142,23 +141,38 @@ hako::command::RuntimeRecoveryResult hako::command::detail::recover_runtime_file
         return refusal("core_mmap_path does not exist or is not a directory");
     }
 
-    using hako::utils::lifecycle::RuntimeLifecycleHealth;
-    hako::utils::lifecycle::RuntimeRecoveryGuard lifecycle_guard;
-    std::string lifecycle_reason;
-    const RuntimeLifecycleHealth lifecycle_health =
-        lifecycle_guard.acquire(root.string(), &lifecycle_reason);
-    if (lifecycle_health != RuntimeLifecycleHealth::Ok) {
-        return refusal(
-            std::string("runtime lifecycle is ") +
-            hako::utils::lifecycle::runtime_lifecycle_health_name(lifecycle_health) +
-            ": " + lifecycle_reason);
+    const std::regex mmap_name("mmap-0x[0-9a-fA-F]+\\.bin");
+    const std::set<std::string> lock_names = {
+        "flock.bin", "pdu_init.lock", "pro_init.lock",
+    };
+    std::vector<std::filesystem::path> known_files;
+    std::error_code directory_error;
+    for (const auto& entry : std::filesystem::directory_iterator(root, directory_error)) {
+        const std::string name = entry.path().filename().string();
+        if (std::regex_match(name, mmap_name) || lock_names.count(name) != 0) {
+            known_files.push_back(entry.path());
+        }
+    }
+    if (directory_error) {
+        return refusal("cannot enumerate core_mmap_path");
+    }
+    /* Validate the complete deletion set before reading or changing anything. */
+    for (const auto& path : known_files) {
+        std::error_code error;
+        if (std::filesystem::is_symlink(path, error) || error ||
+            !std::filesystem::is_regular_file(path, error) || error) {
+            return refusal("known runtime path is not a regular file: " + path.string());
+        }
     }
 
     const std::filesystem::path flock_path = root / "flock.bin";
     if (std::filesystem::exists(flock_path)) {
         using namespace hako::utils::sem::flock;
         const MasterLockInspection lock = inspect_master_lock(0, false);
-        if (lock.health == MasterLockHealth::Unknown) {
+        if (lock.health == MasterLockHealth::Unknown &&
+            (lock.unknown_cause == MasterLockUnknownCause::Identity ||
+             lock.unknown_cause == MasterLockUnknownCause::Contention ||
+             lock.unknown_cause == MasterLockUnknownCause::System)) {
             return refusal(
                 "master lock ownership cannot be verified: " + lock.reason);
         }
@@ -188,33 +202,6 @@ hako::command::RuntimeRecoveryResult hako::command::detail::recover_runtime_file
         }
     }
 
-    const std::regex mmap_name("mmap-0x[0-9a-fA-F]+\\.bin");
-    const std::set<std::string> lock_names = {
-        "flock.bin", "pdu_init.lock", "pro_init.lock",
-    };
-    std::vector<std::filesystem::path> known_files;
-    std::error_code directory_error;
-    for (const auto& entry : std::filesystem::directory_iterator(root, directory_error)) {
-        const std::string name = entry.path().filename().string();
-        if (std::regex_match(name, mmap_name) || lock_names.count(name) != 0) {
-            known_files.push_back(entry.path());
-        }
-    }
-    if (directory_error) {
-        return refusal("cannot enumerate core_mmap_path");
-    }
-    for (const auto& lease : lifecycle_guard.inactive_leases()) {
-        known_files.emplace_back(lease);
-    }
-
-    /* Validate the complete deletion set before changing anything. */
-    for (const auto& path : known_files) {
-        std::error_code error;
-        if (std::filesystem::is_symlink(path, error) || error ||
-            !std::filesystem::is_regular_file(path, error) || error) {
-            return refusal("known runtime path is not a regular file: " + path.string());
-        }
-    }
     return detail::remove_known_runtime_files(known_files, remove_file);
 }
 
