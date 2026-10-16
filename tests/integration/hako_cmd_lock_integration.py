@@ -294,7 +294,8 @@ def main() -> int:
                     "--native-library-dir", args.native_library_dir,
                 ])
             idle_master = subprocess.Popen(
-                [args.holder, "--master-idle"],
+                [args.holder, "--master-abandonable"],
+                stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True,
@@ -302,7 +303,6 @@ def main() -> int:
             )
             running_probe = None
             native_probe = None
-            abandoned_owner = None
             try:
                 wait_until_ready(idle_master)
                 running_probe = subprocess.Popen(
@@ -323,16 +323,15 @@ def main() -> int:
                     env=env,
                 )
                 wait_until_ready(native_probe)
-                abandoned_owner = subprocess.Popen(
-                    [args.holder],
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT,
-                    text=True,
-                    env=env,
-                )
-                wait_until_ready(abandoned_owner)
-                abandoned_owner.kill()
-                abandoned_owner.wait(timeout=5)
+                assert idle_master.stdin is not None
+                idle_master.stdin.write("ABANDON\n")
+                idle_master.stdin.flush()
+                idle_master.wait(timeout=5)
+                if idle_master.returncode != 0:
+                    raise AssertionError(
+                        "master fixture did not abandon the lock cleanly: "
+                        f"rc={idle_master.returncode}"
+                    )
                 assert running_probe.stdin is not None
                 running_probe.stdin.write("CHECK\n")
                 running_probe.stdin.flush()
@@ -354,9 +353,6 @@ def main() -> int:
                         f"stderr={native_stderr!r}"
                     )
             finally:
-                if abandoned_owner is not None and abandoned_owner.poll() is None:
-                    abandoned_owner.kill()
-                    abandoned_owner.wait(timeout=5)
                 if running_probe is not None and running_probe.poll() is None:
                     running_probe.kill()
                     running_probe.wait(timeout=5)

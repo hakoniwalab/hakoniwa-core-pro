@@ -1,4 +1,5 @@
 #include <chrono>
+#include <cstdlib>
 #include <iostream>
 #include <string>
 #include <thread>
@@ -25,6 +26,20 @@ int main(int argc, char **argv)
         while (true) {
             std::this_thread::sleep_for(std::chrono::seconds(1));
         }
+    }
+    if (argc == 2 && std::string(argv[1]) == "--master-abandonable") {
+        auto master = hako::create_master();
+        if (master == nullptr) {
+            std::cerr << "failed to create Hakoniwa master" << std::endl;
+            return 3;
+        }
+        std::cout << "READY" << std::endl;
+        std::string command;
+        if (!std::getline(std::cin, command) || command != "ABANDON") {
+            return 4;
+        }
+        hako::utils::sem::flock::master_lock(HAKO_SHARED_MEMORY_ID_0);
+        std::_Exit(0);
     }
     if (argc == 2 && std::string(argv[1]) == "--os-lock") {
         HakoConfigType config;
