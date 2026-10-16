@@ -28,7 +28,10 @@
 #include <iomanip>
 #include "dump_meta.hpp"
 #include "runtime_probe.hpp"
+#include "runtime_recovery.hpp"
 #include "cxxopts.hpp"
+#include <nlohmann/json.hpp>
+#include "utils/hako_share/hako_master_lock.hpp"
 #include "utils/hako_share/hako_shared_memory.hpp"
 #include "utils/hako_share/impl/hako_flock_wait.hpp"
 #include "data/hako_base_data.hpp"
@@ -36,6 +39,7 @@
 // Type definitions
 using HakoSimCtrlPtr = std::shared_ptr<hako::IHakoSimulationEventController>;
 using Args = const std::vector<std::string>&;
+using json = nlohmann::ordered_json;
 
 // Signal handler
 static volatile sig_atomic_t hako_cmd_interrupted = 0;
@@ -209,12 +213,66 @@ int do_real_cid(HakoSimCtrlPtr& hako_sim_ctrl, Args args) {
     return 0;
 }
 
+int do_check(uint32_t timeout_ms, bool force_wait)
+{
+    using namespace hako::utils::sem::flock;
+    const MasterLockInspection value =
+        inspect_master_lock(timeout_ms, force_wait);
+    json master_lock = {
+        {"name", "master_lock"},
+        {"status", master_lock_health_name(value.health)},
+        {"reason", value.reason},
+        {"state", master_lock_state_name(value.state)},
+        {"counter", value.counter},
+        {"owner_pid", value.owner_pid},
+        {"owner_start_token", value.owner_start_token},
+        {"generation", value.generation},
+    };
+    json output = {
+        {"schema_version", 1},
+        {"status", master_lock_health_name(value.health)},
+        {"reason", value.reason},
+        {"checks", json::array({master_lock})},
+    };
+    std::cout << output.dump() << std::endl;
+    switch (value.health) {
+    case MasterLockHealth::Ok: return 0;
+    case MasterLockHealth::Abort: return 2;
+    case MasterLockHealth::Unknown: return 3;
+    }
+    return 3;
+}
+
+int do_recover()
+{
+    const hako::command::RuntimeRecoveryResult value =
+        hako::command::recover_runtime_files();
+    json output = {
+        {"status", value.status},
+        {"recovered", value.recovered},
+        {"reason", value.reason},
+        {"removed", value.removed},
+        {"remaining", value.remaining},
+        {"failures", json::array()},
+    };
+    for (const auto& failure : value.failures) {
+        output["failures"].push_back({
+            {"path", failure.path},
+            {"reason", failure.reason},
+        });
+    }
+    std::cout << output.dump() << std::endl;
+    return value.recovered ? 0 : 4;
+}
+
 void setup_options(cxxopts::Options& options) {
     options.add_options()
         ("h,help", "Print usage")
         ("v,version", "Print version")
         ("lock-timeout-ms", "Maximum file-lock wait in milliseconds (hako-cmd only)",
             cxxopts::value<uint32_t>()->default_value("3000"))
+        ("force-wait", "Allow check to wait for the OS file lock up to lock-timeout-ms",
+            cxxopts::value<bool>()->default_value("false"))
         ("positional", "Command and arguments", cxxopts::value<std::vector<std::string>>());
     
     options.parse_positional({"positional"});
@@ -251,6 +309,8 @@ int main(int argc, char* argv[]) {
                   << "  pmeta          Print master metadata\n"
                   << "  plog           Print memory log\n"
                   << "  jmeta          Dump simulation metadata as JSON\n";
+        std::cout << "  check          Inspect runtime integrity as JSON\n"
+                  << "  recover        Explicitly remove stopped runtime files\n";
         return 0;
     }
     if (result.count("version")) {
@@ -277,6 +337,15 @@ int main(int argc, char* argv[]) {
 
     auto& positional_args = result["positional"].as<std::vector<std::string>>();
     std::string command = positional_args[0];
+
+    if (command == "check") {
+        return do_check(
+            result["lock-timeout-ms"].as<uint32_t>(),
+            result["force-wait"].as<bool>());
+    }
+    if (command == "recover") {
+        return do_recover();
+    }
 
     std::map<std::string, std::function<int(HakoSimCtrlPtr&, Args)>> command_map = {
         {"start", do_start}, {"stop", do_stop}, {"reset", do_reset},

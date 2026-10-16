@@ -737,7 +737,7 @@ def write_receipt(
         "schema_version: 1",
         "component:",
         "  id: hakoniwa-core-pro",
-        "  version: 1.0.0",
+        "  version: 1.4.0",
         f"  source_revision: {_yaml_scalar(revision)}",
         "platform:",
         f"  os: {_yaml_scalar(os_name)}",

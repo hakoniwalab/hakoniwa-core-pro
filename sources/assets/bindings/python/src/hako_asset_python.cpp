@@ -5,6 +5,8 @@
 #include "hako_conductor.h"
 #include "hako_pro.hpp"
 
+#include <exception>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -76,6 +78,28 @@ static int on_manual_timing_control_wrapper(hako_asset_context_t* context)
 
 static struct hako_asset_callbacks_s hako_asset_callback_python;
 
+static PyObject* raise_hakoniwa_runtime_error(const std::exception& error)
+{
+    PyErr_Format(PyExc_RuntimeError, "Hakoniwa runtime failure: %s", error.what());
+    return NULL;
+}
+
+static PyObject* raise_unknown_hakoniwa_runtime_error()
+{
+    PyErr_SetString(PyExc_RuntimeError, "Hakoniwa runtime failure: unknown native exception");
+    return NULL;
+}
+
+static PyObject* raise_last_hakoniwa_runtime_error()
+{
+    const char *message = hako_asset_last_error();
+    if (message != NULL && message[0] != '\0') {
+        PyErr_Format(PyExc_RuntimeError, "Hakoniwa runtime failure: %s", message);
+        return NULL;
+    }
+    return NULL;
+}
+
 //asset_register
 static PyObject* asset_register(PyObject*, PyObject* args) {
     const char *asset_name;
@@ -124,11 +148,28 @@ static PyObject* asset_register(PyObject*, PyObject* args) {
         hako_asset_callback_python.on_manual_timing_control = on_manual_timing_control_wrapper;
     }
 
-    int result = hako_asset_register(asset_name, config_path, &hako_asset_callback_python, (hako_time_t)delta_usec, (HakoAssetModelType)model);
+    int result;
+    try {
+        result = hako_asset_register(
+            asset_name,
+            config_path,
+            &hako_asset_callback_python,
+            (hako_time_t)delta_usec,
+            (HakoAssetModelType)model);
+    }
+    catch (const std::exception& error) {
+        return raise_hakoniwa_runtime_error(error);
+    }
+    catch (...) {
+        return raise_unknown_hakoniwa_runtime_error();
+    }
 
     if (result == 0) {
         Py_RETURN_TRUE;
     } else {
+        if (hako_asset_last_error()[0] != '\0') {
+            return raise_last_hakoniwa_runtime_error();
+        }
         Py_RETURN_FALSE;
     }
 }
@@ -403,6 +444,9 @@ static PyObject* py_init_for_external(PyObject*, PyObject*) {
     if (result == 0) {
         Py_RETURN_TRUE;
     } else {
+        if (hako_asset_last_error()[0] != '\0') {
+            return raise_last_hakoniwa_runtime_error();
+        }
         Py_RETURN_FALSE;
     }
 }

@@ -9,6 +9,7 @@ add_executable(
     hako_asset_pdu_compact_test.cpp
     hako_asset_state_check_test.cpp
     hako_command_runtime_probe_test.cpp
+    hako_command_recovery_test.cpp
 )
 
 target_include_directories(
@@ -29,13 +30,15 @@ target_link_libraries(
     Threads::Threads
 )
 
-gtest_add_tests(TARGET hako-core-pro-test)
+gtest_add_tests(TARGET hako-core-pro-test TEST_LIST hako_core_pro_gtests)
+set_tests_properties(${hako_core_pro_gtests} PROPERTIES TIMEOUT 15)
 
 add_executable(hako-command-lock-holder hako_command_lock_holder.cpp)
 target_include_directories(
     hako-command-lock-holder
     PRIVATE ${PROJECT_SOURCE_DIR}/hakoniwa-core-cpp/src/include
     PRIVATE ${PROJECT_SOURCE_DIR}/hakoniwa-core-cpp/src/hako
+    PRIVATE ${nlohmann_json_SOURCE_DIR}/single_include
 )
 target_link_libraries(hako-command-lock-holder hako Threads::Threads)
 if(HAKO_CORE_SHARED_EFFECTIVE)
@@ -49,11 +52,21 @@ if(HAKO_CORE_SHARED_EFFECTIVE)
     endforeach()
 endif()
 
+set(_hako_lock_integration_python "${Python3_EXECUTABLE}")
+set(_hako_lock_integration_binding_args)
+if(TARGET hako_asset_python)
+    set(_hako_lock_integration_python "${HAKO_PYTHON_RUNTIME_EXECUTABLE}")
+    list(APPEND _hako_lock_integration_binding_args
+        --hakopy-dir $<TARGET_FILE_DIR:hako_asset_python>
+        --native-library-dir $<TARGET_FILE_DIR:assets>
+    )
+endif()
 add_test(
     NAME HakoCommandLockIntegration
-    COMMAND ${Python3_EXECUTABLE}
+    COMMAND ${_hako_lock_integration_python}
         ${CMAKE_CURRENT_SOURCE_DIR}/../integration/hako_cmd_lock_integration.py
         --hako-cmd $<TARGET_FILE:hako-cmd>
         --holder $<TARGET_FILE:hako-command-lock-holder>
+        ${_hako_lock_integration_binding_args}
 )
 set_tests_properties(HakoCommandLockIntegration PROPERTIES TIMEOUT 20)

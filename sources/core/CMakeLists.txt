@@ -3,20 +3,6 @@ set(HAKO_CMAKE_VERSION ${HAKO_CMAKE_VERSION})
 project(hakoniwa-core-pro
     LANGUAGES C CXX
 )
-foreach(_hako_limit_var IN ITEMS
-    HAKO_DATA_MAX_ASSET_NUM
-    HAKO_PDU_CHANNEL_MAX
-    HAKO_RECV_EVENT_MAX
-    HAKO_SERVICE_CLIENT_MAX
-    HAKO_SERVICE_MAX
-    HAKO_CLIENT_NAMELEN_MAX
-    HAKO_SERVICE_NAMELEN_MAX
-)
-    if(DEFINED ${_hako_limit_var})
-        add_compile_definitions(${_hako_limit_var}=${${_hako_limit_var}})
-        message(STATUS "${_hako_limit_var} is configured with ${${_hako_limit_var}}")
-    endif()
-endforeach()
 
 set(OS_TYPE "posix")
 if(WIN32)
@@ -62,6 +48,7 @@ add_library(
     ${HAKO_CORE_SOURCE_DIR}/src/hako/core/rpc/hako_internal_rpc.cpp
     #for filelock && mmap
     ${HAKO_CORE_SOURCE_DIR}/src/hako/utils/hako_share/impl/hako_flock_wait.cpp
+    ${HAKO_CORE_SOURCE_DIR}/src/hako/utils/hako_share/impl/hako_process_identity.cpp
     ${HAKO_CORE_SOURCE_DIR}/src/hako/utils/hako_share/impl/hako_sem_flock.cpp
     ${HAKO_CORE_SOURCE_DIR}/src/hako/utils/hako_share/impl/hako_shared_memory_mmap.cpp
     ${HAKO_CORE_SOURCE_DIR}/src/hako/utils/hako_share/impl/${OS_TYPE}/hako_mmap.cpp

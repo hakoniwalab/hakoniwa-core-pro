@@ -87,7 +87,14 @@ message(STATUS "PYTHON_LIBRARIES:${PYTHON_LIBRARIES}" )
 message(STATUS "Python_LIBRARIES:${Python_LIBRARIES}" )
 message(STATUS "Python_LIBRARY_DIRS:${Python_LIBRARY_DIRS}" )
 
-
+# Keep the interpreter paired with this extension available to CTest.  Using
+# the independently discovered Python3 interpreter can cross Python ABIs.
+set(
+    HAKO_PYTHON_RUNTIME_EXECUTABLE
+    "${Python_EXECUTABLE}"
+    CACHE INTERNAL
+    "Python interpreter used to execute build-tree hakopy tests"
+)
 
 # インクルードディレクトリの設定
 target_include_directories(
