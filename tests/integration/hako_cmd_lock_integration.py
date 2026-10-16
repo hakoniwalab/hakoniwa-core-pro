@@ -24,6 +24,21 @@ def wait_until_ready(process: subprocess.Popen[str], timeout_sec: float = 10.0) 
     raise AssertionError("lock holder did not become ready")
 
 
+def command_json(command: list[str], env: dict[str, str]) -> tuple[int, dict]:
+    result = subprocess.run(
+        command, capture_output=True, text=True, env=env,
+        timeout=5, check=False,
+    )
+    try:
+        payload = json.loads(result.stdout)
+    except json.JSONDecodeError as error:
+        raise AssertionError(
+            f"invalid JSON, rc={result.returncode}, stdout={result.stdout!r}, "
+            f"stderr={result.stderr!r}"
+        ) from error
+    return result.returncode, payload
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--hako-cmd", required=True)
@@ -49,6 +64,11 @@ def main() -> int:
         )
         try:
             wait_until_ready(holder)
+
+            rc, check = command_json([args.hako_cmd, "check"], env)
+            if (rc != 0 or check["status"] != "OK" or
+                    check["checks"]["master_lock"]["state"] != "LOCKED"):
+                raise AssertionError(f"live lock check failed: rc={rc}, json={check!r}")
 
             started = time.monotonic()
             timed = subprocess.run(
@@ -95,6 +115,70 @@ def main() -> int:
                 except subprocess.TimeoutExpired:
                     holder.kill()
                     holder.wait(timeout=3)
+
+        rc, check = command_json([args.hako_cmd, "check"], env)
+        if rc != 2 or check["status"] != "ABORT":
+            raise AssertionError(f"abandoned lock was not detected: rc={rc}, json={check!r}")
+
+        rc, recovered = command_json([args.hako_cmd, "recover"], env)
+        if rc != 0 or recovered["status"] != "RECOVERED":
+            raise AssertionError(f"recovery failed: rc={rc}, json={recovered!r}")
+        if (root / "flock.bin").exists() or (root / "mmap-0xff.bin").exists():
+            raise AssertionError("known runtime files remain after recovery")
+
+        (root / "unrelated.txt").write_text("keep", encoding="utf-8")
+        rc, recovered = command_json([args.hako_cmd, "recover"], env)
+        if rc != 0 or not (root / "unrelated.txt").exists():
+            raise AssertionError("recovery touched an unrelated file")
+
+        os_holder = subprocess.Popen(
+            [args.holder, "--os-lock"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            env=env,
+        )
+        try:
+            wait_until_ready(os_holder)
+            started = time.monotonic()
+            rc, check = command_json([args.hako_cmd, "check"], env)
+            if rc != 3 or check["status"] != "UNKNOWN":
+                raise AssertionError(f"try-lock check did not return UNKNOWN: {check!r}")
+            if time.monotonic() - started >= 2:
+                raise AssertionError("non-blocking check waited for the OS lock")
+
+            started = time.monotonic()
+            rc, check = command_json(
+                [
+                    args.hako_cmd, "check", "--force-wait",
+                    "--lock-timeout-ms", "100",
+                ],
+                env,
+            )
+            if rc != 3 or check["status"] != "UNKNOWN":
+                raise AssertionError(f"bounded check did not return UNKNOWN: {check!r}")
+            if time.monotonic() - started >= 2:
+                raise AssertionError("bounded check exceeded its outer bound")
+        finally:
+            os_holder.kill()
+            os_holder.wait(timeout=5)
+
+        rc, recovered = command_json([args.hako_cmd, "recover"], env)
+        if rc != 0:
+            raise AssertionError(f"post-lock recovery failed: {recovered!r}")
+
+        restarted = subprocess.Popen(
+            [args.holder], stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            text=True, env=env,
+        )
+        try:
+            wait_until_ready(restarted)
+            rc, check = command_json([args.hako_cmd, "check"], env)
+            if rc != 0 or check["status"] != "OK":
+                raise AssertionError(f"new session after recovery failed: {check!r}")
+        finally:
+            restarted.kill()
+            restarted.wait(timeout=5)
     return 0
 
 

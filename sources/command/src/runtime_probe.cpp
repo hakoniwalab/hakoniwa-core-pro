@@ -23,25 +23,32 @@
 
 namespace {
 
-bool is_process_alive(pid_type pid)
+hako::command::ProcessProbeStatus process_status(pid_type pid)
 {
     if (pid <= 0) {
-        return false;
+        return hako::command::ProcessProbeStatus::Dead;
     }
 #ifdef WIN32
     HANDLE process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
     if (process == nullptr) {
-        return GetLastError() == ERROR_ACCESS_DENIED;
+        if (GetLastError() == ERROR_INVALID_PARAMETER) {
+            return hako::command::ProcessProbeStatus::Dead;
+        }
+        return hako::command::ProcessProbeStatus::Unknown;
     }
     DWORD exit_code = 0;
     const bool alive = GetExitCodeProcess(process, &exit_code) && (exit_code == STILL_ACTIVE);
     CloseHandle(process);
-    return alive;
+    return alive ? hako::command::ProcessProbeStatus::Alive
+                 : hako::command::ProcessProbeStatus::Dead;
 #else
     if (kill(pid, 0) == 0) {
-        return true;
+        return hako::command::ProcessProbeStatus::Alive;
     }
-    return errno == EPERM;
+    if (errno == ESRCH) {
+        return hako::command::ProcessProbeStatus::Dead;
+    }
+    return hako::command::ProcessProbeStatus::Unknown;
 #endif
 }
 
@@ -136,13 +143,26 @@ hako::command::RuntimeProbeResult hako::command::probe_runtime()
             RuntimeProbeStatus::SystemError, path, 0,
             "Failed to read Hakoniwa master PID");
     }
-    if (!is_process_alive(master_pid)) {
+    const ProcessProbeStatus master_status = process_status(master_pid);
+    if (master_status == ProcessProbeStatus::Dead) {
         std::ostringstream message;
         message << "Hakoniwa master is not running (stale pid=" << master_pid << ")";
         return make_result(
             RuntimeProbeStatus::MasterNotRunning, path, master_pid, message.str());
     }
+    if (master_status == ProcessProbeStatus::Unknown) {
+        std::ostringstream message;
+        message << "Hakoniwa master process liveness is uncertain (pid="
+                << master_pid << ")";
+        return make_result(
+            RuntimeProbeStatus::SystemError, path, master_pid, message.str());
+    }
     return make_result(
         RuntimeProbeStatus::Running, path, master_pid,
         "Hakoniwa master is running");
+}
+
+hako::command::ProcessProbeStatus hako::command::probe_process(pid_type pid)
+{
+    return process_status(pid);
 }

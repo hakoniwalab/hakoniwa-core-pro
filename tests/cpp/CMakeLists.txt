@@ -9,6 +9,7 @@ add_executable(
     hako_asset_pdu_compact_test.cpp
     hako_asset_state_check_test.cpp
     hako_command_runtime_probe_test.cpp
+    hako_command_recovery_test.cpp
 )
 
 target_include_directories(
@@ -36,6 +37,7 @@ target_include_directories(
     hako-command-lock-holder
     PRIVATE ${PROJECT_SOURCE_DIR}/hakoniwa-core-cpp/src/include
     PRIVATE ${PROJECT_SOURCE_DIR}/hakoniwa-core-cpp/src/hako
+    PRIVATE ${nlohmann_json_SOURCE_DIR}/single_include
 )
 target_link_libraries(hako-command-lock-holder hako Threads::Threads)
 if(HAKO_CORE_SHARED_EFFECTIVE)

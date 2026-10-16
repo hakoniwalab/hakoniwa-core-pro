@@ -15,6 +15,12 @@ enum class RuntimeProbeStatus {
     SystemError,
 };
 
+enum class ProcessProbeStatus {
+    Alive,
+    Dead,
+    Unknown,
+};
+
 struct RuntimeProbeResult {
     RuntimeProbeStatus status;
     pid_type master_pid;
@@ -28,5 +34,6 @@ struct RuntimeProbeResult {
 };
 
 RuntimeProbeResult probe_runtime();
+ProcessProbeStatus probe_process(pid_type pid);
 
 } // namespace hako::command
