@@ -8,8 +8,9 @@ add_executable(bench_server bench_server.cpp)
 add_executable(polling_asset_server polling_asset_server.cpp)
 add_executable(bench_callback_server bench_callback_server.cpp)
 add_executable(bench_client bench_client.cpp)
+add_executable(camera_path_client camera_path_client.cpp)
 
-foreach(target polling_server polling_client polling_asset_server bench_server bench_client)
+foreach(target polling_server polling_client polling_asset_server bench_server bench_client camera_path_client)
     target_include_directories(${target} PRIVATE
         ${HAKO_INC_DIR}
         ${HAKO_PDU_SOURCE_DIR}
