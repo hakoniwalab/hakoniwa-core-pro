@@ -33,9 +33,23 @@ int main(int argc, char** argv)
     std::cout << std::unitbuf;  // keep logs in order when redirected
     // --keep-handle creates the client only at the first start and keeps the handle
     // across stop/reset/start (the client state of the previous run is reset by core).
-    const bool keep_handle = (argc == 4 && std::string(argv[3]) == "--keep-handle");
-    if (argc != 3 && !keep_handle) {
-        std::cerr << "Usage: " << argv[0] << " <service.json> <request-count> [--keep-handle]\n";
+    // --no-sleep drops the 1 ms sleep of the loop and logs every 1000th response only,
+    // to measure the RTF.
+    bool keep_handle = false;
+    bool no_sleep = false;
+    bool bad_option = (argc < 3);
+    for (int i = 3; i < argc; ++i) {
+        const std::string option = argv[i];
+        if (option == "--keep-handle") {
+            keep_handle = true;
+        } else if (option == "--no-sleep") {
+            no_sleep = true;
+        } else {
+            bad_option = true;
+        }
+    }
+    if (bad_option) {
+        std::cerr << "Usage: " << argv[0] << " <service.json> <request-count> [--keep-handle] [--no-sleep]\n";
         return 2;
     }
     char* end = nullptr;
@@ -150,9 +164,11 @@ int main(int argc, char** argv)
                     if (usec > max_usec) max_usec = usec;
                     ++completed;
                     waiting = false;
-                    std::cout << "CLIENT response " << completed << "/" << requested
-                              << " sum=" << cpp_response.body.sum
-                              << " rtt_us=" << usec << "\n";
+                    if (!no_sleep || completed % 1000 == 0) {
+                        std::cout << "CLIENT response " << completed << "/" << requested
+                                  << " sum=" << cpp_response.body.sum
+                                  << " rtt_us=" << usec << "\n";
+                    }
                     if (completed == requested) {
                         std::cout << "RESULT count=" << completed
                                   << " average_rtt_us=" << total_usec / completed
@@ -170,6 +186,8 @@ int main(int argc, char** argv)
                 hakoniwa_asset_notify_simtime(kAsset, local_time);
             }
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        if (!no_sleep) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
     }
 }
