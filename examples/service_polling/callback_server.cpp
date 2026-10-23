@@ -18,11 +18,19 @@ int service_id = -1;
 bool pending_response = false;
 bool hold_first = false;
 bool held = false;
+bool late_reply = false;
+char* late_response = nullptr;
+size_t late_response_len = 0;
+int start_count = 0;
+bool late_due = false;
 char* response = nullptr;
 size_t response_len = 0;
 
 int on_initialize(hako_asset_context_t*)
 {
+    if (++start_count > 1 && late_response != nullptr) {
+        late_due = true;
+    }
     service_id = hako_asset_service_server_create(kAsset, kService);
     pending_response = false;
     std::cout << "SERVER on_initialize created id=" << service_id << "\n";
@@ -32,6 +40,12 @@ int on_initialize(hako_asset_context_t*)
 int on_simulation_step(hako_asset_context_t*)
 {
     if (service_id < 0) return 0;
+    if (late_due) {
+        late_due = false;
+        const int rc = hako_asset_service_server_put_response(service_id, late_response, late_response_len);
+        std::cout << "SERVER late reply of the previous run: put_response returned " << rc << "\n";
+        late_response = nullptr;
+    }
     if (pending_response) {
         if (hako_asset_service_server_put_response(service_id, response, response_len) == 0) {
             pending_response = false;
@@ -43,6 +57,19 @@ int on_simulation_step(hako_asset_context_t*)
     if (hold_first && !held) {
         held = true;
         std::cout << "SERVER holding the first request (DOING)\n";
+        if (late_reply) {
+            auto converter = hako::pdu::msgs::hako_srv_msgs::AddTwoIntsResponsePacket{};
+            HakoCpp_AddTwoIntsResponsePacket marked{};
+            if (hako_asset_service_server_get_response_buffer(service_id, &late_response, &late_response_len,
+                    HAKO_SERVICE_API_STATUS_DONE, HAKO_SERVICE_API_RESULT_CODE_OK) != 0 ||
+                !converter.pdu2cpp(late_response, marked)) {
+                return 1;
+            }
+            marked.body.sum = 999;
+            if (converter.cpp2pdu(marked, late_response, static_cast<int>(late_response_len)) < 0) {
+                return 1;
+            }
+        }
         return 0;
     }
     char* request = nullptr;
@@ -76,9 +103,11 @@ int on_reset(hako_asset_context_t*)
 int main(int argc, char** argv)
 {
     std::cout << std::unitbuf;  // keep logs in order when redirected
-    hold_first = (argc == 4 && std::string(argv[3]) == "--hold-first-request");
+    const std::string option = (argc == 4) ? argv[3] : "";
+    late_reply = (option == "--late-reply");
+    hold_first = late_reply || (option == "--hold-first-request");
     if (argc != 3 && !hold_first) {
-        std::cerr << "Usage: " << argv[0] << " <pdu_config.json> <service.json> [--hold-first-request]\n";
+        std::cerr << "Usage: " << argv[0] << " <pdu_config.json> <service.json> [--hold-first-request|--late-reply]\n";
         return 2;
     }
     static hako_asset_callbacks_t callbacks{};

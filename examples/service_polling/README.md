@@ -8,7 +8,7 @@ its main loop to Hakoniwa.
 | Program | Role |
 |---|---|
 | `polling_conductor` | The conductor, in its own process |
-| `polling_server` | `Service/Add` server that does not register as an asset |
+| `polling_server` | `Service/Add` server that does not register as an asset. **Not a supported pattern**, kept for comparison: it may only do RPC in Running, but a client may send its first request as soon as Running starts, before this server has registered, and that request is lost. A server must register as an asset and create the service before its start feedback |
 | `polling_asset_server` | `Service/Add` server that registers as a polling asset and takes part in the time synchronization (`asset_loop.hpp`). `--hold-first-request` leaves the first request unanswered |
 | `polling_client` | `Service/Add` client. A polling asset that gives start/stop/reset feedback itself |
 | `callback_server` | The same server in the callback style, for comparison. Same `--hold-first-request` option |
@@ -20,8 +20,28 @@ its main loop to Hakoniwa.
 | API | Allowed |
 |---|---|
 | `hako_asset_service_initialize` | While Stopped, before the first start |
-| `hako_asset_service_server_create` / `client_create` | After start, once `hakoniwa_asset_is_pdu_created()` returns true. That call also loads the PDU data and the service tables into the process |
-| server poll / response, client request / poll | While Runnable or Running |
+| `hako_asset_service_server_create` / `client_create` | After start: a registered asset when it gets the Start event (before its start feedback), a process that does not register when it sees Running. Call `hakoniwa_asset_is_pdu_created()` first; it also loads the PDU data and the service tables into the process |
+| server poll / response, client request / poll | Only while Running |
+
+Runnable is published before the PDU and the service state are initialized for the
+new run; Running comes only after every registered asset has acknowledged the start,
+which it gets after that initialization. So RPC in Running never overlaps the
+initialization.
+
+### What the service API guarantees across runs
+
+The service API does not carry an RPC over from one run to the next. A request that
+is in progress when the simulation stops belongs to that run only:
+
+- Do the RPC operations from the thread that polls, only while Running.
+- When Stop arrives, drop the request in progress; do not write its response from
+  Stopping on.
+- The core makes sure that the state of a previous run (received flags, a request
+  left DOING) does not block the next run, and refuses a response for a request of a
+  previous run as long as the server has not accepted a new request yet.
+- It does not tell a late response of a previous run from the response to a new
+  request accepted in the new run. Applications that answer from other threads must
+  not let such work survive a stop.
 
 Service registrations are kept across start, stop and reset (hakoniwa-core-pro#109).
 Only one run's state is cleared: the shared flags on start/reset, and the in-process

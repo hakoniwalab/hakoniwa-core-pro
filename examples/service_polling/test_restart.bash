@@ -45,19 +45,21 @@ wait_results() {
     return 1
 }
 
-# run_doing_case NAME SERVER_KIND: the server holds the first request, so it is DOING
-# when the simulation is stopped and reset; after the next start a new request must
-# be answered.
+# run_doing_case NAME SERVER_KIND [SERVER_OPTION]: the server holds the first request,
+# so it is DOING when the simulation is stopped and reset; after the next start a new
+# request must be answered (correctly: polling_client checks the sum).
+# --late-reply also makes the server write the held request's marked response (sum=999)
+# after the restart; it must not reach the new request.
 run_doing_case() {
-    local name=$1 server_kind=$2
+    local name=$1 server_kind=$2 server_option=${3:---hold-first-request}
     local log_dir="${WORK_DIR}/${name}"
     mkdir -p "${log_dir}"
     "${BIN}/polling_conductor" > "${log_dir}/conductor.log" 2>&1 & PIDS+=($!)
     sleep 1
     if [ "${server_kind}" = "callback" ]; then
-        "${BIN}/callback_server" "${PDU_JSON}" "${SERVICE_JSON}" --hold-first-request > "${log_dir}/server.log" 2>&1 & PIDS+=($!)
+        "${BIN}/callback_server" "${PDU_JSON}" "${SERVICE_JSON}" "${server_option}" > "${log_dir}/server.log" 2>&1 & PIDS+=($!)
     else
-        "${BIN}/polling_asset_server" "${SERVICE_JSON}" --hold-first-request > "${log_dir}/server.log" 2>&1 & PIDS+=($!)
+        "${BIN}/polling_asset_server" "${SERVICE_JSON}" "${server_option}" > "${log_dir}/server.log" 2>&1 & PIDS+=($!)
     fi
     sleep 1
     "${BIN}/polling_client" "${SERVICE_JSON}" 3 > "${log_dir}/client.log" 2>&1 & PIDS+=($!)
@@ -123,11 +125,11 @@ run_case() {
 }
 
 failed=0
-run_case polling-stop-start polling stop || failed=1
-run_case polling-stop-reset-start polling stop-reset || failed=1
 run_case callback-stop-reset-start callback stop-reset || failed=1
 run_case asset-stop-start asset stop || failed=1
 run_case asset-stop-reset-start asset stop-reset || failed=1
 run_doing_case asset-doing-restart asset || failed=1
 run_doing_case callback-doing-restart callback || failed=1
+run_doing_case asset-late-reply asset --late-reply || failed=1
+run_doing_case callback-late-reply callback --late-reply || failed=1
 exit ${failed}

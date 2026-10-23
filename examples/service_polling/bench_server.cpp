@@ -17,7 +17,6 @@
 
 namespace {
 constexpr const char* kService = "HakoCamera/RenderCamera";
-constexpr int kStateRunnable = 1;
 constexpr int kStateRunning = 2;
 std::atomic_bool keep_running{true};
 void stop_handler(int) { keep_running = false; }
@@ -67,7 +66,8 @@ int main(int argc, char** argv)
             loop.advance_time();
         } else {
             const int state = hakoniwa_simevent_get_state();
-            if (!((state == kStateRunnable || state == kStateRunning) && hakoniwa_asset_is_pdu_created())) {
+            // RPC only while Running (see polling_server.cpp).
+            if (!(state == kStateRunning && hakoniwa_asset_is_pdu_created())) {
                 continue;
             }
             if (!create_server()) {

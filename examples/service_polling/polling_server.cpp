@@ -11,7 +11,6 @@
 
 namespace {
 constexpr const char* kService = "Service/Add";
-constexpr int kStateRunnable = 1;
 constexpr int kStateRunning = 2;
 std::atomic_bool keep_running{true};
 
@@ -59,7 +58,9 @@ int main(int argc, char** argv)
             last_state = state;
         }
 
-        const bool active = (state == kStateRunnable || state == kStateRunning);
+        // RPC only while Running: Runnable is published before the new run's PDU and
+        // service state are initialized (hakoniwa-core-pro#109).
+        const bool active = (state == kStateRunning);
         if (active && hakoniwa_asset_is_pdu_created()) {
             if (service_id < 0) {
                 service_id = hako_asset_service_server_create(nullptr, kService);
