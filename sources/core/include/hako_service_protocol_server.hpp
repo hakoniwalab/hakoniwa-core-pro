@@ -30,6 +30,9 @@ namespace hako::service {
             void* get_response_buffer(HakoServiceStatusType status, HakoServiceResultCodeType result_code);
             int   get_response_pdu_size() { return server_->get_response_pdu_size(); }
             bool  reply(char* packet, int packet_len);
+            // reply() for the application: refuses a response whose request belongs to
+            // a previous run or that has no request in progress.
+            bool  reply_to_current_request(char* packet, int packet_len);
             void  cancel_done();
             void  put_progress(int percentage) { percentage_ = percentage; }
             int   get_service_id() { return server_->get_service_id(); }
@@ -55,7 +58,8 @@ namespace hako::service {
             std::unique_ptr<char[]> response_user_buffer_;
             int percentage_ = 0;
             HakoTimeType last_poll_time_ = 0;
-            uint64_t run_generation_ = 0;
+            uint32_t run_generation_ = 0;
+            uint32_t request_generation_ = 0;
             void reset_if_new_run();
 
     };

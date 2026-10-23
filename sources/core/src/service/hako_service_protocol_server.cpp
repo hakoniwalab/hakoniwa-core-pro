@@ -74,6 +74,7 @@ bool hako::service::HakoServiceServerProtocol::copy_user_buffer(const HakoCpp_Se
     int src_len = server_->get_request_pdu_size();
     memcpy(dst, src, src_len);
     request_header_ = header;
+    request_generation_ = run_generation_;
     return true;
 }
 /*
@@ -86,7 +87,7 @@ void hako::service::HakoServiceServerProtocol::reset_if_new_run()
     if (!pro_data) {
         return;
     }
-    const uint64_t generation = pro_data->get_run_generation();
+    const uint32_t generation = pro_data->get_run_generation();
     if (generation == run_generation_) {
         return;
     }
@@ -205,6 +206,19 @@ bool hako::service::HakoServiceServerProtocol::reply(char* packet, int packet_le
     }
     server_->next_client();
     return ret;
+}
+bool hako::service::HakoServiceServerProtocol::reply_to_current_request(char* packet, int packet_len)
+{
+    auto pro_data = hako::data::pro::hako_pro_get_data();
+    const uint32_t generation = pro_data ? pro_data->get_run_generation() : run_generation_;
+    const auto state = server_->get_state();
+    if (generation != request_generation_ ||
+        (state != HAKO_SERVICE_SERVER_STATE_DOING && state != HAKO_SERVICE_SERVER_STATE_CANCELING)) {
+        std::cerr << "WARN: response dropped: its request belongs to run " << request_generation_
+                  << ", current run " << generation << ", server state " << state << std::endl;
+        return false;
+    }
+    return reply(packet, packet_len);
 }
 void hako::service::HakoServiceServerProtocol::cancel_done()
 {

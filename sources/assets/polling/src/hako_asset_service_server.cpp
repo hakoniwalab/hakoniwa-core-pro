@@ -9,6 +9,16 @@
 
 static std::unordered_map<int, std::shared_ptr<hako::service::HakoServiceServerProtocol>> service_servers;
 
+static bool rpc_allowed(const char* api)
+{
+    auto pro_data = hako::data::pro::hako_pro_get_data();
+    if (pro_data && pro_data->is_rpc_allowed()) {
+        return true;
+    }
+    std::cerr << "ERROR: " << api << "(): RPC is allowed only while the simulation is Running" << std::endl;
+    return false;
+}
+
 int hako_asset_service_server_create(const char* assetName, const char* serviceName)
 {
     //std::cout << "INFO: hako_asset_service_server_create(): assetName: " << assetName << ", serviceName: " << serviceName << std::endl;
@@ -49,6 +59,9 @@ int hako_asset_service_server_create(const char* assetName, const char* serviceN
 
 int hako_asset_service_server_poll(int service_id)
 {
+    if (!rpc_allowed("hako_asset_service_server_poll")) {
+        return -1;
+    }
     auto service_server_protocol = service_servers[service_id];
     if (!service_server_protocol) {
         std::cerr << "ERROR: hako_asset_service_server_get_request(): service_server_protocol is null" << std::endl;
@@ -140,6 +153,9 @@ int hako_asset_service_server_get_response_buffer(int service_id, char** packet,
 }
 int hako_asset_service_server_put_response(int service_id, char* packet, size_t packet_len)
 {
+    if (!rpc_allowed("hako_asset_service_server_put_response")) {
+        return -1;
+    }
     auto service_server_protocol = service_servers[service_id];
     if (!service_server_protocol) {
         std::cerr << "ERROR: hako_asset_service_server_put_response(): service_server_protocol is null" << std::endl;
@@ -149,7 +165,7 @@ int hako_asset_service_server_put_response(int service_id, char* packet, size_t 
         std::cerr << "ERROR: hako_asset_service_server_put_response(): packet is null or packet_len is invalid" << std::endl;
         return -1;
     }
-    bool ret = service_server_protocol->reply(packet, packet_len);
+    bool ret = service_server_protocol->reply_to_current_request(packet, packet_len);
     if (!ret) {
         std::cerr << "ERROR: hako_asset_service_server_put_response(): reply() failed" << std::endl;
         return -1;

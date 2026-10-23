@@ -61,28 +61,37 @@ static bool create_empty_tables(pro::HakoProData& pro)
     pro.set_service_table(reinterpret_cast<HakoServiceTableType*>(&datap[OFFSET_HAKO_SERVICE_TABLE]));
     memset(&datap[OFFSET_HAKO_RECV_EVENT_TABLE], 0, sizeof(HakoRecvEventTableType));
     memset(&datap[OFFSET_HAKO_SERVICE_TABLE], 0, sizeof(HakoServiceTableType));
+    // create_memory keeps an existing file's contents, so clear the run info as well.
+    memset(&datap[OFFSET_HAKO_SERVICE_TABLE + sizeof(HakoServiceTableType)], 0, sizeof(pro::HakoProRunInfoType));
     pro.unlock_memory();
     return true;
 }
 
 /*
- * Clears what belongs to one run (received/pending flags, busy flags) and keeps
- * the configuration (services, client slots, recv event registrations).
+ * Clears what belongs to one run (received/pending flags) and keeps the
+ * configuration (services, client slots, recv event registrations). Each flag is
+ * cleared under its channel's PDU read spin lock, the lock get_recv_event uses and
+ * write_pdu waits for, so a request or response being written is not lost halfway
+ * (#109). The tables' atomic_is_busy fields are spin locks and are left alone.
  */
-static void reset_run_state(HakoRecvEventTableType* recv_table, HakoServiceTableType* service_table)
+void pro::HakoProData::clear_run_flags()
 {
-    if (recv_table != nullptr) {
-        for (int i = 0; i < recv_table->entry_num; ++i) {
-            recv_table->entries[i].recv_flag = false;
-            recv_table->entries[i].pending_flag = false;
-        }
-        recv_table->atomic_is_busy = false;
+    if (this->recv_event_table_ == nullptr) {
+        return;
     }
-    if (service_table != nullptr) {
-        for (int i = 0; i < service_table->entry_num; ++i) {
-            service_table->entries[i].atomic_is_busy = false;
+    auto pdu_data = this->master_data_->get_pdu_data();
+    this->lock_recv_event_table();
+    for (int i = 0; i < this->recv_event_table_->entry_num; ++i) {
+        auto& entry = this->recv_event_table_->entries[i];
+        if (!entry.enabled) {
+            continue;
         }
+        pdu_data->read_pdu_spin_lock(-1, entry.real_channel_id);
+        entry.recv_flag = false;
+        entry.pending_flag = false;
+        pdu_data->read_pdu_spin_unlock(-1, entry.real_channel_id);
     }
+    this->unlock_recv_event_table();
 }
 
 bool pro::HakoProData::create_session_memory()
@@ -124,10 +133,11 @@ bool pro::HakoProData::on_pdu_data_create()
             return false;
         }
     }
-    (void)this->lock_memory();
-    reset_run_state(this->recv_event_table_, this->service_table_);
+    // New generation first: a response of the previous run written after this is
+    // refused by its server (generation check), one written before has its flag
+    // cleared below.
     this->next_run_generation();
-    this->unlock_memory();
+    this->clear_run_flags();
     this->rebuild_service_name_indexes();
     release_pro_init_lock(init_lock);
     std::cout << "INFO: HakoProData::on_pdu_data_create() kept service registrations" << std::endl;
@@ -160,7 +170,7 @@ bool pro::HakoProData::on_pdu_data_reset()
         return false;
     }
     // Keep the registrations (#109); only one run's state is cleared.
-    reset_run_state(table, this->service_table_);
+    this->clear_run_flags();
     this->rebuild_service_name_indexes();
     return true;
 }

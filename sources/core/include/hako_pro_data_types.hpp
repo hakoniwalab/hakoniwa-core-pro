@@ -73,7 +73,7 @@ typedef struct {
  * the value they saw last and reset their in-process run state when it changes.
  */
 typedef struct {
-    uint64_t run_generation;
+    uint32_t run_generation;  // compared for equality only; read/written atomically
 } HakoProRunInfoType;
 
 }

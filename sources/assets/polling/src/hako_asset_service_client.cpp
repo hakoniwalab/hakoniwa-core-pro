@@ -180,6 +180,11 @@ int hako_asset_service_client_get_response(const HakoServiceHandleType* handle, 
 
 int hako_asset_service_client_call_request(const HakoServiceHandleType* handle, char *packet, size_t packet_len, int timeout_msec)
 {
+    auto pro_data = hako::data::pro::hako_pro_get_data();
+    if (!pro_data || !pro_data->is_rpc_allowed()) {
+        std::cerr << "ERROR: hako_asset_service_client_call_request(): RPC is allowed only while the simulation is Running" << std::endl;
+        return -1;
+    }
     //std::cout << "INFO: hako_asset_service_client_call_request(): handle: " << handle->client_id << std::endl;
     if (handle == nullptr) {
         std::cerr << "ERROR: hako_asset_service_client_call_request(): handle is null" << std::endl;

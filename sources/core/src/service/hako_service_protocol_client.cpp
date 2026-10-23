@@ -83,7 +83,7 @@ void hako::service::HakoServiceClientProtocol::reset_if_new_run()
     if (!pro_data) {
         return;
     }
-    const uint64_t generation = pro_data->get_run_generation();
+    const uint32_t generation = pro_data->get_run_generation();
     if (generation == run_generation_) {
         return;
     }

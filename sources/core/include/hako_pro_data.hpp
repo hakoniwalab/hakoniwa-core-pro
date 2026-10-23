@@ -9,6 +9,7 @@
 #include <unordered_map>
 #include <vector>
 #include "hako_pro_data_types.hpp"
+#include "data/hako_base_data.hpp"
 #include "utils/hako_share/hako_shared_memory_factory.hpp"
 
 namespace hako::data::pro {
@@ -93,6 +94,7 @@ class HakoProData : public std::enable_shared_from_this<HakoProData>, public hak
          * Must be called from the conductor (master) only.
          */
         bool create_session_memory();
+        void clear_run_flags();
         virtual bool on_pdu_data_create() override;
         virtual bool on_pdu_data_load() override;
         virtual bool on_pdu_data_reset() override;
@@ -189,14 +191,22 @@ class HakoProData : public std::enable_shared_from_this<HakoProData>, public hak
             run_info_ = (table == nullptr) ? nullptr
                 : reinterpret_cast<HakoProRunInfoType*>(reinterpret_cast<char*>(table) + sizeof(HakoServiceTableType));
         }
-        uint64_t get_run_generation()
+        // Acquire/release pair: a process that sees the new generation also sees the
+        // run state that was cleared for it.
+        // RPC is allowed only while Running: Runnable is published before the new
+        // run's PDU and service state are initialized (#109).
+        bool is_rpc_allowed()
         {
-            return (run_info_ == nullptr) ? 0 : run_info_->run_generation;
+            return this->master_data_->ref_state_nolock() == HakoSim_Running;
+        }
+        uint32_t get_run_generation()
+        {
+            return (run_info_ == nullptr) ? 0 : hako_atomic_load_u32(&run_info_->run_generation);
         }
         void next_run_generation()
         {
             if (run_info_ != nullptr) {
-                run_info_->run_generation++;
+                (void)hako_atomic_fetch_add_u32(&run_info_->run_generation, 1);
             }
         }
         HakoServiceTableType* get_service_table()
