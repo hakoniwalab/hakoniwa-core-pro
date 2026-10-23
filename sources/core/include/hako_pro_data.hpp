@@ -85,6 +85,13 @@ class HakoProData : public std::enable_shared_from_this<HakoProData>, public hak
         {
             return shmp_;
         }
+        /*
+         * The service table and the recv event table hold configuration (services,
+         * client slots, which process watches which channel). They live as long as
+         * the conductor: created once here, kept across start/stop/reset (#109).
+         * Must be called from the conductor (master) only.
+         */
+        bool create_session_memory();
         virtual bool on_pdu_data_create() override;
         virtual bool on_pdu_data_load() override;
         virtual bool on_pdu_data_reset() override;

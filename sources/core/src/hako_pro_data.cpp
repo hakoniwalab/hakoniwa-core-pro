@@ -5,6 +5,8 @@
 #include <fstream>
 #include <iostream>
 using namespace hako::data;
+using hako::data::pro::HakoRecvEventTableType;
+using hako::data::pro::HakoServiceTableType;
 
 namespace {
 static std::string get_pro_init_lock_filepath()
@@ -45,6 +47,63 @@ static void release_pro_init_lock(HakoFlockObjectType* lock)
 }
 }
 
+/*
+ * Creates the tables empty. Caller holds the pro init lock.
+ */
+static bool create_empty_tables(pro::HakoProData& pro)
+{
+    auto shmid = pro.get_shared_memory()->create_memory(HAKO_SHARED_MEMORY_ID_2, TOTAL_HAKO_PRO_DATA_SIZE);
+    if (shmid < 0) {
+        return false;
+    }
+    char* datap = (char*)pro.lock_memory();
+    pro.set_recv_event_table(reinterpret_cast<HakoRecvEventTableType*>(&datap[OFFSET_HAKO_RECV_EVENT_TABLE]));
+    pro.set_service_table(reinterpret_cast<HakoServiceTableType*>(&datap[OFFSET_HAKO_SERVICE_TABLE]));
+    memset(&datap[OFFSET_HAKO_RECV_EVENT_TABLE], 0, sizeof(HakoRecvEventTableType));
+    memset(&datap[OFFSET_HAKO_SERVICE_TABLE], 0, sizeof(HakoServiceTableType));
+    pro.unlock_memory();
+    return true;
+}
+
+/*
+ * Clears what belongs to one run (received/pending flags, busy flags) and keeps
+ * the configuration (services, client slots, recv event registrations).
+ */
+static void reset_run_state(HakoRecvEventTableType* recv_table, HakoServiceTableType* service_table)
+{
+    if (recv_table != nullptr) {
+        for (int i = 0; i < recv_table->entry_num; ++i) {
+            recv_table->entries[i].recv_flag = false;
+            recv_table->entries[i].pending_flag = false;
+        }
+        recv_table->atomic_is_busy = false;
+    }
+    if (service_table != nullptr) {
+        for (int i = 0; i < service_table->entry_num; ++i) {
+            service_table->entries[i].atomic_is_busy = false;
+        }
+    }
+}
+
+bool pro::HakoProData::create_session_memory()
+{
+    HakoFlockObjectType* init_lock = acquire_pro_init_lock();
+    if (init_lock == nullptr) {
+        return false;
+    }
+    bool ret = create_empty_tables(*this);
+    if (ret) {
+        this->rebuild_service_name_indexes();
+    }
+    release_pro_init_lock(init_lock);
+    if (!ret) {
+        std::cout << "ERROR: HakoProData::create_session_memory() failed to create memory" << std::endl;
+        return false;
+    }
+    std::cout << "INFO: HakoProData::create_session_memory() created memory" << std::endl;
+    return true;
+}
+
 bool pro::HakoProData::on_pdu_data_create()
 {
     HakoFlockObjectType* init_lock = acquire_pro_init_lock();
@@ -52,26 +111,25 @@ bool pro::HakoProData::on_pdu_data_create()
         return false;
     }
     std::cout << "INFO: HakoProData::on_pdu_data_create()" << std::endl;
-    auto shmid = this->get_shared_memory()->create_memory(HAKO_SHARED_MEMORY_ID_2, TOTAL_HAKO_PRO_DATA_SIZE);
-    if (shmid < 0) {
-        std::cout << "ERROR: HakoProData::on_pdu_data_create() failed to create memory" << std::endl;
-        release_pro_init_lock(init_lock);
-        return false;
+    if (this->service_table_ == nullptr) {
+        char* datap = (char*)this->get_shared_memory()->load_memory(HAKO_SHARED_MEMORY_ID_2, TOTAL_HAKO_PRO_DATA_SIZE);
+        if (datap != nullptr) {
+            this->set_recv_event_table(reinterpret_cast<HakoRecvEventTableType*>(&datap[OFFSET_HAKO_RECV_EVENT_TABLE]));
+            this->set_service_table(reinterpret_cast<HakoServiceTableType*>(&datap[OFFSET_HAKO_SERVICE_TABLE]));
+        }
+        else if (!create_empty_tables(*this)) {
+            // No conductor-created tables (older conductor): create them as before.
+            std::cout << "ERROR: HakoProData::on_pdu_data_create() failed to create memory" << std::endl;
+            release_pro_init_lock(init_lock);
+            return false;
+        }
     }
-    (void)shmid;
-    char* datap = (char*)this->lock_memory();
-    this->set_recv_event_table(reinterpret_cast<HakoRecvEventTableType*>(&datap[OFFSET_HAKO_RECV_EVENT_TABLE]));
-    this->set_service_table(reinterpret_cast<HakoServiceTableType*>(&datap[OFFSET_HAKO_SERVICE_TABLE]));
-    {
-        memset(&datap[OFFSET_HAKO_RECV_EVENT_TABLE], 0, sizeof(HakoRecvEventTableType));
-        memset(&datap[OFFSET_HAKO_SERVICE_TABLE], 0, sizeof(HakoServiceTableType));
-        //this->set_service_data();
-        this->service_table_->entry_num = 0;
-        this->rebuild_service_name_indexes();
-    }
+    (void)this->lock_memory();
+    reset_run_state(this->recv_event_table_, this->service_table_);
     this->unlock_memory();
+    this->rebuild_service_name_indexes();
     release_pro_init_lock(init_lock);
-    std::cout << "INFO: HakoProData::on_pdu_data_create() created memory" << std::endl;
+    std::cout << "INFO: HakoProData::on_pdu_data_create() kept service registrations" << std::endl;
     return true;
 }
 bool pro::HakoProData::on_pdu_data_load()
@@ -100,10 +158,8 @@ bool pro::HakoProData::on_pdu_data_reset()
     if (table == nullptr) {
         return false;
     }
-    table->entry_num = 0;
-    for (int i = 0; i < HAKO_RECV_EVENT_MAX; ++i) {
-        table->entries[i].enabled = false;
-    }
+    // Keep the registrations (#109); only one run's state is cleared.
+    reset_run_state(table, this->service_table_);
     this->rebuild_service_name_indexes();
     return true;
 }
