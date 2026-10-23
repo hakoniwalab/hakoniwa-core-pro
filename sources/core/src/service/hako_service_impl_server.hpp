@@ -29,6 +29,13 @@ namespace hako::service::impl {
             bool send_response(int client_id, void* packet, int packet_len)  override;
             int get_current_client_id() override { return current_client_id_; }
             void next_client() override { current_client_id_ = (current_client_id_ + 1) % max_clients_; }
+            void reset_run_state() override
+            {
+                for (auto& state : state_) {
+                    state = HAKO_SERVICE_SERVER_STATE_IDLE;
+                }
+                current_client_id_ = 0;
+            }
             HakoServiceServerStateType get_state() override { return state_[current_client_id_]; }
 
 

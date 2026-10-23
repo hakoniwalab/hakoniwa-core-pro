@@ -24,6 +24,8 @@ namespace hako::service {
             virtual char* recv_response() = 0;
             virtual bool send_request(void* packet, int packet_len) = 0;
             virtual HakoServiceClientStateType get_state() = 0;
+            // Back to the state of a new run: IDLE.
+            virtual void reset_run_state() = 0;
 
             virtual int get_service_id() = 0;
             virtual int get_asset_id() = 0;

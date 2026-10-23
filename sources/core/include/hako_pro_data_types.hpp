@@ -67,4 +67,13 @@ typedef struct {
     HakoServiceEntryTye entries[HAKO_SERVICE_MAX];
 } HakoServiceTableType;
 
+/*
+ * Counts the starts of the simulation. Kept right after the service table (in the
+ * spare area of the pro shared memory). Service servers and clients compare it with
+ * the value they saw last and reset their in-process run state when it changes.
+ */
+typedef struct {
+    uint64_t run_generation;
+} HakoProRunInfoType;
+
 }

@@ -126,6 +126,7 @@ bool pro::HakoProData::on_pdu_data_create()
     }
     (void)this->lock_memory();
     reset_run_state(this->recv_event_table_, this->service_table_);
+    this->next_run_generation();
     this->unlock_memory();
     this->rebuild_service_name_indexes();
     release_pro_init_lock(init_lock);

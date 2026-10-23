@@ -55,6 +55,8 @@ namespace hako::service {
             std::unique_ptr<char[]> response_user_buffer_;
             int percentage_ = 0;
             HakoTimeType last_poll_time_ = 0;
+            uint64_t run_generation_ = 0;
+            void reset_if_new_run();
 
     };
 }

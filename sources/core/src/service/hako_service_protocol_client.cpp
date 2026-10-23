@@ -18,6 +18,9 @@ bool hako::service::HakoServiceClientProtocol::initialize(const char* serviceNam
         std::cerr << "ERROR: request_pdu_size_ or response_pdu_size_ is invalid" << std::endl;
         return false;
     }
+    if (auto pro_data = hako::data::pro::hako_pro_get_data()) {
+        run_generation_ = pro_data->get_run_generation();
+    }
     request_user_buffer_ = std::make_unique<char[]>(client_->get_request_pdu_size());
     response_user_buffer_ = std::make_unique<char[]>(client_->get_response_pdu_size());    
     if (request_user_buffer_ == nullptr || response_user_buffer_ == nullptr) {
@@ -71,8 +74,28 @@ bool hako::service::HakoServiceClientProtocol::copy_user_buffer(const HakoCpp_Se
     response_header_ = header;
     return true;
 }
+/*
+ * A client kept across runs must not wait for a response of the previous run (#109).
+ */
+void hako::service::HakoServiceClientProtocol::reset_if_new_run()
+{
+    auto pro_data = hako::data::pro::hako_pro_get_data();
+    if (!pro_data) {
+        return;
+    }
+    const uint64_t generation = pro_data->get_run_generation();
+    if (generation == run_generation_) {
+        return;
+    }
+    client_->reset_run_state();
+    percentage_ = 0;
+    last_poll_time_ = 0;
+    heartbeat_confirmed_time_ = 0;
+    run_generation_ = generation;
+}
 hako::service::HakoServiceClientEventType hako::service::HakoServiceClientProtocol::poll()
 {
+    reset_if_new_run();
     HakoCpp_ServiceResponseHeader header;
     auto event = HAKO_SERVICE_CLIENT_EVENT_NONE;
     auto state = client_->get_state();
@@ -178,6 +201,7 @@ void* hako::service::HakoServiceClientProtocol::get_response()
 }
 bool hako::service::HakoServiceClientProtocol::request(char* packet, int packet_len, int timeout_msec)
 {
+    reset_if_new_run();
     //std::cout << "INFO: request() packet_len=" << packet_len << std::endl;
     HakoCpp_ServiceRequestHeader header;
     int pdu_size = convertor_request_.pdu2cpp(packet, header);
