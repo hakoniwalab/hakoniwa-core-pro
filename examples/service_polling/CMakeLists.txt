@@ -26,6 +26,16 @@ target_link_libraries(bench_callback_server PRIVATE assets)
 target_link_libraries(polling_conductor PRIVATE conductor)
 
 if(NOT WIN32)
+    # Restart regression for hakoniwa-core-pro#109 (start/stop/reset/start in the same
+    # processes, a request left DOING, a late response of the previous run).
+    add_test(NAME service_polling_restart
+        COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/test_restart.bash
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../..)
+    # Relative to this directory, so it also works when core-pro is a subproject.
+    set_tests_properties(service_polling_restart PROPERTIES
+        ENVIRONMENT "BUILD_DIR=${CMAKE_CURRENT_BINARY_DIR}/../.."
+        TIMEOUT 900
+        LABELS "integration")
     find_package(Threads REQUIRED)
     target_link_libraries(polling_server PRIVATE Threads::Threads)
     target_link_libraries(polling_client PRIVATE Threads::Threads)

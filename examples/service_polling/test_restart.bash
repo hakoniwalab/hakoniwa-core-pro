@@ -45,6 +45,7 @@ wait_results() {
     return 1
 }
 
+# CLIENT_OPTION (environment) is passed to polling_client, e.g. --keep-handle.
 # run_doing_case NAME SERVER_KIND [SERVER_OPTION]: the server holds the first request,
 # so it is DOING when the simulation is stopped and reset; after the next start a new
 # request must be answered (correctly: polling_client checks the sum).
@@ -62,7 +63,7 @@ run_doing_case() {
         "${BIN}/polling_asset_server" "${SERVICE_JSON}" "${server_option}" > "${log_dir}/server.log" 2>&1 & PIDS+=($!)
     fi
     sleep 1
-    "${BIN}/polling_client" "${SERVICE_JSON}" 3 > "${log_dir}/client.log" 2>&1 & PIDS+=($!)
+    "${BIN}/polling_client" "${SERVICE_JSON}" 3 ${CLIENT_OPTION:-} > "${log_dir}/client.log" 2>&1 & PIDS+=($!)
     sleep 1
 
     local result="PASS" detail=""
@@ -100,7 +101,7 @@ run_case() {
         "${BIN}/polling_server" "${SERVICE_JSON}" > "${log_dir}/server.log" 2>&1 & PIDS+=($!)
     fi
     sleep 1
-    "${BIN}/polling_client" "${SERVICE_JSON}" 3 > "${log_dir}/client.log" 2>&1 & PIDS+=($!)
+    "${BIN}/polling_client" "${SERVICE_JSON}" 3 ${CLIENT_OPTION:-} > "${log_dir}/client.log" 2>&1 & PIDS+=($!)
     sleep 1
 
     local result="PASS" detail=""
@@ -132,4 +133,6 @@ run_doing_case asset-doing-restart asset || failed=1
 run_doing_case callback-doing-restart callback || failed=1
 run_doing_case asset-late-reply asset --late-reply || failed=1
 run_doing_case callback-late-reply callback --late-reply || failed=1
+CLIENT_OPTION=--keep-handle run_case asset-keep-handle-stop-reset-start asset stop-reset || failed=1
+CLIENT_OPTION=--keep-handle run_doing_case asset-keep-handle-doing-restart asset || failed=1
 exit ${failed}

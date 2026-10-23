@@ -5,6 +5,7 @@
 #include <chrono>
 #include <cstdlib>
 #include <iostream>
+#include <string>
 #include <limits>
 #include <thread>
 
@@ -30,8 +31,11 @@ const char* event_name(int event)
 int main(int argc, char** argv)
 {
     std::cout << std::unitbuf;  // keep logs in order when redirected
-    if (argc != 3) {
-        std::cerr << "Usage: " << argv[0] << " <service.json> <request-count>\n";
+    // --keep-handle creates the client only at the first start and keeps the handle
+    // across stop/reset/start (the client state of the previous run is reset by core).
+    const bool keep_handle = (argc == 4 && std::string(argv[3]) == "--keep-handle");
+    if (argc != 3 && !keep_handle) {
+        std::cerr << "Usage: " << argv[0] << " <service.json> <request-count> [--keep-handle]\n";
         return 2;
     }
     char* end = nullptr;
@@ -72,7 +76,9 @@ int main(int argc, char** argv)
                 std::cerr << "ERROR: Start arrived before PDU creation\n";
                 return 1;
             }
-            if (hako_asset_service_client_create(kAsset, kService, kClient, &handle) != 0) {
+            if (keep_handle && handle.service_id >= 0) {
+                std::cout << "CLIENT keeps handle service_id=" << handle.service_id << "\n";
+            } else if (hako_asset_service_client_create(kAsset, kService, kClient, &handle) != 0) {
                 std::cerr << "ERROR: client_create failed\n";
                 return 1;
             }
