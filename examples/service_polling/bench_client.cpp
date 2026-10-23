@@ -43,7 +43,7 @@ int main(int argc, char** argv)
         return 1;
     }
     std::ofstream csv(argv[4]);
-    csv << "seq,send_ns,response_in_ns,decoded_ns,bytes\n";
+    csv << "seq,send_ns,response_in_ns,decoded_ns,bytes,client_time_usec,response_time_usec\n";
 
     auto request_converter = hako::pdu::msgs::hako_srv_msgs::RenderCameraRequestPacket{};
     auto response_converter = hako::pdu::msgs::hako_srv_msgs::RenderCameraResponsePacket{};
@@ -97,8 +97,15 @@ int main(int argc, char** argv)
             std::cerr << "ERROR: request send failed\n";
             return 1;
         }
+        // Keep the asset time moving while waiting: a server that answers inside its
+        // simulation step can only run when the world time advances.
+        const hako_time_t sent_time = local_time;
         int service_event = HAKO_SERVICE_CLIENT_API_EVENT_NONE;
         while ((service_event = hako_asset_service_client_poll(&handle)) == HAKO_SERVICE_CLIENT_API_EVENT_NONE) {
+            if (local_time <= hakoniwa_asset_get_worldtime()) {
+                local_time += kDeltaUsec;
+                hakoniwa_asset_notify_simtime(kAsset, local_time);
+            }
         }
         const int64_t t_in = bench_now_ns();
         if (service_event != HAKO_SERVICE_CLIENT_API_RESPONSE_IN) {
@@ -118,7 +125,7 @@ int main(int argc, char** argv)
             return 1;
         }
         if (sent >= kWarmup) {
-            csv << sent << ',' << t_send << ',' << t_in << ',' << t_decoded << ',' << image_bytes << '\n';
+            csv << sent << ',' << t_send << ',' << t_in << ',' << t_decoded << ',' << image_bytes << ',' << sent_time << ',' << local_time << '\n';
         }
         ++sent;
     }

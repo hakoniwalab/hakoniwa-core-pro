@@ -10,6 +10,10 @@ BIN=${BUILD_DIR}/examples/service_polling
 HAKO_CMD=${BUILD_DIR}/sources/command/hako-cmd
 WORK_DIR=$(mktemp -d "${TMPDIR:-/tmp}/hako-bench.XXXXXX")
 SIZES=${SIZES:-"0x0 128x170 640x480 1280x720 1920x1080"}
+# SERVER_MODE: (empty) server not registered as an asset, "register" polling asset in the
+# time synchronization, "callback" callback-style asset (bench_callback_server).
+SERVER_ARGS=()
+[ "${SERVER_MODE:-}" = "register" ] && SERVER_ARGS=(--register)
 
 mkdir -p "${WORK_DIR}/mmap"
 cat > "${WORK_DIR}/cpp_core_config.json" <<JSON
@@ -20,7 +24,7 @@ cat > "${WORK_DIR}/cpp_core_config.json" <<JSON
 }
 JSON
 export HAKO_CONFIG_PATH="${WORK_DIR}/cpp_core_config.json"
-export DYLD_LIBRARY_PATH=${BUILD_DIR}/sources/assets/polling:${BUILD_DIR}/sources/conductor
+export DYLD_LIBRARY_PATH=${BUILD_DIR}/sources/assets/polling:${BUILD_DIR}/sources/assets/callback:${BUILD_DIR}/sources/conductor
 export LD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}
 
 PIDS=()
@@ -59,7 +63,11 @@ for size in ${SIZES}; do
 JSON
     "${BIN}/polling_conductor" > "${dir}/conductor.log" 2>&1 & PIDS+=($!)
     sleep 1
-    "${BIN}/bench_server" "${dir}/service.json" "${dir}/server.csv" > "${dir}/server.log" 2>&1 & PIDS+=($!)
+    if [ "${SERVER_MODE:-}" = "callback" ]; then
+        "${BIN}/bench_callback_server" "$(dirname "$0")/pdu_config.json" "${dir}/service.json" "${dir}/server.csv" > "${dir}/server.log" 2>&1 & PIDS+=($!)
+    else
+        "${BIN}/bench_server" "${dir}/service.json" "${dir}/server.csv" ${SERVER_ARGS[@]+"${SERVER_ARGS[@]}"} > "${dir}/server.log" 2>&1 & PIDS+=($!)
+    fi
     sleep 1
     "${BIN}/bench_client" "${dir}/service.json" "${size}" "${COUNT}" "${dir}/client.csv" > "${dir}/client.log" 2>&1 & CLIENT=$!
     PIDS+=(${CLIENT})

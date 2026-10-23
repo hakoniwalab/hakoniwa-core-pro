@@ -45,6 +45,44 @@ wait_results() {
     return 1
 }
 
+# run_doing_case NAME SERVER_KIND: the server holds the first request, so it is DOING
+# when the simulation is stopped and reset; after the next start a new request must
+# be answered.
+run_doing_case() {
+    local name=$1 server_kind=$2
+    local log_dir="${WORK_DIR}/${name}"
+    mkdir -p "${log_dir}"
+    "${BIN}/polling_conductor" > "${log_dir}/conductor.log" 2>&1 & PIDS+=($!)
+    sleep 1
+    if [ "${server_kind}" = "callback" ]; then
+        "${BIN}/callback_server" "${PDU_JSON}" "${SERVICE_JSON}" --hold-first-request > "${log_dir}/server.log" 2>&1 & PIDS+=($!)
+    else
+        "${BIN}/polling_asset_server" "${SERVICE_JSON}" --hold-first-request > "${log_dir}/server.log" 2>&1 & PIDS+=($!)
+    fi
+    sleep 1
+    "${BIN}/polling_client" "${SERVICE_JSON}" 3 > "${log_dir}/client.log" 2>&1 & PIDS+=($!)
+    sleep 1
+
+    local result="PASS" detail=""
+    "${HAKO_CMD}" start > /dev/null 2>&1
+    sleep 1
+    if ! grep -q "holding the first request" "${log_dir}/server.log"; then
+        result="FAIL"; detail="the server did not get into DOING"
+    else
+        "${HAKO_CMD}" stop > /dev/null 2>&1
+        sleep 2
+        "${HAKO_CMD}" reset > /dev/null 2>&1
+        sleep 2
+        "${HAKO_CMD}" start > /dev/null 2>&1
+        if ! wait_results "${log_dir}/client.log" 1 10; then
+            result="FAIL"; detail="no response after the restart"
+        fi
+    fi
+    cleanup
+    echo "${result} ${name}${detail:+ (${detail})}  logs: ${log_dir}"
+    [ "${result}" = "PASS" ]
+}
+
 # run_case NAME SERVER_KIND SEQUENCE: SEQUENCE is "stop" or "stop-reset"
 run_case() {
     local name=$1 server_kind=$2 sequence=$3
@@ -52,7 +90,9 @@ run_case() {
     mkdir -p "${log_dir}"
     "${BIN}/polling_conductor" > "${log_dir}/conductor.log" 2>&1 & PIDS+=($!)
     sleep 1
-    if [ "${server_kind}" = "callback" ]; then
+    if [ "${server_kind}" = "asset" ]; then
+        "${BIN}/polling_asset_server" "${SERVICE_JSON}" > "${log_dir}/server.log" 2>&1 & PIDS+=($!)
+    elif [ "${server_kind}" = "callback" ]; then
         "${BIN}/callback_server" "${PDU_JSON}" "${SERVICE_JSON}" > "${log_dir}/server.log" 2>&1 & PIDS+=($!)
     else
         "${BIN}/polling_server" "${SERVICE_JSON}" > "${log_dir}/server.log" 2>&1 & PIDS+=($!)
@@ -86,4 +126,8 @@ failed=0
 run_case polling-stop-start polling stop || failed=1
 run_case polling-stop-reset-start polling stop-reset || failed=1
 run_case callback-stop-reset-start callback stop-reset || failed=1
+run_case asset-stop-start asset stop || failed=1
+run_case asset-stop-reset-start asset stop-reset || failed=1
+run_doing_case asset-doing-restart asset || failed=1
+run_doing_case callback-doing-restart callback || failed=1
 exit ${failed}

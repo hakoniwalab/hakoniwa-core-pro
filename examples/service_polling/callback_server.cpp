@@ -8,6 +8,7 @@
 #include <cerrno>
 #include <chrono>
 #include <iostream>
+#include <string>
 #include <thread>
 
 namespace {
@@ -15,6 +16,8 @@ constexpr const char* kAsset = "CallbackServer";
 constexpr const char* kService = "Service/Add";
 int service_id = -1;
 bool pending_response = false;
+bool hold_first = false;
+bool held = false;
 char* response = nullptr;
 size_t response_len = 0;
 
@@ -37,6 +40,11 @@ int on_simulation_step(hako_asset_context_t*)
         return 0;
     }
     if (hako_asset_service_server_poll(service_id) != HAKO_SERVICE_SERVER_API_REQUEST_IN) return 0;
+    if (hold_first && !held) {
+        held = true;
+        std::cout << "SERVER holding the first request (DOING)\n";
+        return 0;
+    }
     char* request = nullptr;
     size_t request_len = 0;
     HakoCpp_AddTwoIntsRequestPacket cpp_request{};
@@ -68,8 +76,9 @@ int on_reset(hako_asset_context_t*)
 int main(int argc, char** argv)
 {
     std::cout << std::unitbuf;  // keep logs in order when redirected
-    if (argc != 3) {
-        std::cerr << "Usage: " << argv[0] << " <pdu_config.json> <service.json>\n";
+    hold_first = (argc == 4 && std::string(argv[3]) == "--hold-first-request");
+    if (argc != 3 && !hold_first) {
+        std::cerr << "Usage: " << argv[0] << " <pdu_config.json> <service.json> [--hold-first-request]\n";
         return 2;
     }
     static hako_asset_callbacks_t callbacks{};

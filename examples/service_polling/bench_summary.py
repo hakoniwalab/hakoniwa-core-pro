@@ -7,7 +7,8 @@ from pathlib import Path
 
 def load(path):
     with open(path) as f:
-        return {int(r["seq"]): r for r in csv.DictReader(f)}
+        # The servers are killed at the end; drop a last row cut in the middle.
+        return {int(r["seq"]): r for r in csv.DictReader(f) if None not in r.values()}
 
 
 def stats(values):
@@ -19,7 +20,8 @@ def stats(values):
 def main():
     work = Path(sys.argv[1])
     print("size,bytes,n,rtt_mean_ms,rtt_p99_ms,rtt_max_ms,"
-          "to_server_ms,fill_ms,encode_ms,put_ms,to_client_ms,decode_ms,MB_per_s,frames_per_s")
+          "to_server_ms,fill_ms,encode_ms,put_ms,to_client_ms,decode_ms,MB_per_s,frames_per_s,"
+          "sim_gap_usec_min,sim_gap_usec_max,sim_latency_usec_min,sim_latency_usec_max")
     for size in sys.argv[2:]:
         client = load(work / size / "client.csv")
         server = load(work / size / "server.csv")
@@ -39,13 +41,20 @@ def main():
         put = part("s", "encoded_ns", "s", "put_ns")
         to_client = part("s", "put_ns", "c", "response_in_ns")
         decode = part("c", "response_in_ns", "c", "decoded_ns")
+        # Server asset time when the request was seen minus client asset time when sent
+        # (0 for a server that does not register as an asset).
+        gaps = [int(s["server_time_usec"]) - int(c["client_time_usec"]) for c, s in rows]
+        gap_min, gap_max = min(gaps), max(gaps)
+        # Client asset time when the response arrived minus when the request was sent.
+        lat = [int(c["response_time_usec"]) - int(c["client_time_usec"]) for c, _ in rows]
+        lat_min, lat_max = min(lat), max(lat)
         nbytes = int(rows[0][0]["bytes"])
         mean, p99, mx = stats(rtt)
         mbps = nbytes / (mean / 1e3) / 1e6 if nbytes else 0.0
         fps = 1e3 / (mean + decode)
         print(f"{size},{nbytes},{len(rows)},{mean:.3f},{p99:.3f},{mx:.3f},"
               f"{to_server:.3f},{fill:.3f},{encode:.3f},{put:.3f},{to_client:.3f},{decode:.3f},"
-              f"{mbps:.0f},{fps:.0f}")
+              f"{mbps:.0f},{fps:.0f},{gap_min},{gap_max},{lat_min},{lat_max}")
 
 
 if __name__ == "__main__":

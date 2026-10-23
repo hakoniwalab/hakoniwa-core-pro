@@ -1,7 +1,9 @@
-// Stage 5 benchmark server: polling style, unregistered external participant, no sleep.
+// Stage 5 benchmark server: polling style, no sleep. By default it does not register
+// as an asset; with --register it registers as a polling asset and takes part in
+// the time synchronization (asset_loop.hpp).
 // Answers hako_srv_msgs/RenderCamera with a dummy rgb8 image of the size named by
 // camera_name ("<width>x<height>") and logs per-request timestamps.
-#include "hakoniwa_asset_polling.h"
+#include "asset_loop.hpp"
 #include "hako_srv_msgs/pdu_cpptype_conv_RenderCameraRequestPacket.hpp"
 #include "hako_srv_msgs/pdu_cpptype_conv_RenderCameraResponsePacket.hpp"
 #include "bench_common.hpp"
@@ -11,6 +13,7 @@
 #include <cstdio>
 #include <fstream>
 #include <iostream>
+#include <string>
 
 namespace {
 constexpr const char* kService = "HakoCamera/RenderCamera";
@@ -23,37 +26,54 @@ void stop_handler(int) { keep_running = false; }
 int main(int argc, char** argv)
 {
     std::cout << std::unitbuf;
-    if (argc != 3) {
-        std::cerr << "Usage: " << argv[0] << " <service.json> <server.csv>\n";
+    const bool do_register = (argc == 4 && std::string(argv[3]) == "--register");
+    if (argc != 3 && !do_register) {
+        std::cerr << "Usage: " << argv[0] << " <service.json> <server.csv> [--register]\n";
         return 2;
     }
     std::signal(SIGINT, stop_handler);
     std::signal(SIGTERM, stop_handler);
+    constexpr const char* kAsset = "BenchServer";
     if (hakoniwa_asset_init() != 0 || hakoniwa_simevent_init() != 0 ||
+        (do_register && hakoniwa_asset_register_polling(kAsset) != 0) ||
         hako_asset_service_initialize(argv[1]) != 0) {
         std::cerr << "ERROR: initialization failed\n";
         return 1;
     }
     std::ofstream csv(argv[2]);
-    csv << "seq,detect_ns,request_read_ns,image_filled_ns,encoded_ns,put_ns\n";
+    csv << "seq,detect_ns,request_read_ns,image_filled_ns,encoded_ns,put_ns,server_time_usec\n";
 
     auto request_converter = hako::pdu::msgs::hako_srv_msgs::RenderCameraRequestPacket{};
     auto response_converter = hako::pdu::msgs::hako_srv_msgs::RenderCameraResponsePacket{};
     HakoCpp_RenderCameraResponsePacket response_packet{};
     int service_id = -1;
+    auto create_server = [&]() {
+        if (service_id < 0) {
+            service_id = hako_asset_service_server_create(do_register ? kAsset : nullptr, kService);
+            std::cout << "SERVER created id=" << service_id << "\n";
+        }
+        return service_id >= 0;
+    };
+    PollingAssetLoop loop{kAsset, 1000};
 
     while (keep_running) {
-        const int state = hakoniwa_simevent_get_state();
-        if (!((state == kStateRunnable || state == kStateRunning) && hakoniwa_asset_is_pdu_created())) {
-            continue;
-        }
-        if (service_id < 0) {
-            service_id = hako_asset_service_server_create(nullptr, kService);
-            if (service_id < 0) {
+        if (do_register) {
+            if (!loop.handle_event(create_server)) {
+                return 1;
+            }
+            if (!loop.running()) {
+                continue;
+            }
+            loop.advance_time();
+        } else {
+            const int state = hakoniwa_simevent_get_state();
+            if (!((state == kStateRunnable || state == kStateRunning) && hakoniwa_asset_is_pdu_created())) {
+                continue;
+            }
+            if (!create_server()) {
                 std::cerr << "ERROR: server_create failed\n";
                 return 1;
             }
-            std::cout << "SERVER created id=" << service_id << "\n";
         }
         if (hako_asset_service_server_poll(service_id) != HAKO_SERVICE_SERVER_API_REQUEST_IN) {
             continue;
@@ -102,7 +122,7 @@ int main(int argc, char** argv)
         }
         const int64_t t_put = bench_now_ns();
         csv << request_packet.body.sim_time_usec << ',' << t_detect << ',' << t_read << ','
-            << t_filled << ',' << t_encoded << ',' << t_put << '\n';
+            << t_filled << ',' << t_encoded << ',' << t_put << ',' << loop.local_time << '\n';
     }
     return 0;
 }
