@@ -25,6 +25,8 @@ constexpr hako_time_t kDeltaUsec = 1000;
 constexpr int kStateRunning = 2;
 constexpr int kEventStart = 1;
 constexpr int kEventStop = 2;
+// M_PI is not standard C++ (MSVC defines it only with _USE_MATH_DEFINES).
+constexpr double kPi = 3.14159265358979323846;
 
 struct Pose {
     double x, y, z, yaw_deg;
@@ -139,7 +141,7 @@ int main(int argc, char** argv)
         if (hako_asset_service_client_get_request_buffer(&handle, &packet, &packet_len,
                 HAKO_SERVICE_CLIENT_API_OPCODE_REQUEST, -1) != 0 ||
             !request_converter.pdu2cpp(packet, request)) return 1;
-        const double yaw = pose.yaw_deg * M_PI / 180.0;
+        const double yaw = pose.yaw_deg * kPi / 180.0;
         request.body.camera_name = camera_name;
         request.body.sim_time_usec = static_cast<Hako_uint64>(local_time);
         request.body.camera_pose.position.x = pose.x;
