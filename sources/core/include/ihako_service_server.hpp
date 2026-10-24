@@ -22,6 +22,8 @@ namespace hako::service {
             virtual bool send_response(int client_id, void* packet, int packet_len) = 0;
             virtual int get_current_client_id() = 0;
             virtual void next_client() = 0;
+            // Back to the state of a new run: every client IDLE, first client's turn.
+            virtual void reset_run_state() = 0;
             virtual HakoServiceServerStateType get_state() = 0;
 
 

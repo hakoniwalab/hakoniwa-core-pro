@@ -24,6 +24,7 @@ namespace hako::service::impl {
             char* recv_response() override;
             bool send_request(void* packet, int packet_len) override;
             HakoServiceClientStateType get_state() override { return state_; }
+            void reset_run_state() override { state_ = HAKO_SERVICE_CLIENT_STATE_IDLE; }
 
 
             int get_service_id() override { return service_id_; }

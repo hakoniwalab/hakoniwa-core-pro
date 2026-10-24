@@ -9,6 +9,7 @@
 #include <unordered_map>
 #include <vector>
 #include "hako_pro_data_types.hpp"
+#include "data/hako_base_data.hpp"
 #include "utils/hako_share/hako_shared_memory_factory.hpp"
 
 namespace hako::data::pro {
@@ -34,6 +35,7 @@ struct HakoServiceImplType {
 #define TOTAL_HAKO_PRO_DATA_SIZE (sizeof(HakoRecvEventTableType) + sizeof(HakoServiceTableType) + 1024)
 #define OFFSET_HAKO_RECV_EVENT_TABLE (0)
 #define OFFSET_HAKO_SERVICE_TABLE (sizeof(HakoRecvEventTableType))
+static_assert(sizeof(hako::data::pro::HakoProRunInfoType) <= 1024, "run info must fit in the spare area");
 class HakoProAssetExtension;
 class HakoProData : public std::enable_shared_from_this<HakoProData>, public hako::extension::IHakoMasterExtension {
     public:
@@ -85,6 +87,14 @@ class HakoProData : public std::enable_shared_from_this<HakoProData>, public hak
         {
             return shmp_;
         }
+        /*
+         * The service table and the recv event table hold configuration (services,
+         * client slots, which process watches which channel). They live as long as
+         * the conductor: created once here, kept across start/stop/reset (#109).
+         * Must be called from the conductor (master) only.
+         */
+        bool create_session_memory();
+        void clear_run_flags();
         virtual bool on_pdu_data_create() override;
         virtual bool on_pdu_data_load() override;
         virtual bool on_pdu_data_reset() override;
@@ -178,6 +188,26 @@ class HakoProData : public std::enable_shared_from_this<HakoProData>, public hak
         void set_service_table(HakoServiceTableType* table)
         {
             service_table_ = table;
+            run_info_ = (table == nullptr) ? nullptr
+                : reinterpret_cast<HakoProRunInfoType*>(reinterpret_cast<char*>(table) + sizeof(HakoServiceTableType));
+        }
+        // Acquire/release pair: a process that sees the new generation also sees the
+        // run state that was cleared for it.
+        // RPC is allowed only while Running: Runnable is published before the new
+        // run's PDU and service state are initialized (#109).
+        bool is_rpc_allowed()
+        {
+            return this->master_data_->ref_state_nolock() == HakoSim_Running;
+        }
+        uint32_t get_run_generation()
+        {
+            return (run_info_ == nullptr) ? 0 : hako_atomic_load_u32(&run_info_->run_generation);
+        }
+        void next_run_generation()
+        {
+            if (run_info_ != nullptr) {
+                (void)hako_atomic_fetch_add_u32(&run_info_->run_generation, 1);
+            }
         }
         HakoServiceTableType* get_service_table()
         {
@@ -239,6 +269,7 @@ class HakoProData : public std::enable_shared_from_this<HakoProData>, public hak
         }
         HakoRecvEventTableType* recv_event_table_;
         HakoServiceTableType* service_table_;
+        HakoProRunInfoType* run_info_ = nullptr;
         std::shared_ptr<HakoProAssetExtension> asset_extension_;
         std::shared_ptr<hako::utils::HakoSharedMemory> shmp_;
         std::string shm_type_;

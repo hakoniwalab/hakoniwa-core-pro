@@ -115,6 +115,9 @@ bool hako::init()
         pro_data_ptr = std::make_shared<hako::data::pro::HakoProData>(master_data_ptr);
         std::cout << "INFO: hako::init() : type: " << master_data_ptr->get_shm_type() << std::endl;
         pro_data_ptr->init(master_data_ptr->get_shm_type());
+        if (!pro_data_ptr->create_session_memory()) {
+            return false;
+        }
     }
     hako_log_build_limits("hako::init()");
     HAKO_LOG_INFO("hako::init(): shared memory type = %s", master_data_ptr->get_shm_type().c_str());

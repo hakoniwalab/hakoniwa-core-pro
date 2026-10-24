@@ -15,6 +15,9 @@ bool hako::service::HakoServiceServerProtocol::initialize(const char* serviceNam
         std::cerr << "ERROR: request_pdu_size_ or response_pdu_size_ is invalid" << std::endl;
         return false;
     }
+    if (auto pro_data = hako::data::pro::hako_pro_get_data()) {
+        run_generation_ = pro_data->get_run_generation();
+    }
     request_user_buffer_ = std::make_unique<char[]>(server_->get_request_pdu_size());
     response_user_buffer_ = std::make_unique<char[]>(server_->get_response_pdu_size());
     if (request_user_buffer_ == nullptr || response_user_buffer_ == nullptr) {
@@ -71,10 +74,32 @@ bool hako::service::HakoServiceServerProtocol::copy_user_buffer(const HakoCpp_Se
     int src_len = server_->get_request_pdu_size();
     memcpy(dst, src, src_len);
     request_header_ = header;
+    request_generation_ = run_generation_;
     return true;
+}
+/*
+ * The server object outlives a run (server_create returns the existing one), so a
+ * request left DOING when the simulation stopped would block the next run (#109).
+ */
+void hako::service::HakoServiceServerProtocol::reset_if_new_run()
+{
+    auto pro_data = hako::data::pro::hako_pro_get_data();
+    if (!pro_data) {
+        return;
+    }
+    const uint32_t generation = pro_data->get_run_generation();
+    if (generation == run_generation_) {
+        return;
+    }
+    server_->reset_run_state();
+    request_header_ = HakoCpp_ServiceRequestHeader{};
+    percentage_ = 0;
+    last_poll_time_ = 0;
+    run_generation_ = generation;
 }
 hako::service::HakoServiceServerEventType hako::service::HakoServiceServerProtocol::poll()
 {
+    reset_if_new_run();
     HakoCpp_ServiceRequestHeader header;
     auto event = HAKO_SERVICE_SERVER_EVENT_NONE;
     auto client_id = server_->get_current_client_id();
@@ -181,6 +206,19 @@ bool hako::service::HakoServiceServerProtocol::reply(char* packet, int packet_le
     }
     server_->next_client();
     return ret;
+}
+bool hako::service::HakoServiceServerProtocol::reply_to_current_request(char* packet, int packet_len)
+{
+    auto pro_data = hako::data::pro::hako_pro_get_data();
+    const uint32_t generation = pro_data ? pro_data->get_run_generation() : run_generation_;
+    const auto state = server_->get_state();
+    if (generation != request_generation_ ||
+        (state != HAKO_SERVICE_SERVER_STATE_DOING && state != HAKO_SERVICE_SERVER_STATE_CANCELING)) {
+        std::cerr << "WARN: response dropped: its request belongs to run " << request_generation_
+                  << ", current run " << generation << ", server state " << state << std::endl;
+        return false;
+    }
+    return reply(packet, packet_len);
 }
 void hako::service::HakoServiceServerProtocol::cancel_done()
 {
