@@ -242,6 +242,16 @@ hako_time_t hako_asset_simulation_time(void) {
         []() { return hako_asset_impl_get_world_time(); },
         static_cast<hako_time_t>(0));
 }
+int hako_asset_simulation_state(void) {
+    return hako::runtime::error::guard(
+        []() {
+            if (!hako_asset_instance.is_initialized || hako_asset_instance.hako_sim == nullptr) {
+                return -1;
+            }
+            return hako::asset::internal::to_public_simulation_state(hako_asset_impl_state());
+        },
+        -1);
+}
 hako_time_t hako_asset_current_time(void) {
     return hako::runtime::error::guard(
         []() { return hako_asset_impl_get_current_time(); },
