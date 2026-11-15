@@ -1,4 +1,7 @@
 #include "hako_asset_impl.hpp"
+#include <chrono>
+#include <cstdlib>
+#include <thread>
 #ifdef WIN32
 #else
 #include <unistd.h>
@@ -579,8 +582,30 @@ static void hako_asset_impl_pdus_write_done(void)
     }
 
 }
+/*
+ * While the world time has not reached this asset's next step, the step loop asks again at once
+ * (one core busy per asset). HAKO_ASSET_IDLE_SLEEP_USEC > 0 sleeps that long between the asks
+ * instead: the same choice as the conductor's HAKO_CONDUCTOR_IDLE_SLEEP_USEC, for runs paced to
+ * real time, where a wait late by the OS's sleep granularity is absorbed by the pacing. Only the
+ * waiting changes, not what a step does or in which order.
+ */
+static long hako_asset_idle_sleep_usec()
+{
+    static const long usec = [] {
+        const char* value = std::getenv("HAKO_ASSET_IDLE_SLEEP_USEC");
+        if (value == nullptr) {
+            return 0L;
+        }
+        char* end = nullptr;
+        long parsed = std::strtol(value, &end, 10);
+        return (end != value && parsed > 0) ? parsed : 0L;
+    }();
+    return usec;
+}
+
 static bool hako_asset_impl_proc(int (*is_force_stop)(void) = nullptr)
 {
+    const long idle_sleep_usec = hako_asset_idle_sleep_usec();
     while (hako_asset_impl_execute() == false) {
         if (is_force_stop != nullptr && is_force_stop() != 0) {
             std::cout << "INFO: force stop" << std::endl;
@@ -607,6 +632,9 @@ static bool hako_asset_impl_proc(int (*is_force_stop)(void) = nullptr)
         }
         else if (hako_asset_instance.hako_asset->is_pdu_sync_mode(hako_asset_instance.asset_name_str) == true) {
             hako_asset_impl_pdus_write_done();
+        }
+        else if (idle_sleep_usec > 0) {
+            std::this_thread::sleep_for(std::chrono::microseconds(idle_sleep_usec));
         }
     }
     return true;
