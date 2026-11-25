@@ -29,8 +29,7 @@ namespace hako::service {
             int get_request_pdu_size() { return server_->get_request_pdu_size(); }
             void* get_response_buffer(HakoServiceStatusType status, HakoServiceResultCodeType result_code);
             int   get_response_pdu_size() { return server_->get_response_pdu_size(); }
-            bool  reply(char* packet, int packet_len);
-            // reply() for the application: refuses a response whose request belongs to
+            // Application response: refuses a response whose request belongs to
             // a previous run or that has no request in progress.
             bool  reply_to_current_request(char* packet, int packet_len);
             void  cancel_done();
@@ -52,12 +51,16 @@ namespace hako::service {
             bool recv_request(int client_id, HakoCpp_ServiceRequestHeader& header, bool& data_recv_in);
             bool validate_header(HakoCpp_ServiceRequestHeader& header);
             bool copy_user_buffer(const HakoCpp_ServiceRequestHeader& header);
-            bool send_response(HakoServiceStatusType status, HakoServiceResultCodeType result_code);
-            bool  set_response_header(HakoCpp_ServiceResponseHeader& header, HakoServiceStatusType status, HakoServiceResultCodeType result_code);
+            bool send_packet(char* packet, int packet_len, bool complete);
+            bool send_response(HakoServiceStatusType status, HakoServiceResultCodeType result_code,
+                               const HakoCpp_ServiceRequestHeader& request);
+            void set_response_header(HakoCpp_ServiceResponseHeader& header, HakoServiceStatusType status,
+                                     HakoServiceResultCodeType result_code,
+                                     const HakoCpp_ServiceRequestHeader& request);
             std::unique_ptr<char[]> request_user_buffer_;
             std::unique_ptr<char[]> response_user_buffer_;
             int percentage_ = 0;
-            HakoTimeType last_poll_time_ = 0;
+            HakoTimeType last_progress_time_ = 0;
             uint32_t run_generation_ = 0;
             uint32_t request_generation_ = 0;
             void reset_if_new_run();

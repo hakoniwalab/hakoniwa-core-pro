@@ -80,7 +80,6 @@ namespace hako::service {
             int request_id_ = 0;
             int timeout_msec_ = 0;
             int heartbeat_confirmed_time_ = 0;
-            HakoTimeType last_poll_time_ = 0;
             uint32_t run_generation_ = 0;
             void reset_if_new_run();
     };

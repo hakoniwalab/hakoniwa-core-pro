@@ -11,6 +11,7 @@ add_executable(
     hako_command_runtime_probe_test.cpp
     hako_command_recovery_test.cpp
     hako_runtime_error_test.cpp
+    hako_service_interim_reply_test.cpp
 )
 
 target_include_directories(

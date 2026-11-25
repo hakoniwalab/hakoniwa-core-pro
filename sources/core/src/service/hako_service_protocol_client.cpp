@@ -43,7 +43,10 @@ bool hako::service::HakoServiceClientProtocol::recv_response(HakoCpp_ServiceResp
             std::cerr << "ERROR: header is invalid" << std::endl;
             return false;
         }
-        heartbeat_confirmed_time_ = get_current_time_usec();
+        if (header.request_id == request_header_.request_id
+            && header.result_code != HAKO_SERVICE_RESULT_CODE_BUSY) {
+            heartbeat_confirmed_time_ = get_current_time_usec();
+        }
         return true;
     }
     // no data received
@@ -89,7 +92,6 @@ void hako::service::HakoServiceClientProtocol::reset_if_new_run()
     }
     client_->reset_run_state();
     percentage_ = 0;
-    last_poll_time_ = 0;
     heartbeat_confirmed_time_ = 0;
     run_generation_ = generation;
 }
@@ -97,7 +99,6 @@ hako::service::HakoServiceClientEventType hako::service::HakoServiceClientProtoc
 {
     reset_if_new_run();
     HakoCpp_ServiceResponseHeader header;
-    auto event = HAKO_SERVICE_CLIENT_EVENT_NONE;
     auto state = client_->get_state();
     if (state == HAKO_SERVICE_CLIENT_STATE_IDLE) {
         return HAKO_SERVICE_CLIENT_EVENT_NONE;
@@ -121,41 +122,25 @@ hako::service::HakoServiceClientEventType hako::service::HakoServiceClientProtoc
         return HAKO_SERVICE_CLIENT_EVENT_NONE;
     }
 
-    //std::cout << "INFO: data_recv_in: status = " << (int)header.status << std::endl;
-    event = (header.result_code == HAKO_SERVICE_RESULT_CODE_CANCELED) ? HAKO_SERVICE_CLIENT_REQUEST_CANCEL_DONE : HAKO_SERVICE_CLIENT_RESPONSE_IN;
-    switch (header.status)
-    {
-        case HAKO_SERVICE_STATUS_DONE:
-            copy_user_buffer(header);
-            client_->event_done_service();
-            request_id_++;
-            heartbeat_confirmed_time_ = pro_data->get_world_time_usec();
-            break;
-        case HAKO_SERVICE_STATUS_ERROR:
+    if (header.status == HAKO_SERVICE_STATUS_DONE
+        || header.result_code == HAKO_SERVICE_RESULT_CODE_INVALID) {
+        if (header.status == HAKO_SERVICE_STATUS_ERROR) {
             std::cerr << "ERROR: service error" << std::endl;
-            copy_user_buffer(header);
-            client_->event_done_service();
-            request_id_++;
-            break;
-        case HAKO_SERVICE_STATUS_DOING:
-            if (request_header_.status_poll_interval_msec > 0) {
-                auto now = pro_data->get_world_time_usec();
-                if ((last_poll_time_ == 0) || (now - last_poll_time_) > request_header_.status_poll_interval_msec * 1000) {
-                    percentage_ = header.processing_percentage;
-                }
-                last_poll_time_ = now;
-            }
-            event = HAKO_SERVICE_CLIENT_EVENT_NONE;
-            break;
-        default:
-            //HAKO_SERVICE_STATUS_NONE
-            //HAKO_SERVICE_STATUS_CANCELING
-            //nothing to do
-            event = HAKO_SERVICE_CLIENT_EVENT_NONE;
-            break;
+        }
+        copy_user_buffer(header);
+        client_->event_done_service();
+        ++request_id_;
+        return header.result_code == HAKO_SERVICE_RESULT_CODE_CANCELED
+            ? HAKO_SERVICE_CLIENT_REQUEST_CANCEL_DONE
+            : HAKO_SERVICE_CLIENT_RESPONSE_IN;
     }
-
-    return event;
+    if (header.status == HAKO_SERVICE_STATUS_DOING
+        && request_header_.status_poll_interval_msec > 0
+        && header.request_id == request_header_.request_id
+        && header.result_code == HAKO_SERVICE_RESULT_CODE_OK) {
+        percentage_ = header.processing_percentage;
+    }
+    return HAKO_SERVICE_CLIENT_EVENT_NONE;
 }
 bool hako::service::HakoServiceClientProtocol::set_request_header(HakoCpp_ServiceRequestHeader& header, HakoServiceOperationCodeType opcode, int poll_interval_msec)
 {
@@ -202,6 +187,9 @@ void* hako::service::HakoServiceClientProtocol::get_response()
 bool hako::service::HakoServiceClientProtocol::request(char* packet, int packet_len, int timeout_msec)
 {
     reset_if_new_run();
+    if (client_->get_state() != HAKO_SERVICE_CLIENT_STATE_IDLE) {
+        return false;
+    }
     //std::cout << "INFO: request() packet_len=" << packet_len << std::endl;
     HakoCpp_ServiceRequestHeader header;
     int pdu_size = convertor_request_.pdu2cpp(packet, header);
@@ -212,7 +200,7 @@ bool hako::service::HakoServiceClientProtocol::request(char* packet, int packet_
     auto ret = client_->send_request(packet, packet_len);
     if (ret) {
         timeout_msec_ = timeout_msec;
-        last_poll_time_ = 0;
+        percentage_ = 0;
         heartbeat_confirmed_time_ = get_current_time_usec();
         request_header_ = header;
         client_->event_start_service();
